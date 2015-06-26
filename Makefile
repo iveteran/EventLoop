@@ -26,7 +26,7 @@ all: echoserver example
 example: example.cc $(OBJFILES) $(INCFILES)
 	$(CXX) $(LDFLAGS) -o example $(CFLAGS_OPT) $(LIBS) $^
 
-echoserver: example.cc $(OBJFILES) $(INCFILES)
+echoserver: echoserver.cc $(OBJFILES) $(INCFILES)
 	$(CXX) $(LDFLAGS) -o echoserver $(CFLAGS_OPT) $(LIBS) $^
 
 clean:
