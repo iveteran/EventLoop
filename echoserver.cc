@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
   el.AddEvent(&e);
 
   Signal s;
-  s.SetEvents(BaseSignalEvent::INT);
+  s.SetSignal(BaseSignalEvent::INT);
   el.AddEvent(&s);
 
   el.StartLoop();

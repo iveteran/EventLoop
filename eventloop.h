@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <time.h>
+#include <signal.h>
 #include <sys/epoll.h>
 
 namespace eventloop {
@@ -89,13 +90,51 @@ class BufferFileEvent : public BaseFileEvent {
 class BaseSignalEvent : public BaseEvent {
   friend class EventLoop;
  public:
-  static const uint32_t INT = 1 << 0;
-  static const uint32_t PIPE = 1 << 1;
-  static const uint32_t TERM = 1 << 2;
+  enum SIGNO {
+      UNDEFINED = 0,
+      HUP       = SIGHUP,
+      INT       = SIGINT,
+      QUIT      = SIGQUIT,
+      ILL       = SIGILL,
+      TRAP      = SIGTRAP,
+      ABRT      = SIGABRT,
+      BUS       = SIGBUS,
+      FPE       = SIGFPE,
+      KILL      = SIGKILL,
+      USR1      = SIGUSR1,
+      SEGV      = SIGSEGV,
+      USR2      = SIGUSR2,
+      PIPE      = SIGPIPE,
+      ALRM      = SIGALRM,
+      TERM      = SIGTERM,
+      STKFLT    = SIGSTKFLT,
+      CHLD      = SIGCHLD,
+      CONT      = SIGCONT,
+      STOP      = SIGSTOP,
+      TSTP      = SIGTSTP,
+      TTIN      = SIGTTIN,
+      TTOU      = SIGTTOU,
+      URG       = SIGURG,
+      XCPU      = SIGXCPU,
+      XFSZ      = SIGXFSZ,
+      VTALRM    = SIGVTALRM,
+      PROF      = SIGPROF,
+      WINCH     = SIGWINCH,
+      IO        = SIGIO,
+      PWR       = SIGPWR,
+      SYS       = SIGSYS,
+  };
 
  public:
   explicit BaseSignalEvent(uint32_t events = BaseEvent::NONE) : BaseEvent(events) {}
   virtual ~BaseSignalEvent() {};
+
+ public:
+  void SetSignal(SIGNO sig_no) { sig_no_ = sig_no; }
+  SIGNO Signal() const { return sig_no_; }
+
+ protected:
+  SIGNO sig_no_;
 };
 
 class BaseTimerEvent : public BaseEvent {

@@ -316,11 +316,11 @@ int EventLoop::AddEvent(BaseSignalEvent *e) {
 }
 
 int EventLoop::DeleteEvent(BaseSignalEvent *e) {
-  return SignalManager::Instance()->AddEvent(e);
+  return SignalManager::Instance()->DeleteEvent(e);
 }
 
 int EventLoop::UpdateEvent(BaseSignalEvent *e) {
-  return SignalManager::Instance()->AddEvent(e);
+  return SignalManager::Instance()->UpdateEvent(e);
 }
 
 int EventLoop::AddEvent(BufferFileEvent *e) {
@@ -338,7 +338,7 @@ int EventLoop::AddEvent(PeriodicTimerEvent *e) {
 void SignalHandler(int signo) {
   set<BaseSignalEvent *> events = SignalManager::Instance()->sig_events_[signo];
   for (set<BaseSignalEvent *>::iterator ite = events.begin(); ite != events.end(); ++ite) {
-    (*ite)->OnEvents(BaseSignalEvent::INT);
+    (*ite)->OnEvents(signo);
   }
 }
 
@@ -348,54 +348,20 @@ int SignalManager::AddEvent(BaseSignalEvent *e) {
   action.sa_flags = SA_RESTART;
   sigemptyset(&action.sa_mask);
 
-  if (e->events_ & BaseSignalEvent::INT) {
-    sig_events_[SIGINT].insert(e);
-    sigaction(SIGINT, &action, NULL);
-  }
-
-  if (e->events_ & BaseSignalEvent::PIPE) {
-    sig_events_[SIGPIPE].insert(e);
-    sigaction(SIGPIPE, &action, NULL);
-  }
-
-  if (e->events_ & BaseSignalEvent::TERM) {
-    sig_events_[SIGTERM].insert(e);
-    sigaction(SIGTERM, &action, NULL);
-  }
+  sig_events_[e->Signal()].insert(e);
+  sigaction(e->Signal(), &action, NULL);
 
   return 0;
 }
 
 int SignalManager::DeleteEvent(BaseSignalEvent *e) {
-  if (e->events_ & BaseSignalEvent::INT) {
-    sig_events_[SIGINT].erase(e);
-  }
-
-  if (e->events_ & BaseSignalEvent::PIPE) {
-    sig_events_[SIGPIPE].erase(e);
-  }
-
-  if (e->events_ & BaseSignalEvent::TERM) {
-    sig_events_[SIGTERM].erase(e);
-  }
+  sig_events_[e->Signal()].erase(e);
   return 0;
 }
 
 int SignalManager::UpdateEvent(BaseSignalEvent *e) {
-  if (e->events_ & BaseSignalEvent::INT) {
-    sig_events_[SIGINT].erase(e);
-    sig_events_[SIGINT].insert(e);
-  }
-
-  if (e->events_ & BaseSignalEvent::PIPE) {
-    sig_events_[SIGPIPE].erase(e);
-    sig_events_[SIGPIPE].insert(e);
-  }
-
-  if (e->events_ & BaseSignalEvent::TERM) {
-    sig_events_[SIGTERM].erase(e);
-    sig_events_[SIGTERM].insert(e);
-  }
+  sig_events_[e->Signal()].erase(e);
+  sig_events_[e->Signal()].insert(e);
   return 0;
 }
 
