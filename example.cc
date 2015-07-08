@@ -16,62 +16,6 @@ using namespace eventloop;
 
 EventLoop el;
 
-class BufferEvent : public BufferFileEvent {
- public:
-  BufferEvent() {
-    state_ = 0;
-    Recive(buf_, 1);
-  }
-
-  void OnRecived(char *buffer, uint32_t len) {
-    switch (state_) {
-      case 0:
-        len_ = buf_[0] - '0';
-        Recive(buf_, len_);
-        state_ = 1;
-        break;
-      case 1:
-        Send(buf_, len_);
-        state_ = 2;
-        break;
-      default:
-        break;
-    }
-  }
-
-  void OnSent(char *buffer, uint32_t len) {
-    state_ = 0;
-    Recive(buf_, 1);
-  }
-
-  void OnError() {
-  }
-
- private:
-  char buf_[1024];
-  int len_;
-  int state_;
-};
-
-class AcceptEvent: public BaseFileEvent {
- public:
-  void OnEvents(uint32_t events) {
-    if (events & BaseFileEvent::READ) {
-      uint32_t size = 0;
-      struct sockaddr_in addr;
-
-      int fd = accept(file, (struct sockaddr*)&addr, &size);
-      BufferEvent *e = new BufferEvent();
-      e->SetFile(fd);
-      el.AddEvent(e);
-    }
-
-    if (events & BaseFileEvent::ERROR) {
-      close(file);
-    }
-  }
-};
-
 class Periodic : public PeriodicTimerEvent {
  public:
   void OnTimer() {
@@ -105,21 +49,6 @@ class Signal : public BaseSignalEvent {
 };
 
 int main(int argc, char **argv) {
-  int fd;
-  AcceptEvent e;
-
-  e.SetEvents(BaseFileEvent::READ | BaseFileEvent::ERROR);
-
-  fd = BindTo("0.0.0.0", 11112);
-  if (fd == -1) {
-    printf("binding address %s", strerror(errno));
-    return -1;
-  }
-
-  e.SetFile(fd);
-
-  el.AddEvent(&e);
-
   Periodic p;
   Timer t;
   t.p = &p;

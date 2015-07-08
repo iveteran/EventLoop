@@ -15,6 +15,8 @@
 
 #include "eventloop.h"
 
+#define MAX_BYTES_RECEIVE       1024
+
 using std::set;
 using std::map;
 
@@ -366,52 +368,100 @@ int SignalManager::UpdateEvent(BaseSignalEvent *e) {
 }
 
 // BufferFileEvent implementation
+int BufferFileEvent::ReceiveData(string& rtn_data) {
+  char buffer[MAX_BYTES_RECEIVE] = {0};
+  int len = read(file, buffer, sizeof(buffer));
+  if (len <= 0) {
+    return len;    // occurs error or received EOF
+  }
+
+  recvbuf_ += string(buffer, len);
+  if (recvbuf_.size() >= torecv_) {
+    if (torecv_ > 0) {
+      rtn_data = recvbuf_.substr(0, torecv_);
+      recvbuf_ = recvbuf_.substr(torecv_);
+    }
+    else {
+      rtn_data = recvbuf_;
+      recvbuf_.clear();
+    }
+  }
+  return (!rtn_data.empty() ? rtn_data.size() : recvbuf_.size());
+}
+
+int BufferFileEvent::SendData() {
+  uint32_t total_sent = 0;
+  while (!sendbuf_list_.empty()) {
+    const string& sendbuf = sendbuf_list_.front();
+    uint32_t tosend = sendbuf.size();
+    int len = write(file, sendbuf.data() + sent_, tosend - sent_);
+    if (len < 0) {
+      return len;   // occurs error
+    }
+
+    sent_ += len;
+    total_sent += sent_;
+    if (sent_ == tosend) {
+      SetEvents(events_ & (~BaseFileEvent::WRITE));
+      el_->UpdateEvent(this);
+      OnSent(sendbuf);
+
+      sendbuf_list_.pop_front();
+      sent_ = 0;
+    }
+    else {
+      break;
+    }
+  }
+  return total_sent;
+}
+
 void BufferFileEvent::OnEvents(uint32_t events) {
   if (events & BaseFileEvent::READ) {
-    int len = read(file, recvbuf_ + recvd_, torecv_ - recvd_);
-    if (len <= 0) {
-      OnError();
+    string rtn_data;
+    int len = ReceiveData(rtn_data);
+    if (len < 0) {
+      OnError(strerror(errno));
+      return;
+    }
+    else if (len == 0 ) {
+      OnClosed();
       return;
     }
 
-    recvd_ += len;
-    if (recvd_ == torecv_) {
-      OnRecived(recvbuf_, recvd_);
+    if (!rtn_data.empty()) {
+      OnReceived(rtn_data);
     }
   }
 
   if (events & BaseFileEvent::WRITE) {
-    int len = write(file, sendbuf_ + sent_, tosend_ - sent_);
-    if (len < 0) {
-      OnError();
-      return;
-    }
-
-    sent_ += len;
-    if (sent_ == tosend_) {
-      SetEvents(events_ & (~BaseFileEvent::WRITE));
-      el_->UpdateEvent(this);
-      OnSent(sendbuf_, sent_);
+    while (!sendbuf_list_.empty()) {
+      int len = SendData();
+      if (len < 0) {
+        OnError(strerror(errno));
+        return;
+      }
     }
   }
 
   if (events & BaseFileEvent::ERROR) {
-    OnError();
+    OnError(strerror(errno));
     return;
   }
 
 }
 
-void BufferFileEvent::Recive(char *buffer, uint32_t len) {
-  recvbuf_ = buffer;
+void BufferFileEvent::SetReceiveLen(uint32_t len) {
   torecv_ = len;
-  recvd_ = 0;
 }
 
-void BufferFileEvent::Send(char *buffer, uint32_t len) {
-  sendbuf_ = buffer;
-  tosend_ = len;
-  sent_ = 0;
+void BufferFileEvent::Send(const char *buffer, uint32_t len) {
+  const string sendbuf(buffer, len);
+  Send(sendbuf);
+}
+
+void BufferFileEvent::Send(const string& buffer) {
+  sendbuf_list_.push_back(buffer);
   if (!(events_ & BaseFileEvent::WRITE)) {
     SetEvents(events_ | BaseFileEvent::WRITE);
     el_->UpdateEvent(this);

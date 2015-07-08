@@ -5,6 +5,10 @@
 #include <time.h>
 #include <signal.h>
 #include <sys/epoll.h>
+#include <string>
+#include <list>
+
+using std::string;
 
 namespace eventloop {
 
@@ -42,14 +46,14 @@ class BaseFileEvent : public BaseEvent {
   static const uint32_t  ERROR = 1 << 2;
 
  public:
-  explicit BaseFileEvent(uint32_t events = BaseEvent::NONE) : BaseEvent(events) {}
+  BaseFileEvent(uint32_t events = BaseEvent::NONE) : BaseEvent(events), file(-1) {}
   virtual ~BaseFileEvent() {};
 
  public:
   void SetFile(int fd) { file = fd; }
   int File() const { return file; }
 
- public:
+ protected:
   virtual void OnEvents(uint32_t events) = 0;
 
  protected:
@@ -59,29 +63,31 @@ class BaseFileEvent : public BaseEvent {
 class BufferFileEvent : public BaseFileEvent {
   friend class EventLoop;
  public:
-  explicit BufferFileEvent()
-    :BaseFileEvent(BaseFileEvent::READ | BaseFileEvent::ERROR) {
+  BufferFileEvent()
+    :BaseFileEvent(BaseFileEvent::READ | BaseFileEvent::ERROR), torecv_(0), sent_(0), el_(NULL) {
   }
   virtual ~BufferFileEvent() {};
 
  public:
-  void Recive(char *buffer, uint32_t len);
-  void Send(char *buffer, uint32_t len);
+  void SetReceiveLen(uint32_t len);
+  void Send(const char *buffer, uint32_t len);
+  void Send(const string& buffer);
 
-  virtual void OnRecived(char *buffer, uint32_t len) {};
-  virtual void OnSent(char *buffer, uint32_t len) {};
-  virtual void OnError() {};
+  virtual void OnReceived(const string& recvbuf) {};
+  virtual void OnSent(const string& sentbuf) {};
+  virtual void OnError(char* errstr) {};
+  virtual void OnClosed() {};
 
  private:
   void OnEvents(uint32_t events);
+  int ReceiveData(string& rtn_data);
+  int SendData();
 
  private:
-  char *recvbuf_;
+  string recvbuf_;
   uint32_t torecv_;
-  uint32_t recvd_;
 
-  char *sendbuf_;
-  uint32_t tosend_;
+  std::list<string> sendbuf_list_;
   uint32_t sent_;
 
   EventLoop *el_;
@@ -126,7 +132,7 @@ class BaseSignalEvent : public BaseEvent {
   };
 
  public:
-  explicit BaseSignalEvent(uint32_t events = BaseEvent::NONE) : BaseEvent(events) {}
+  BaseSignalEvent(uint32_t events = BaseEvent::NONE) : BaseEvent(events) {}
   virtual ~BaseSignalEvent() {};
 
  public:
@@ -143,7 +149,7 @@ class BaseTimerEvent : public BaseEvent {
   static const uint32_t TIMER = 1 << 0;
 
  public:
-  explicit BaseTimerEvent(uint32_t events = BaseEvent::NONE) : BaseEvent(events) {}
+  BaseTimerEvent(uint32_t events = BaseEvent::NONE) : BaseEvent(events) {}
   virtual ~BaseTimerEvent() {};
 
  public:
@@ -157,8 +163,8 @@ class BaseTimerEvent : public BaseEvent {
 class PeriodicTimerEvent : public BaseTimerEvent {
   friend class EventLoop;
  public:
-  explicit PeriodicTimerEvent() :BaseTimerEvent(BaseEvent::NONE), el_(NULL) {};
-  explicit PeriodicTimerEvent(timeval inter) :BaseTimerEvent(BaseEvent::NONE), interval_(inter), el_(NULL) {};
+  PeriodicTimerEvent() :BaseTimerEvent(BaseEvent::NONE), el_(NULL) {};
+  PeriodicTimerEvent(timeval inter) :BaseTimerEvent(BaseEvent::NONE), interval_(inter), el_(NULL) {};
   virtual ~PeriodicTimerEvent() {};
 
   void SetInterval(timeval inter) { interval_ = inter; }

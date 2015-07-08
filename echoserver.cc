@@ -16,27 +16,26 @@ using namespace eventloop;
 
 EventLoop el;
 
-class ReadEvent : public BaseFileEvent {
+class EchoConnection : public BufferFileEvent {
  public:
-  void OnEvents(uint32_t events) {
-    if (events & BaseFileEvent::READ) {
-      char a;
-      if (read(file, &a, sizeof(char)) == 0) {
-        close(file);
-        delete this;
-        return;
-      }
-      write(file, &a, sizeof(char));
+    void OnReceived(const std::string& buffer) {
+        printf("[EchoConnection::OnReceived] received string: %s\n", buffer.c_str());
+        Send(buffer);
     }
 
-    if (events & BaseFileEvent::ERROR) {
-      close(file);
+    void OnClosed() {
+      printf("[EchoConnection::OnClosed] fd: %d\n", file);
+      el.DeleteEvent(this);
       delete this;
     }
-  }
+
+    void OnError(char* errstr) {
+      printf("[EchoConnection::OnError] error string: %s\n", errstr);
+      //close(file);
+    }
 };
 
-class AcceptEvent: public BaseFileEvent {
+class EchoServer: public BaseFileEvent {
  public:
   void OnEvents(uint32_t events) {
     if (events & BaseFileEvent::READ) {
@@ -44,7 +43,7 @@ class AcceptEvent: public BaseFileEvent {
       struct sockaddr_in addr;
 
       int fd = accept(file, (struct sockaddr*)&addr, &size);
-      ReadEvent *e = new ReadEvent();
+      EchoConnection *e = new EchoConnection();
       e->SetFile(fd);
       e->SetEvents(BaseFileEvent::READ | BaseFileEvent::ERROR);
       el.AddEvent(e);
@@ -66,7 +65,7 @@ class Signal : public BaseSignalEvent {
 
 int main(int argc, char **argv) {
   int fd;
-  AcceptEvent e;
+  EchoServer e;
 
   e.SetEvents(BaseFileEvent::READ | BaseFileEvent::ERROR);
 
