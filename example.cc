@@ -23,7 +23,7 @@ class Periodic : public PeriodicTimerEvent {
   }
 };
 
-class Timer : public BaseTimerEvent {
+class Timer : public TimerEvent {
  public:
   void OnEvents(uint32_t events) {
     printf("timer:%u\n", static_cast<uint32_t>(time(0)));
@@ -40,7 +40,7 @@ class Timer : public BaseTimerEvent {
   Periodic *p;
 };
 
-class Signal : public BaseSignalEvent {
+class Signal : public SignalEvent {
  public:
   void OnEvents(uint32_t events) {
     printf("shutdown\n");
@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 
 
   Signal s;
-  s.SetSignal(BaseSignalEvent::INT);
+  s.SetSignal(SignalEvent::INT);
   el.AddEvent(&s);
 
   el.StartLoop();

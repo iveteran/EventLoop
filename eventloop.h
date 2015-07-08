@@ -15,7 +15,7 @@ namespace eventloop {
 class EventLoop;
 class SignalManager;
 
-class BaseEvent {
+class IEvent {
   friend class EventLoop;
   friend class SignalManager;
  public:
@@ -24,9 +24,9 @@ class BaseEvent {
   static const uint32_t  TIMEOUT = 1 << 31;
 
  public:
-  BaseEvent(uint32_t events = 0) { events_ = events; }
+  IEvent(uint32_t events = 0) { events_ = events; }
 
-  virtual ~BaseEvent() {};
+  virtual ~IEvent() {};
 
   virtual void OnEvents(uint32_t events) = 0;
 
@@ -38,7 +38,7 @@ class BaseEvent {
   uint32_t events_;
 };
 
-class BaseFileEvent : public BaseEvent {
+class IOEvent : public IEvent {
   friend class EventLoop;
  public:
   static const uint32_t  READ = 1 << 0;
@@ -46,8 +46,8 @@ class BaseFileEvent : public BaseEvent {
   static const uint32_t  ERROR = 1 << 2;
 
  public:
-  BaseFileEvent(uint32_t events = BaseEvent::NONE) : BaseEvent(events), file(-1) {}
-  virtual ~BaseFileEvent() {};
+  IOEvent(uint32_t events = IEvent::NONE) : IEvent(events), file(-1) {}
+  virtual ~IOEvent() {};
 
  public:
   void SetFile(int fd) { file = fd; }
@@ -60,13 +60,13 @@ class BaseFileEvent : public BaseEvent {
   int file;
 };
 
-class BufferFileEvent : public BaseFileEvent {
+class BufferIOEvent : public IOEvent {
   friend class EventLoop;
  public:
-  BufferFileEvent()
-    :BaseFileEvent(BaseFileEvent::READ | BaseFileEvent::ERROR), torecv_(0), sent_(0), el_(NULL) {
+  BufferIOEvent()
+    :IOEvent(IOEvent::READ | IOEvent::ERROR), torecv_(0), sent_(0), el_(NULL) {
   }
-  virtual ~BufferFileEvent() {};
+  virtual ~BufferIOEvent() {};
 
  public:
   void SetReceiveLen(uint32_t len);
@@ -93,7 +93,7 @@ class BufferFileEvent : public BaseFileEvent {
   EventLoop *el_;
 };
 
-class BaseSignalEvent : public BaseEvent {
+class SignalEvent : public IEvent {
   friend class EventLoop;
  public:
   enum SIGNO {
@@ -132,8 +132,8 @@ class BaseSignalEvent : public BaseEvent {
   };
 
  public:
-  BaseSignalEvent(uint32_t events = BaseEvent::NONE) : BaseEvent(events) {}
-  virtual ~BaseSignalEvent() {};
+  SignalEvent(uint32_t events = IEvent::NONE) : IEvent(events) {}
+  virtual ~SignalEvent() {};
 
  public:
   void SetSignal(SIGNO sig_no) { sig_no_ = sig_no; }
@@ -143,14 +143,14 @@ class BaseSignalEvent : public BaseEvent {
   SIGNO sig_no_;
 };
 
-class BaseTimerEvent : public BaseEvent {
+class TimerEvent : public IEvent {
   friend class EventLoop;
  public:
   static const uint32_t TIMER = 1 << 0;
 
  public:
-  BaseTimerEvent(uint32_t events = BaseEvent::NONE) : BaseEvent(events) {}
-  virtual ~BaseTimerEvent() {};
+  TimerEvent(uint32_t events = IEvent::NONE) : IEvent(events) {}
+  virtual ~TimerEvent() {};
 
  public:
   void SetTime(timeval tv) { time_ = tv; }
@@ -160,11 +160,11 @@ class BaseTimerEvent : public BaseEvent {
   timeval time_;
 };
 
-class PeriodicTimerEvent : public BaseTimerEvent {
+class PeriodicTimerEvent : public TimerEvent {
   friend class EventLoop;
  public:
-  PeriodicTimerEvent() :BaseTimerEvent(BaseEvent::NONE), el_(NULL) {};
-  PeriodicTimerEvent(timeval inter) :BaseTimerEvent(BaseEvent::NONE), interval_(inter), el_(NULL) {};
+  PeriodicTimerEvent() :TimerEvent(IEvent::NONE), el_(NULL) {};
+  PeriodicTimerEvent(timeval inter) :TimerEvent(IEvent::NONE), interval_(inter), el_(NULL) {};
   virtual ~PeriodicTimerEvent() {};
 
   void SetInterval(timeval inter) { interval_ = inter; }
@@ -193,19 +193,19 @@ class EventLoop {
 
  public:
   // add delete & update event objects
-  int AddEvent(BaseFileEvent *e);
-  int DeleteEvent(BaseFileEvent *e);
-  int UpdateEvent(BaseFileEvent *e);
+  int AddEvent(IOEvent *e);
+  int DeleteEvent(IOEvent *e);
+  int UpdateEvent(IOEvent *e);
 
-  int AddEvent(BaseTimerEvent *e);
-  int DeleteEvent(BaseTimerEvent *e);
-  int UpdateEvent(BaseTimerEvent *e);
+  int AddEvent(TimerEvent *e);
+  int DeleteEvent(TimerEvent *e);
+  int UpdateEvent(TimerEvent *e);
 
-  int AddEvent(BaseSignalEvent *e);
-  int DeleteEvent(BaseSignalEvent *e);
-  int UpdateEvent(BaseSignalEvent *e);
+  int AddEvent(SignalEvent *e);
+  int DeleteEvent(SignalEvent *e);
+  int UpdateEvent(SignalEvent *e);
 
-  int AddEvent(BufferFileEvent *e);
+  int AddEvent(BufferIOEvent *e);
   int AddEvent(PeriodicTimerEvent *e);
 
   // do epoll_waite and collect events

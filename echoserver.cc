@@ -16,7 +16,7 @@ using namespace eventloop;
 
 EventLoop el;
 
-class EchoConnection : public BufferFileEvent {
+class EchoConnection : public BufferIOEvent {
  public:
     void OnReceived(const std::string& buffer) {
         printf("[EchoConnection::OnReceived] received string: %s\n", buffer.c_str());
@@ -24,7 +24,7 @@ class EchoConnection : public BufferFileEvent {
     }
 
     void OnClosed() {
-      printf("[EchoConnection::OnClosed] fd: %d\n", file);
+      printf("[EchoConnection::OnClosed] client leave, fd: %d\n", file);
       el.DeleteEvent(this);
       delete this;
     }
@@ -35,27 +35,28 @@ class EchoConnection : public BufferFileEvent {
     }
 };
 
-class EchoServer: public BaseFileEvent {
+class EchoServer: public IOEvent {
  public:
   void OnEvents(uint32_t events) {
-    if (events & BaseFileEvent::READ) {
+    if (events & IOEvent::READ) {
       uint32_t size = 0;
       struct sockaddr_in addr;
 
       int fd = accept(file, (struct sockaddr*)&addr, &size);
       EchoConnection *e = new EchoConnection();
+      printf("[EchoServer::OnEvents] new client, fd: %d\n", file);
       e->SetFile(fd);
-      e->SetEvents(BaseFileEvent::READ | BaseFileEvent::ERROR);
+      e->SetEvents(IOEvent::READ | IOEvent::ERROR);
       el.AddEvent(e);
     }
 
-    if (events & BaseFileEvent::ERROR) {
+    if (events & IOEvent::ERROR) {
       close(file);
     }
   }
 };
 
-class Signal : public BaseSignalEvent {
+class Signal : public SignalEvent {
  public:
   void OnEvents(uint32_t events) {
     printf("shutdown\n");
@@ -67,7 +68,7 @@ int main(int argc, char **argv) {
   int fd;
   EchoServer e;
 
-  e.SetEvents(BaseFileEvent::READ | BaseFileEvent::ERROR);
+  e.SetEvents(IOEvent::READ | IOEvent::ERROR);
 
   fd = BindTo("0.0.0.0", 22222);
   if (fd == -1) {
@@ -80,7 +81,7 @@ int main(int argc, char **argv) {
   el.AddEvent(&e);
 
   Signal s;
-  s.SetSignal(BaseSignalEvent::INT);
+  s.SetSignal(SignalEvent::INT);
   el.AddEvent(&s);
 
   el.StartLoop();

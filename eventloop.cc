@@ -25,13 +25,13 @@ namespace eventloop {
 // singleton class that manages all signals
 class SignalManager {
  public:
-  int AddEvent(BaseSignalEvent *e);
-  int DeleteEvent(BaseSignalEvent *e);
-  int UpdateEvent(BaseSignalEvent *e);
+  int AddEvent(SignalEvent *e);
+  int DeleteEvent(SignalEvent *e);
+  int UpdateEvent(SignalEvent *e);
 
  private:
   friend void SignalHandler(int signo);
-  map<int, set<BaseSignalEvent *> > sig_events_;
+  map<int, set<SignalEvent *> > sig_events_;
 
  public:
   static SignalManager *Instance() {
@@ -50,22 +50,22 @@ SignalManager *SignalManager::instance_ = NULL;
 
 class TimerManager {
  public:
-  int AddEvent(BaseTimerEvent *e);
-  int DeleteEvent(BaseTimerEvent *e);
-  int UpdateEvent(BaseTimerEvent *e);
+  int AddEvent(TimerEvent *e);
+  int DeleteEvent(TimerEvent *e);
+  int UpdateEvent(TimerEvent *e);
 
  private:
   friend class EventLoop;
   class Compare {
    public:
-    bool operator()(const BaseTimerEvent *e1, const BaseTimerEvent *e2) {
+    bool operator()(const TimerEvent *e1, const TimerEvent *e2) {
       timeval t1 = e1->Time();
       timeval t2 = e2->Time();
       return (t1.tv_sec < t2.tv_sec) || (t1.tv_sec == t2.tv_sec && t1.tv_usec < t2.tv_usec);
     }
   };
 
-  typedef set<BaseTimerEvent *, Compare> TimerSet;
+  typedef set<TimerEvent *, Compare> TimerSet;
 
  private:
   TimerSet timers_;
@@ -157,15 +157,15 @@ static timeval TimeAdd(timeval tv1, timeval tv2) {
 }
 
 // TimerManager implementation
-int TimerManager::AddEvent(BaseTimerEvent *e) {
+int TimerManager::AddEvent(TimerEvent *e) {
   return !timers_.insert(e).second;
 }
 
-int TimerManager::DeleteEvent(BaseTimerEvent *e) {
+int TimerManager::DeleteEvent(TimerEvent *e) {
   return timers_.erase(e) != 1;
 }
 
-int TimerManager::UpdateEvent(BaseTimerEvent *e) {
+int TimerManager::UpdateEvent(TimerEvent *e) {
   timers_.erase(e);
   return !timers_.insert(e).second;
 }
@@ -216,9 +216,9 @@ int EventLoop::DoTimeout() {
     timeval tv = (*ite)->Time();
     if (TimeDiff(now_, tv) < 0) break;
     n++;
-    BaseTimerEvent *e = *ite;
+    TimerEvent *e = *ite;
     timers.erase(ite);
-    e->OnEvents(BaseTimerEvent::TIMER);
+    e->OnEvents(TimerEvent::TIMER);
     ite = timers.begin();
   }
   return n;
@@ -234,11 +234,11 @@ int EventLoop::ProcessEvents(int timeout) {
   nt = DoTimeout();
 
   for(i = 0; i < n; i++) {
-    BaseEvent *e = (BaseEvent *)evs_[i].data.ptr;
+    IEvent *e = (IEvent *)evs_[i].data.ptr;
     uint32_t events = 0;
-    if (evs_[i].events & EPOLLIN) events |= BaseFileEvent::READ;
-    if (evs_[i].events & EPOLLOUT) events |= BaseFileEvent::WRITE;
-    if (evs_[i].events & (EPOLLHUP | EPOLLERR)) events |= BaseFileEvent::ERROR;
+    if (evs_[i].events & EPOLLIN) events |= IOEvent::READ;
+    if (evs_[i].events & EPOLLOUT) events |= IOEvent::WRITE;
+    if (evs_[i].events & (EPOLLHUP | EPOLLERR)) events |= IOEvent::ERROR;
     e->OnEvents(events);
   }
 
@@ -266,14 +266,14 @@ void EventLoop::StartLoop() {
   }
 }
 
-int EventLoop::AddEvent(BaseFileEvent *e) {
+int EventLoop::AddEvent(IOEvent *e) {
   epoll_event ev = {0, {0}};
   uint32_t events = e->events_;
 
   ev.events = 0;
-  if (events & BaseFileEvent::READ) ev.events |= EPOLLIN;
-  if (events & BaseFileEvent::WRITE) ev.events |= EPOLLOUT;
-  if (events & BaseFileEvent::ERROR) ev.events |= EPOLLHUP | EPOLLERR;
+  if (events & IOEvent::READ) ev.events |= EPOLLIN;
+  if (events & IOEvent::WRITE) ev.events |= EPOLLOUT;
+  if (events & IOEvent::ERROR) ev.events |= EPOLLHUP | EPOLLERR;
   ev.data.fd = e->file;
   ev.data.ptr = e;
 
@@ -282,69 +282,69 @@ int EventLoop::AddEvent(BaseFileEvent *e) {
   return epoll_ctl(epfd_, EPOLL_CTL_ADD, e->file, &ev);
 }
 
-int EventLoop::UpdateEvent(BaseFileEvent *e) {
+int EventLoop::UpdateEvent(IOEvent *e) {
   epoll_event ev = {0, {0}};
   uint32_t events = e->events_;
 
   ev.events = 0;
-  if (events & BaseFileEvent::READ) ev.events |= EPOLLIN;
-  if (events & BaseFileEvent::WRITE) ev.events |= EPOLLOUT;
-  if (events & BaseFileEvent::ERROR) ev.events |= EPOLLHUP | EPOLLERR;
+  if (events & IOEvent::READ) ev.events |= EPOLLIN;
+  if (events & IOEvent::WRITE) ev.events |= EPOLLOUT;
+  if (events & IOEvent::ERROR) ev.events |= EPOLLHUP | EPOLLERR;
   ev.data.fd = e->file;
   ev.data.ptr = e;
 
   return epoll_ctl(epfd_, EPOLL_CTL_MOD, e->file, &ev);
 }
 
-int EventLoop::DeleteEvent(BaseFileEvent *e) {
+int EventLoop::DeleteEvent(IOEvent *e) {
   epoll_event ev; // kernel before 2.6.9 requires
   return epoll_ctl(epfd_, EPOLL_CTL_DEL, e->file, &ev);
 }
 
-int EventLoop::AddEvent(BaseTimerEvent *e) {
+int EventLoop::AddEvent(TimerEvent *e) {
   return static_cast<TimerManager *>(timermanager_)->AddEvent(e);
 }
 
-int EventLoop::UpdateEvent(BaseTimerEvent *e) {
+int EventLoop::UpdateEvent(TimerEvent *e) {
   return static_cast<TimerManager *>(timermanager_)->UpdateEvent(e);
 }
 
-int EventLoop::DeleteEvent(BaseTimerEvent *e) {
+int EventLoop::DeleteEvent(TimerEvent *e) {
   return static_cast<TimerManager *>(timermanager_)->DeleteEvent(e);
 }
 
-int EventLoop::AddEvent(BaseSignalEvent *e) {
+int EventLoop::AddEvent(SignalEvent *e) {
   return SignalManager::Instance()->AddEvent(e);
 }
 
-int EventLoop::DeleteEvent(BaseSignalEvent *e) {
+int EventLoop::DeleteEvent(SignalEvent *e) {
   return SignalManager::Instance()->DeleteEvent(e);
 }
 
-int EventLoop::UpdateEvent(BaseSignalEvent *e) {
+int EventLoop::UpdateEvent(SignalEvent *e) {
   return SignalManager::Instance()->UpdateEvent(e);
 }
 
-int EventLoop::AddEvent(BufferFileEvent *e) {
-  AddEvent(dynamic_cast<BaseFileEvent *>(e));
+int EventLoop::AddEvent(BufferIOEvent *e) {
+  AddEvent(dynamic_cast<IOEvent *>(e));
   e->el_ = this;
   return 0;
 }
 
 int EventLoop::AddEvent(PeriodicTimerEvent *e) {
-  AddEvent(dynamic_cast<BaseTimerEvent *>(e));
+  AddEvent(dynamic_cast<TimerEvent *>(e));
   e->el_ = this;
   return 0;
 }
 
 void SignalHandler(int signo) {
-  set<BaseSignalEvent *> events = SignalManager::Instance()->sig_events_[signo];
-  for (set<BaseSignalEvent *>::iterator ite = events.begin(); ite != events.end(); ++ite) {
+  set<SignalEvent *> events = SignalManager::Instance()->sig_events_[signo];
+  for (set<SignalEvent *>::iterator ite = events.begin(); ite != events.end(); ++ite) {
     (*ite)->OnEvents(signo);
   }
 }
 
-int SignalManager::AddEvent(BaseSignalEvent *e) {
+int SignalManager::AddEvent(SignalEvent *e) {
   struct sigaction action;
   action.sa_handler = SignalHandler;
   action.sa_flags = SA_RESTART;
@@ -356,19 +356,19 @@ int SignalManager::AddEvent(BaseSignalEvent *e) {
   return 0;
 }
 
-int SignalManager::DeleteEvent(BaseSignalEvent *e) {
+int SignalManager::DeleteEvent(SignalEvent *e) {
   sig_events_[e->Signal()].erase(e);
   return 0;
 }
 
-int SignalManager::UpdateEvent(BaseSignalEvent *e) {
+int SignalManager::UpdateEvent(SignalEvent *e) {
   sig_events_[e->Signal()].erase(e);
   sig_events_[e->Signal()].insert(e);
   return 0;
 }
 
-// BufferFileEvent implementation
-int BufferFileEvent::ReceiveData(string& rtn_data) {
+// BufferIOEvent implementation
+int BufferIOEvent::ReceiveData(string& rtn_data) {
   char buffer[MAX_BYTES_RECEIVE] = {0};
   int len = read(file, buffer, sizeof(buffer));
   if (len <= 0) {
@@ -389,7 +389,7 @@ int BufferFileEvent::ReceiveData(string& rtn_data) {
   return (!rtn_data.empty() ? rtn_data.size() : recvbuf_.size());
 }
 
-int BufferFileEvent::SendData() {
+int BufferIOEvent::SendData() {
   uint32_t total_sent = 0;
   while (!sendbuf_list_.empty()) {
     const string& sendbuf = sendbuf_list_.front();
@@ -402,7 +402,7 @@ int BufferFileEvent::SendData() {
     sent_ += len;
     total_sent += sent_;
     if (sent_ == tosend) {
-      SetEvents(events_ & (~BaseFileEvent::WRITE));
+      SetEvents(events_ & (~IOEvent::WRITE));
       el_->UpdateEvent(this);
       OnSent(sendbuf);
 
@@ -416,8 +416,8 @@ int BufferFileEvent::SendData() {
   return total_sent;
 }
 
-void BufferFileEvent::OnEvents(uint32_t events) {
-  if (events & BaseFileEvent::READ) {
+void BufferIOEvent::OnEvents(uint32_t events) {
+  if (events & IOEvent::READ) {
     string rtn_data;
     int len = ReceiveData(rtn_data);
     if (len < 0) {
@@ -434,7 +434,7 @@ void BufferFileEvent::OnEvents(uint32_t events) {
     }
   }
 
-  if (events & BaseFileEvent::WRITE) {
+  if (events & IOEvent::WRITE) {
     while (!sendbuf_list_.empty()) {
       int len = SendData();
       if (len < 0) {
@@ -444,26 +444,26 @@ void BufferFileEvent::OnEvents(uint32_t events) {
     }
   }
 
-  if (events & BaseFileEvent::ERROR) {
+  if (events & IOEvent::ERROR) {
     OnError(strerror(errno));
     return;
   }
 
 }
 
-void BufferFileEvent::SetReceiveLen(uint32_t len) {
+void BufferIOEvent::SetReceiveLen(uint32_t len) {
   torecv_ = len;
 }
 
-void BufferFileEvent::Send(const char *buffer, uint32_t len) {
+void BufferIOEvent::Send(const char *buffer, uint32_t len) {
   const string sendbuf(buffer, len);
   Send(sendbuf);
 }
 
-void BufferFileEvent::Send(const string& buffer) {
+void BufferIOEvent::Send(const string& buffer) {
   sendbuf_list_.push_back(buffer);
-  if (!(events_ & BaseFileEvent::WRITE)) {
-    SetEvents(events_ | BaseFileEvent::WRITE);
+  if (!(events_ & IOEvent::WRITE)) {
+    SetEvents(events_ | IOEvent::WRITE);
     el_->UpdateEvent(this);
   }
 }
