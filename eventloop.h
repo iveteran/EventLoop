@@ -10,7 +10,7 @@
 
 using std::string;
 
-namespace eventloop {
+namespace richinfo {
 
 class EventLoop;
 class SignalManager;
@@ -231,6 +231,9 @@ class EventLoop {
 
 int SetNonblocking(int fd);
 
-}
+}  // ns richinfo
+
+#include "singleton_tmpl.h"
+#define EV_Singleton       (Singleton<EventLoop>::GetInstance())
 
 #endif // EVENT_LOOP_H_

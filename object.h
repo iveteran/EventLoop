@@ -8,6 +8,8 @@
 using std::string;
 using std::stringstream;
 
+namespace richinfo {
+
 class Object
 {
     public:
@@ -104,5 +106,7 @@ class ObjectSerializable : public Object
     string     m_serialized_bytes;
 #undef Parent
 };
+
+}  // namespace richinfo
 
 #endif // _OBJECT_H

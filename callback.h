@@ -3,6 +3,8 @@
 
 #include "object.h"
 
+namespace richinfo {
+
 template < typename ClassName >
 class ICallback : public Object
 {
@@ -172,5 +174,7 @@ class Callback3 : public ICallback<ClassName>
     Method      m_method;
 #undef Parent
 };
+
+}   // namespace richinfo
 
 #endif  // _CALLBACK_H

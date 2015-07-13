@@ -1,90 +1,76 @@
 #include <stdio.h>
-#include <time.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <errno.h>
+#include <tuple>
 
-#include "eventloop.h"
+#include "tcp_server.h"
+#include "tcp_client.h"
 
-using namespace eventloop;
+namespace richinfo {
 
-EventLoop el;
+class BusinessTester {
+    public:
+    BusinessTester() : echoserver_("0.0.0.0", 22222), echoclient_("localhost", 22222)
+    {
+        echoserver_.SetOnMessageCb(OnMessageCallback(this, &BusinessTester::EchoServerMsgHandler2));
+        echoclient_.SetOnMessageCb(OnMessageCallback(this, &BusinessTester::EchoClientMsgHandler2));
 
-class EchoConnection : public BufferIOEvent {
- public:
-    void OnReceived(const std::string& buffer) {
-        printf("[EchoConnection::OnReceived] received string: %s\n", buffer.c_str());
-        Send(buffer);
+        echoclient_.Send("hello");
     }
 
-    void OnClosed() {
-      printf("[EchoConnection::OnClosed] client leave, fd: %d\n", file);
-      el.DeleteEvent(this);
-      delete this;
+    protected:
+    void EchoServerMsgHandler(std::tuple<TcpConnection*, const string*> conn_msg_tuple)
+    {
+        TcpConnection* conn = std::get<0>(conn_msg_tuple);
+        const string* msg = std::get<1>(conn_msg_tuple);
+
+        printf("[echoserver] fd: %d, message: %s\n", conn->FD(), msg->c_str());
+        conn->Send(*msg);
+    }
+    void EchoClientMsgHandler(std::tuple<TcpConnection*, const string*> conn_msg_tuple)
+    {
+        TcpConnection* conn = std::get<0>(conn_msg_tuple);
+        const string* msg = std::get<1>(conn_msg_tuple);
+
+        printf("[echoclient] fd: %d, message: %s\n", conn->FD(), msg->c_str());
+    }
+    void EchoServerMsgHandler2(TcpConnection* conn, const string* msg)
+    {
+        printf("[echoserver] fd: %d, message: %s\n", conn->FD(), msg->c_str());
+        conn->Send(*msg);
+    }
+    void EchoClientMsgHandler2(TcpConnection* conn, const string* msg)
+    {
+        printf("[echoclient] fd: %d, message: %s\n", conn->FD(), msg->c_str());
     }
 
-    void OnError(char* errstr) {
-      printf("[EchoConnection::OnError] error string: %s\n", errstr);
-      //close(file);
-    }
+    private:
+    TcpServer echoserver_;
+    TcpClient echoclient_;
 };
 
-class EchoServer: public IOEvent {
+class SignalHandler : public SignalEvent {
  public:
-  void OnEvents(uint32_t events) {
-    if (events & IOEvent::READ) {
-      uint32_t size = 0;
-      struct sockaddr_in addr;
-
-      int fd = accept(file, (struct sockaddr*)&addr, &size);
-      EchoConnection *e = new EchoConnection();
-      printf("[EchoServer::OnEvents] new client, fd: %d\n", file);
-      e->SetFile(fd);
-      e->SetEvents(IOEvent::READ | IOEvent::ERROR);
-      el.AddEvent(e);
-    }
-
-    if (events & IOEvent::ERROR) {
-      close(file);
-    }
+  SignalHandler()
+  {
+      SetSignal(SignalEvent::INT);
+      EV_Singleton->AddEvent(this);
   }
-};
 
-class Signal : public SignalEvent {
- public:
+ protected:
   void OnEvents(uint32_t events) {
     printf("shutdown\n");
-    el.StopLoop();
+    EV_Singleton->StopLoop();
   }
 };
 
+}  // ns richinfo
+
+using namespace richinfo;
+
 int main(int argc, char **argv) {
-  int fd;
-  EchoServer e;
+  BusinessTester biz_tester;
+  SignalHandler s;
 
-  e.SetEvents(IOEvent::READ | IOEvent::ERROR);
-
-  fd = BindTo("0.0.0.0", 22222);
-  if (fd == -1) {
-    printf("binding address %s", strerror(errno));
-    return -1;
-  }
-
-  e.SetFile(fd);
-
-  el.AddEvent(&e);
-
-  Signal s;
-  s.SetSignal(SignalEvent::INT);
-  el.AddEvent(&s);
-
-  el.StartLoop();
+  EV_Singleton->StartLoop();
 
   return 0;
 }
