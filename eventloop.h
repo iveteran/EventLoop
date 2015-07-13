@@ -59,7 +59,7 @@ class IOEvent : public IEvent {
  protected:
   virtual void OnCreated(int fd) {};
   virtual void OnClosed() {};
-  virtual void OnError(char* errstr) {};
+  virtual void OnError(const char* errstr) {};
 
   virtual void OnEvents(uint32_t events) = 0;
 
