@@ -24,7 +24,7 @@ class IEvent {
   static const uint32_t  TIMEOUT = 1 << 31;
 
  public:
-  IEvent(uint32_t events = 0) { events_ = events; }
+  IEvent(uint32_t events = 0) : el_(NULL) { events_ = events; }
 
   virtual ~IEvent() {};
 
@@ -36,6 +36,7 @@ class IEvent {
 
  protected:
   uint32_t events_;
+  EventLoop *el_;
 };
 
 class IOEvent : public IEvent {
@@ -44,39 +45,42 @@ class IOEvent : public IEvent {
   static const uint32_t  READ = 1 << 0;
   static const uint32_t  WRITE = 1 << 1;
   static const uint32_t  ERROR = 1 << 2;
+  static const uint32_t  CREATE = 1 << 3;
+  static const uint32_t  CLOSED = 1 << 4;
 
  public:
-  IOEvent(uint32_t events = IEvent::NONE) : IEvent(events), file(-1) {}
-  virtual ~IOEvent() {};
+  IOEvent(uint32_t events = IEvent::NONE) : IEvent(events), fd_(-1) {}
+  virtual ~IOEvent() { };
 
  public:
-  void SetFile(int fd) { file = fd; }
-  int File() const { return file; }
+  void SetFD(int fd) { fd_ = fd; }
+  int FD() const { return fd_; }
 
  protected:
+  virtual void OnCreated(int fd) {};
+  virtual void OnClosed() {};
+  virtual void OnError(char* errstr) {};
+
   virtual void OnEvents(uint32_t events) = 0;
 
  protected:
-  int file;
+  int fd_;
 };
 
 class BufferIOEvent : public IOEvent {
   friend class EventLoop;
- public:
-  BufferIOEvent()
-    :IOEvent(IOEvent::READ | IOEvent::ERROR), torecv_(0), sent_(0), el_(NULL) {
+ public: BufferIOEvent(uint32_t events = IOEvent::READ | IOEvent::ERROR)
+    :IOEvent(events), torecv_(0), sent_(0)/*, el_(NULL)*/ {
   }
-  virtual ~BufferIOEvent() {};
 
  public:
   void SetReceiveLen(uint32_t len);
   void Send(const char *buffer, uint32_t len);
   void Send(const string& buffer);
 
+ protected:
   virtual void OnReceived(const string& recvbuf) {};
   virtual void OnSent(const string& sentbuf) {};
-  virtual void OnError(char* errstr) {};
-  virtual void OnClosed() {};
 
  private:
   void OnEvents(uint32_t events);
@@ -89,8 +93,6 @@ class BufferIOEvent : public IOEvent {
 
   std::list<string> sendbuf_list_;
   uint32_t sent_;
-
-  EventLoop *el_;
 };
 
 class SignalEvent : public IEvent {
@@ -133,7 +135,6 @@ class SignalEvent : public IEvent {
 
  public:
   SignalEvent(uint32_t events = IEvent::NONE) : IEvent(events) {}
-  virtual ~SignalEvent() {};
 
  public:
   void SetSignal(SIGNO sig_no) { sig_no_ = sig_no; }
@@ -150,7 +151,6 @@ class TimerEvent : public IEvent {
 
  public:
   TimerEvent(uint32_t events = IEvent::NONE) : IEvent(events) {}
-  virtual ~TimerEvent() {};
 
  public:
   void SetTime(timeval tv) { time_ = tv; }
@@ -163,11 +163,11 @@ class TimerEvent : public IEvent {
 class PeriodicTimerEvent : public TimerEvent {
   friend class EventLoop;
  public:
-  PeriodicTimerEvent() :TimerEvent(IEvent::NONE), el_(NULL) {};
-  PeriodicTimerEvent(timeval inter) :TimerEvent(IEvent::NONE), interval_(inter), el_(NULL) {};
-  virtual ~PeriodicTimerEvent() {};
+  PeriodicTimerEvent() :TimerEvent(IEvent::NONE)/*, el_(NULL)*/ {};
+  PeriodicTimerEvent(timeval inter) :TimerEvent(IEvent::NONE), interval_(inter)/*, el_(NULL)*/ {};
 
   void SetInterval(timeval inter) { interval_ = inter; }
+  timeval GetInterval() const { return interval_; }
 
   void Start();
   void Stop();
@@ -182,8 +182,6 @@ class PeriodicTimerEvent : public TimerEvent {
  private:
   timeval interval_;
   bool running_;
-
-  EventLoop *el_;
 };
 
 class EventLoop {
@@ -232,10 +230,6 @@ class EventLoop {
 };
 
 int SetNonblocking(int fd);
-
-int BindTo(const char *host, short port);
-
-int ConnectTo(const char *host, short port, bool async);
 
 }
 

@@ -22,6 +22,17 @@ using std::map;
 
 namespace eventloop {
 
+int SetNonblocking(int fd) {
+  int opts;
+  if ((opts = fcntl(fd, F_GETFL)) != -1) {
+    opts = opts | O_NONBLOCK;
+    if(fcntl(fd, F_SETFL, opts) != -1) {
+      return 0;
+    }
+  }
+  return -1;
+}
+
 // singleton class that manages all signals
 class SignalManager {
  public:
@@ -70,76 +81,6 @@ class TimerManager {
  private:
   TimerSet timers_;
 };
-
-int SetNonblocking(int fd) {
-  int opts;
-  if ((opts = fcntl(fd, F_GETFL)) != -1) {
-    opts = opts | O_NONBLOCK;
-    if(fcntl(fd, F_SETFL, opts) != -1) {
-      return 0;
-    }
-  }
-  return -1;
-}
-
-int ConnectTo(const char *host, short port, bool async) {
-  int fd;
-  sockaddr_in addr;
-
-  if (host == NULL) return -1;
-
-  fd = socket(AF_INET, SOCK_STREAM, 0);
-  addr.sin_family = PF_INET;
-  addr.sin_port = htons(port);
-  if (host[0] == '\0' || strcmp(host, "localhost") == 0) {
-    inet_aton("127.0.0.1", &addr.sin_addr);
-  } else if (!strcmp(host, "any")) {
-    addr.sin_addr.s_addr = INADDR_ANY;
-  } else {
-    inet_aton(host, &addr.sin_addr);
-  }
-
-  if (async) SetNonblocking(fd);
-
-  if (connect(fd, (sockaddr*)&addr, sizeof(sockaddr_in)) == -1) {
-    if (errno != EINPROGRESS) {
-      close(fd);
-      return -1;
-    }
-  }
-
-  return fd;
-}
-
-int BindTo(const char *host, short port) {
-  int fd, on = 1;
-  sockaddr_in addr;
-
-  if (host == NULL) return -1;
-
-  if ((fd = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
-    return -1;
-  }
-
-  setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
-
-  memset(&addr, 0, sizeof(sockaddr_in));
-  addr.sin_family = PF_INET;
-  addr.sin_port = htons(port);
-  if (host[0] == '\0' || strcmp(host, "localhost") == 0) {
-    inet_aton("127.0.0.1", &addr.sin_addr);
-  } else if (strcmp(host, "any") == 0) {
-    addr.sin_addr.s_addr = INADDR_ANY;
-  } else {
-    if (inet_aton(host, &addr.sin_addr) == 0) return -1;
-  }
-
-  if (bind(fd, (sockaddr*)&addr, sizeof(sockaddr_in)) == -1 || listen(fd, 10) == -1) {
-    return -1;
-  }
-
-  return fd;
-}
 
 // return time diff in ms
 static int TimeDiff(timeval tv1, timeval tv2) {
@@ -274,12 +215,12 @@ int EventLoop::AddEvent(IOEvent *e) {
   if (events & IOEvent::READ) ev.events |= EPOLLIN;
   if (events & IOEvent::WRITE) ev.events |= EPOLLOUT;
   if (events & IOEvent::ERROR) ev.events |= EPOLLHUP | EPOLLERR;
-  ev.data.fd = e->file;
+  ev.data.fd = e->fd_;
   ev.data.ptr = e;
 
-  SetNonblocking(e->file);
+  SetNonblocking(e->fd_);
 
-  return epoll_ctl(epfd_, EPOLL_CTL_ADD, e->file, &ev);
+  return epoll_ctl(epfd_, EPOLL_CTL_ADD, e->fd_, &ev);
 }
 
 int EventLoop::UpdateEvent(IOEvent *e) {
@@ -290,18 +231,19 @@ int EventLoop::UpdateEvent(IOEvent *e) {
   if (events & IOEvent::READ) ev.events |= EPOLLIN;
   if (events & IOEvent::WRITE) ev.events |= EPOLLOUT;
   if (events & IOEvent::ERROR) ev.events |= EPOLLHUP | EPOLLERR;
-  ev.data.fd = e->file;
+  ev.data.fd = e->fd_;
   ev.data.ptr = e;
 
-  return epoll_ctl(epfd_, EPOLL_CTL_MOD, e->file, &ev);
+  return epoll_ctl(epfd_, EPOLL_CTL_MOD, e->fd_, &ev);
 }
 
 int EventLoop::DeleteEvent(IOEvent *e) {
   epoll_event ev; // kernel before 2.6.9 requires
-  return epoll_ctl(epfd_, EPOLL_CTL_DEL, e->file, &ev);
+  return epoll_ctl(epfd_, EPOLL_CTL_DEL, e->fd_, &ev);
 }
 
 int EventLoop::AddEvent(TimerEvent *e) {
+  e->el_ = this;
   return static_cast<TimerManager *>(timermanager_)->AddEvent(e);
 }
 
@@ -314,6 +256,7 @@ int EventLoop::DeleteEvent(TimerEvent *e) {
 }
 
 int EventLoop::AddEvent(SignalEvent *e) {
+  e->el_ = this;
   return SignalManager::Instance()->AddEvent(e);
 }
 
@@ -370,7 +313,7 @@ int SignalManager::UpdateEvent(SignalEvent *e) {
 // BufferIOEvent implementation
 int BufferIOEvent::ReceiveData(string& rtn_data) {
   char buffer[MAX_BYTES_RECEIVE] = {0};
-  int len = read(file, buffer, sizeof(buffer));
+  int len = read(fd_, buffer, sizeof(buffer));
   if (len <= 0) {
     return len;    // occurs error or received EOF
   }
@@ -394,7 +337,7 @@ int BufferIOEvent::SendData() {
   while (!sendbuf_list_.empty()) {
     const string& sendbuf = sendbuf_list_.front();
     uint32_t tosend = sendbuf.size();
-    int len = write(file, sendbuf.data() + sent_, tosend - sent_);
+    int len = write(fd_, sendbuf.data() + sent_, tosend - sent_);
     if (len < 0) {
       return len;   // occurs error
     }
