@@ -46,13 +46,12 @@ bool TcpClient::Send(const string& msg)
 void TcpClient::SetOnMessageCb(const OnMessageCallback& on_msg_cb)
 {
     on_msg_cb_ = on_msg_cb;
-    printf("[TcpClient::SetOnMessageCb] %s\n", on_msg_cb_.ToString().c_str());
+    if (conn_) conn_->SetOnMessageCb(on_msg_cb_);
 }
 
 void TcpClient::OnConnected(int fd, const IPAddress& local_addr)
 {
     conn_ = new TcpConnection(fd, local_addr, server_addr_, this);
-    printf("[TcpClient::OnConnected] %s\n", on_msg_cb_.ToString().c_str());
     conn_->SetOnMessageCb(on_msg_cb_);
 }
 

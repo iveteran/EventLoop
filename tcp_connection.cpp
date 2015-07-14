@@ -37,7 +37,6 @@ TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddres
 
 void TcpConnection::SetOnMessageCb(const OnMessageCallback& on_msg_cb)
 {
-    printf("[TcpConnection::SetOnMessageCb] %s\n", on_msg_cb.ToString().c_str());
     on_msg_cb_ = on_msg_cb;
 }
 
