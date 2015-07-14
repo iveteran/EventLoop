@@ -9,7 +9,7 @@ class BusinessTester {
     public:
     BusinessTester() : echoclient_("localhost", 22222)
     {
-        echoclient_.SetOnMessageCb(OnMessageCallback(this, &BusinessTester::EchoClientMsgHandler2));
+        echoclient_.SetOnMsgRecvdCb(OnMsgRecvdCallback(this, &BusinessTester::EchoClientMsgHandler2));
 
         echoclient_.Send("hello");
     }

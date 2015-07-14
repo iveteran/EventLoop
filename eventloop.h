@@ -9,6 +9,7 @@
 #include <list>
 
 using std::string;
+using std::list;
 
 namespace richinfo {
 
@@ -59,7 +60,7 @@ class IOEvent : public IEvent {
  protected:
   virtual void OnCreated(int fd) {};
   virtual void OnClosed() {};
-  virtual void OnError(const char* errstr) {};
+  virtual void OnError(int errcode, const char* errstr) {};
 
   virtual void OnEvents(uint32_t events) = 0;
 
@@ -91,7 +92,7 @@ class BufferIOEvent : public IOEvent {
   string recvbuf_;
   uint32_t torecv_;
 
-  std::list<string> sendbuf_list_;
+  list<string> sendbuf_list_;
   uint32_t sent_;
 };
 

@@ -364,7 +364,7 @@ void BufferIOEvent::OnEvents(uint32_t events) {
     string rtn_data;
     int len = ReceiveData(rtn_data);
     if (len < 0) {
-      OnError(strerror(errno));
+      OnError(errno, strerror(errno));
       return;
     }
     else if (len == 0 ) {
@@ -381,14 +381,14 @@ void BufferIOEvent::OnEvents(uint32_t events) {
     while (!sendbuf_list_.empty()) {
       int len = SendData();
       if (len < 0) {
-        OnError(strerror(errno));
+        OnError(errno, strerror(errno));
         return;
       }
     }
   }
 
   if (events & IOEvent::ERROR) {
-    OnError(strerror(errno));
+    OnError(errno, strerror(errno));
     return;
   }
 

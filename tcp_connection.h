@@ -15,6 +15,7 @@
 
 #include "eventloop.h"
 #include "tcp_callbacks.h"
+#include "error_code.h"
 
 namespace richinfo {
 
@@ -38,8 +39,9 @@ class TcpConnection;
 
 class TcpCreator: public IOEvent
 {
+  protected:
+    TcpCreator() : IOEvent(IOEvent::READ | IOEvent::ERROR) {}
   public:
-    TcpCreator() : IOEvent(IOEvent::READ | IOEvent::ERROR) { }
     virtual void OnConnectionClosed(TcpConnection* conn) = 0;
 };
 
@@ -47,21 +49,35 @@ class TcpConnection : public BufferIOEvent
 {
   public:
     TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, TcpCreator* creator = NULL);
-    void SetOnMessageCb(const OnMessageCallback& on_msg_cb);
+    ~TcpConnection();
+
+    void Disconnect();
+
+    void SetCallbacks(const TcpConnEventCallbacks& cbs);
+    void SetOnMsgRecvdCb(const OnMsgRecvdCallback& cb);
+    void SetOnMsgSentCb(const OnMsgSentCallback& cb);
+    void SetOnClosedCb(const OnClosedCallback& cb);
+    void SetOnErrorCb(const OnErrorCallback& cb);
+
+    void SetReady(int fd);
+    bool IsReady() const;
+
+    const IPAddress& GetLocalAddr() const;
+    const IPAddress& GetPeerAddr() const;
 
   protected:
     void OnReceived(const string& buffer);
-
-  private:
+    void OnSent(const string& buffer);
     void OnClosed();
-    void OnError(const char* errstr);
+    void OnError(int errcode, const char* errstr);
 
   private:
+    bool ready_;
     IPAddress local_addr_;
     IPAddress peer_addr_;
     TcpCreator* creator_;
 
-    OnMessageCallback on_msg_cb_;
+    TcpConnEventCallbacks callbacks_;
 };
 
 }  // namespace richinfo

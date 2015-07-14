@@ -32,32 +32,39 @@ bool TcpClient::Connect()
     return success;
 }
 
-bool TcpClient::Send(const string& msg)
+void TcpClient::Reconnect()
 {
-    if (conn_) {
-        conn_->Send(msg);
-        return true;
-    } else {
-        printf("[TcpClient::Send] Error: connection not ready\n");
-        return false;
-    }
+    reconnect_timer_.Start();
 }
 
-void TcpClient::SetOnMessageCb(const OnMessageCallback& on_msg_cb)
+bool TcpClient::Send(const string& msg)
 {
-    on_msg_cb_ = on_msg_cb;
-    if (conn_) conn_->SetOnMessageCb(on_msg_cb_);
+    bool success = true;
+    if (conn_) {
+        conn_->Send(msg);
+    } else {
+        tmp_sendbuf_list_.push_back(msg);
+    }
+    return success;
+}
+
+void TcpClient::SetOnMsgRecvdCb(const OnMsgRecvdCallback& cb)
+{
+    conn_callbacks_.on_msg_recvd_cb_ = cb;
+    if (conn_) conn_->SetOnMsgRecvdCb(conn_callbacks_.on_msg_recvd_cb_);
 }
 
 void TcpClient::OnConnected(int fd, const IPAddress& local_addr)
 {
     conn_ = new TcpConnection(fd, local_addr, server_addr_, this);
-    conn_->SetOnMessageCb(on_msg_cb_);
+    conn_->SetOnMsgRecvdCb(conn_callbacks_.on_msg_recvd_cb_);
+    SendTempBuffer();
+    client_callbacks_.on_new_client_cb_.Invoke(conn_);
 }
 
 void TcpClient::OnConnectionClosed(TcpConnection* conn)
 {
-    EV_Singleton->DeleteEvent(conn);
+    client_callbacks_.on_closed_cb_.Invoke(conn_);
     delete conn_;
     conn_ = NULL;
     if (auto_reconnect_) {
@@ -87,11 +94,22 @@ bool TcpClient::Connect_()
     return true;
 }
 
-void TcpClient::OnError(const char* errstr)
+void TcpClient::OnError(int errcode, const char* errstr)
 {
-    printf("[TcpClient::OnError] error string: %s\n", errstr);
+    printf("[TcpClient::OnError] error code: %d, error string: %s\n", errcode, errstr);
+    client_callbacks_.on_error_cb_.Invoke(errcode, errstr);
 }
 
+void TcpClient::SendTempBuffer()
+{
+    if (conn_ == NULL) return;
+
+    while (!tmp_sendbuf_list_.empty()) {
+        const string& sendbuf = tmp_sendbuf_list_.front();
+        conn_->Send(sendbuf);
+        tmp_sendbuf_list_.pop_front();
+    }
+}
 
 void TcpClient::ReconnectTimer::OnTimer()
 {
