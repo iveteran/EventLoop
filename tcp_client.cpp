@@ -2,8 +2,8 @@
 
 namespace richinfo {
 
-TcpClient::TcpClient(const char *host, uint16_t port, bool auto_reconnect)
-    : auto_reconnect_(auto_reconnect), conn_(NULL), reconnect_timer_(this)
+TcpClient::TcpClient(const char *host, uint16_t port, bool auto_reconnect, ITcpEventHandler* tcp_evt_handler)
+    : auto_reconnect_(auto_reconnect), conn_(NULL), reconnect_timer_(this), tcp_evt_handler_(tcp_evt_handler)
 {
     server_addr_.port_ = port;
     if (host[0] == '\0' || strcmp(host, "localhost") == 0) {
@@ -48,23 +48,21 @@ bool TcpClient::Send(const string& msg)
     return success;
 }
 
-void TcpClient::SetOnMsgRecvdCb(const OnMsgRecvdCallback& cb)
+void TcpClient::SetTcpEventHandler(ITcpEventHandler* evt_handler)
 {
-    conn_callbacks_.on_msg_recvd_cb_ = cb;
-    if (conn_) conn_->SetOnMsgRecvdCb(conn_callbacks_.on_msg_recvd_cb_);
+    tcp_evt_handler_ = evt_handler;
+    if (conn_) conn_->SetTcpEventHandler(tcp_evt_handler_);
 }
 
 void TcpClient::OnConnected(int fd, const IPAddress& local_addr)
 {
-    conn_ = new TcpConnection(fd, local_addr, server_addr_, this);
-    conn_->SetOnMsgRecvdCb(conn_callbacks_.on_msg_recvd_cb_);
+    conn_ = new TcpConnection(fd, local_addr, server_addr_, tcp_evt_handler_, this);
     SendTempBuffer();
-    client_callbacks_.on_new_client_cb_.Invoke(conn_);
+    if (tcp_evt_handler_) tcp_evt_handler_->OnNewConnection(conn_);
 }
 
 void TcpClient::OnConnectionClosed(TcpConnection* conn)
 {
-    client_callbacks_.on_closed_cb_.Invoke(conn_);
     delete conn_;
     conn_ = NULL;
     if (auto_reconnect_) {
@@ -97,7 +95,7 @@ bool TcpClient::Connect_()
 void TcpClient::OnError(int errcode, const char* errstr)
 {
     printf("[TcpClient::OnError] error code: %d, error string: %s\n", errcode, errstr);
-    client_callbacks_.on_error_cb_.Invoke(errcode, errstr);
+    if (tcp_evt_handler_) tcp_evt_handler_->OnError(errcode, errstr);
 }
 
 void TcpClient::SendTempBuffer()

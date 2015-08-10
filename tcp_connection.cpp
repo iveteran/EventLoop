@@ -1,4 +1,3 @@
-#include "eventloop.h"
 #include "tcp_connection.h"
 
 namespace richinfo {
@@ -11,8 +10,8 @@ void SocketAddrToIPAddress(const struct sockaddr_in& sock_addr, IPAddress& ip_ad
   ip_addr.port_ = sock_addr.sin_port;
 }
 
-TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, TcpCreator* creator)
-    : ready_(false), local_addr_(local_addr), peer_addr_(peer_addr), creator_(creator)
+TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, ITcpEventHandler* tcp_evt_handler, TcpCreator* creator)
+    : ready_(false), local_addr_(local_addr), peer_addr_(peer_addr), tcp_evt_handler_(tcp_evt_handler), creator_(creator)
 {
     SetReady(fd);
     printf("[TcpConnection::TcpConnection] local_addr: %s, peer_addr: %s\n", local_addr_.ToString().c_str(), peer_addr_.ToString().c_str());
@@ -23,25 +22,9 @@ TcpConnection::~TcpConnection()
     Disconnect();
 }
 
-void TcpConnection::SetCallbacks(const TcpConnEventCallbacks& cbs)
+void TcpConnection::SetTcpEventHandler(ITcpEventHandler* evt_handler)
 {
-    callbacks_ = cbs;
-}
-void TcpConnection::SetOnMsgRecvdCb(const OnMsgRecvdCallback& cb)
-{
-    callbacks_.on_msg_recvd_cb_ = cb;
-}
-void TcpConnection::SetOnMsgSentCb(const OnMsgSentCallback& cb)
-{
-    callbacks_.on_msg_sent_cb_ = cb;
-}
-void TcpConnection::SetOnClosedCb(const OnClosedCallback& cb)
-{
-    callbacks_.on_closed_cb_ = cb;
-}
-void TcpConnection::SetOnErrorCb(const OnErrorCallback& cb)
-{
-    callbacks_.on_error_cb_ = cb;
+    tcp_evt_handler_ = evt_handler;
 }
 
 void TcpConnection::Disconnect()
@@ -77,31 +60,29 @@ const IPAddress& TcpConnection::GetPeerAddr() const
 
 void TcpConnection::OnReceived(const string& buffer)
 {
-    //printf("[TcpConnection::OnReceived] received string: %s\n", buffer.c_str());
-    //on_msg_cb_.Invoke(std::make_tuple(this, &buffer));
-    callbacks_.on_msg_recvd_cb_.Invoke(this, &buffer);
+    if (tcp_evt_handler_) tcp_evt_handler_->OnMessageRecvd(this, &buffer);
 }
 
 void TcpConnection::OnSent(const string& buffer)
 {
-    callbacks_.on_msg_sent_cb_.Invoke(this, &buffer);
+    if (tcp_evt_handler_) tcp_evt_handler_->OnMessageSent(this, &buffer);
 }
 
 void TcpConnection::OnClosed()
 {
     printf("[TcpConnection::OnClosed] client leave, fd: %d\n", fd_);
+    if (tcp_evt_handler_) tcp_evt_handler_->OnConnectionClosed(this);
     if (creator_) {
         creator_->OnConnectionClosed(this);
     } else {
         Disconnect();
     }
-    callbacks_.on_closed_cb_.Invoke(this);
 }
 
 void TcpConnection::OnError(int errcode, const char* errstr)
 {
     printf("[TcpConnection::OnError] error string: %s\n", errstr);
-    callbacks_.on_error_cb_.Invoke(errcode, errstr);
+    if (tcp_evt_handler_) tcp_evt_handler_->OnError(errcode, errstr);
     //OnClosed();
 }
 

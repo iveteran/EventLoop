@@ -48,16 +48,13 @@ class TcpCreator: public IOEvent
 class TcpConnection : public BufferIOEvent
 {
   public:
-    TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, TcpCreator* creator = NULL);
+    TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr,
+            ITcpEventHandler* tcp_evt_handler = NULL, TcpCreator* creator = NULL);
     ~TcpConnection();
 
     void Disconnect();
 
-    void SetCallbacks(const TcpConnEventCallbacks& cbs);
-    void SetOnMsgRecvdCb(const OnMsgRecvdCallback& cb);
-    void SetOnMsgSentCb(const OnMsgSentCallback& cb);
-    void SetOnClosedCb(const OnClosedCallback& cb);
-    void SetOnErrorCb(const OnErrorCallback& cb);
+    void SetTcpEventHandler(ITcpEventHandler* evt_handler);
 
     void SetReady(int fd);
     bool IsReady() const;
@@ -72,12 +69,12 @@ class TcpConnection : public BufferIOEvent
     void OnError(int errcode, const char* errstr);
 
   private:
-    bool ready_;
-    IPAddress local_addr_;
-    IPAddress peer_addr_;
-    TcpCreator* creator_;
+    bool            ready_;
+    IPAddress       local_addr_;
+    IPAddress       peer_addr_;
 
-    TcpConnEventCallbacks callbacks_;
+    ITcpEventHandler*   tcp_evt_handler_;
+    TcpCreator*         creator_;
 };
 
 }  // namespace richinfo

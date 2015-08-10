@@ -5,24 +5,17 @@
 
 namespace richinfo {
 
-class BusinessTester {
+class BusinessTester : public ITcpEventHandler {
     public:
-    BusinessTester() : echoclient_("localhost", 22222)
+    BusinessTester() : echoclient_("localhost", 22223)
     {
-        echoclient_.SetOnMsgRecvdCb(OnMsgRecvdCallback(this, &BusinessTester::EchoClientMsgHandler2));
+        echoclient_.SetTcpEventHandler(this);
 
         echoclient_.Send("hello");
     }
 
     protected:
-    void EchoClientMsgHandler(std::tuple<TcpConnection*, const string*> conn_msg_tuple)
-    {
-        TcpConnection* conn = std::get<0>(conn_msg_tuple);
-        const string* msg = std::get<1>(conn_msg_tuple);
-
-        printf("[echoclient] fd: %d, message: %s\n", conn->FD(), msg->c_str());
-    }
-    void EchoClientMsgHandler2(TcpConnection* conn, const string* msg)
+    void OnMessageRecvd(TcpConnection* conn, const string* msg)
     {
         printf("[echoclient] fd: %d, message: %s\n", conn->FD(), msg->c_str());
     }

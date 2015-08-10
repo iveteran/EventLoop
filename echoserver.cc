@@ -6,45 +6,52 @@
 
 namespace richinfo {
 
+class EchoServer1_DataHandler : public ITcpEventHandler {
+    public:
+    void OnMessageRecvd(TcpConnection* conn, const string* msg)
+    {
+        printf("[echoserver1] fd: %d, message: %s\n", conn->FD(), msg->c_str());
+        conn->Send(*msg);
+    }
+};
+
+class EchoServer2_DataHandler : public ITcpEventHandler {
+    public:
+    void OnMessageRecvd(TcpConnection* conn, const string* msg)
+    {
+        printf("[echoserver2] fd: %d, message: %s\n", conn->FD(), msg->c_str());
+        conn->Send(*msg);
+    }
+};
+
+class EchoClient_DataHandler : public ITcpEventHandler {
+    public:
+    void OnMessageRecvd(TcpConnection* conn, const string* msg)
+    {
+        printf("[echoclient] fd: %d, message: %s\n", conn->FD(), msg->c_str());
+    }
+};
+
 class BusinessTester {
     public:
-    BusinessTester() : echoserver_("0.0.0.0", 22222), echoclient_("localhost", 22222)
+    BusinessTester() : echoserver_("0.0.0.0", 22222), echoserver2_("0.0.0.0", 22223), echoclient_("localhost", 22222)
     {
-        echoserver_.SetOnMsgRecvdCb(OnMsgRecvdCallback(this, &BusinessTester::EchoServerMsgHandler2));
-        echoclient_.SetOnMsgRecvdCb(OnMsgRecvdCallback(this, &BusinessTester::EchoClientMsgHandler2));
+        echoserver_.SetTcpEventHandler(&echo_svr_1_data_handler);
+        echoserver2_.SetTcpEventHandler(&echo_svr_2_data_handler);
+        echoclient_.SetTcpEventHandler(&echo_client_data_handler);
 
         echoclient_.Send("hello");
     }
 
-    protected:
-    void EchoServerMsgHandler(std::tuple<TcpConnection*, const string*> conn_msg_tuple)
-    {
-        TcpConnection* conn = std::get<0>(conn_msg_tuple);
-        const string* msg = std::get<1>(conn_msg_tuple);
-
-        printf("[echoserver] fd: %d, message: %s\n", conn->FD(), msg->c_str());
-        conn->Send(*msg);
-    }
-    void EchoClientMsgHandler(std::tuple<TcpConnection*, const string*> conn_msg_tuple)
-    {
-        TcpConnection* conn = std::get<0>(conn_msg_tuple);
-        const string* msg = std::get<1>(conn_msg_tuple);
-
-        printf("[echoclient] fd: %d, message: %s\n", conn->FD(), msg->c_str());
-    }
-    void EchoServerMsgHandler2(TcpConnection* conn, const string* msg)
-    {
-        printf("[echoserver] fd: %d, message: %s\n", conn->FD(), msg->c_str());
-        conn->Send(*msg);
-    }
-    void EchoClientMsgHandler2(TcpConnection* conn, const string* msg)
-    {
-        printf("[echoclient] fd: %d, message: %s\n", conn->FD(), msg->c_str());
-    }
-
     private:
     TcpServer echoserver_;
+    EchoServer1_DataHandler echo_svr_1_data_handler;
+
+    TcpServer echoserver2_;
+    EchoServer2_DataHandler echo_svr_2_data_handler;
+
     TcpClient echoclient_;
+    EchoClient_DataHandler echo_client_data_handler;
 };
 
 class SignalHandler : public SignalEvent {

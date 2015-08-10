@@ -11,9 +11,10 @@ namespace richinfo {
 class TcpServer: public TcpCreator
 {
     public:
-    TcpServer(const char *host, uint16_t port);
+    TcpServer(const char *host, uint16_t port, ITcpEventHandler* tcp_evt_handler = NULL);
     ~TcpServer();
-    void SetOnMsgRecvdCb(const OnMsgRecvdCallback& cb);
+    void SetTcpEventHandler(ITcpEventHandler* evt_handler);
+    TcpConnection* GetConnectionByFD(int fd);
 
     protected:
     void OnError(int errcode, const char* errstr);
@@ -30,8 +31,7 @@ class TcpServer: public TcpCreator
     IPAddress server_addr_;
     map<int/*fd*/, TcpConnection*> conn_map_;
 
-    TcpConnEventCallbacks   conn_callbacks_;
-    TcpEventCallbacks       svr_callbacks_;
+    ITcpEventHandler*    tcp_evt_handler_;
 };
 
 }  // namespace richinfo

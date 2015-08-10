@@ -8,10 +8,10 @@ namespace richinfo {
 class TcpClient : public TcpCreator
 {
     public:
-    TcpClient(const char *host, uint16_t port, bool auto_reconnect = true);
+    TcpClient(const char *host, uint16_t port, bool auto_reconnect = true, ITcpEventHandler* tcp_evt_handler = NULL);
     bool Connect();
     bool Send(const string& msg);
-    void SetOnMsgRecvdCb(const OnMsgRecvdCallback& cb);
+    void SetTcpEventHandler(ITcpEventHandler* evt_handler);
     TcpConnection* Connection() { return conn_; }
     
     private:
@@ -45,8 +45,7 @@ class TcpClient : public TcpCreator
     list<string>    tmp_sendbuf_list_;
     ReconnectTimer  reconnect_timer_;
 
-    TcpConnEventCallbacks   conn_callbacks_;
-    TcpEventCallbacks       client_callbacks_;
+    ITcpEventHandler*    tcp_evt_handler_;
 };
 
 }  // namespace richinfo

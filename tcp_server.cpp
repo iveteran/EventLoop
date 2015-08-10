@@ -5,7 +5,8 @@ using std::map;
 
 namespace richinfo {
 
-TcpServer::TcpServer(const char *host, uint16_t port)
+TcpServer::TcpServer(const char *host, uint16_t port, ITcpEventHandler* tcp_evt_handler)
+    : tcp_evt_handler_(tcp_evt_handler)
 {
     server_addr_.port_ = port;
     if (host[0] == '\0' || strcmp(host, "localhost") == 0) {
@@ -26,7 +27,8 @@ TcpServer::~TcpServer()
 
 void TcpServer::Destory()
 {
-    for (auto iter = conn_map_.begin(); iter != conn_map_.end(); ++iter) {
+    map<int, TcpConnection*>::iterator iter;
+    for (iter = conn_map_.begin(); iter != conn_map_.end(); ++iter) {
         delete iter->second;
     }
     conn_map_.clear();
@@ -34,9 +36,20 @@ void TcpServer::Destory()
     close(fd_);
 }
 
-void TcpServer::SetOnMsgRecvdCb(const OnMsgRecvdCallback& cb)
+void TcpServer::SetTcpEventHandler(ITcpEventHandler* evt_hdlr)
 {
-    conn_callbacks_.on_msg_recvd_cb_ = cb;
+    tcp_evt_handler_ = evt_hdlr;
+
+    map<int, TcpConnection*>::iterator iter;
+    for (iter = conn_map_.begin(); iter != conn_map_.end(); ++iter) {
+        iter->second->SetTcpEventHandler(tcp_evt_handler_);
+    }
+}
+
+TcpConnection* TcpServer::GetConnectionByFD(int fd)
+{
+    map<int, TcpConnection*>::iterator iter = conn_map_.find(fd);
+    return (iter != conn_map_.end() ? iter->second : NULL);
 }
 
 bool TcpServer::Start()
@@ -92,18 +105,16 @@ void TcpServer::OnEvents(uint32_t events)
 
 void TcpServer::OnNewClient(int fd, const IPAddress& peer_addr)
 {
-    TcpConnection *conn = new TcpConnection(fd, server_addr_, peer_addr, this);
-    conn->SetOnMsgRecvdCb(conn_callbacks_.on_msg_recvd_cb_);
+    TcpConnection *conn = new TcpConnection(fd, server_addr_, peer_addr, tcp_evt_handler_, this);
     conn_map_.insert(std::make_pair(fd, conn));
-    svr_callbacks_.on_new_client_cb_.Invoke(conn);
+    if (tcp_evt_handler_) tcp_evt_handler_->OnNewConnection(conn);
     printf("[TcpServer::OnNewClient] new client, fd: %d\n", fd);
 }
 
 void TcpServer::OnConnectionClosed(TcpConnection* conn)
 {
-    auto iter = conn_map_.find(conn->FD());
+    map<int, TcpConnection*>::iterator iter = conn_map_.find(conn->FD());
     if (iter != conn_map_.end()) {
-        svr_callbacks_.on_closed_cb_.Invoke(conn);
         delete iter->second;
         conn_map_.erase(iter);
     }
@@ -117,7 +128,7 @@ void TcpServer::OnError(int errcode, const char* errstr)
         Destory();
         Start();
     }
-    svr_callbacks_.on_error_cb_.Invoke(errcode, errstr);
+    if (tcp_evt_handler_) tcp_evt_handler_->OnError(errcode, errstr);
 }
 
 }  // namespace richinfo
