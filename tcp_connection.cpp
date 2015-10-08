@@ -1,6 +1,6 @@
 #include "tcp_connection.h"
 
-namespace richinfo {
+namespace evt_loop {
 
 void SocketAddrToIPAddress(const struct sockaddr_in& sock_addr, IPAddress& ip_addr)
 {
@@ -86,4 +86,4 @@ void TcpConnection::OnError(int errcode, const char* errstr)
     //OnClosed();
 }
 
-}  // namespace richinfo
+}  // namespace evt_loop

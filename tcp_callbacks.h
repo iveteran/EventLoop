@@ -3,7 +3,7 @@
 
 #include "callback.h"
 
-namespace richinfo {
+namespace evt_loop {
 
 class TcpConnection;
 
@@ -24,6 +24,6 @@ struct ITcpEventHandler {
     virtual void OnError(int errcode, const char* errstr) { }
 };
 
-}  // namespace richinfo
+}  // namespace evt_loop
 
 #endif  // _TCP_CALLBACKS_H

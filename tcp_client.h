@@ -3,7 +3,7 @@
 
 #include "tcp_connection.h"
 
-namespace richinfo {
+namespace evt_loop {
 
 class TcpClient : public TcpCreator
 {
@@ -52,6 +52,6 @@ class TcpClient : public TcpCreator
     ITcpEventHandler*    tcp_evt_handler_;
 };
 
-}  // namespace richinfo
+}  // namespace evt_loop
 
 #endif  // _TCP_CLIENT_H

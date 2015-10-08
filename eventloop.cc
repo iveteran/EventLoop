@@ -20,7 +20,7 @@
 using std::set;
 using std::map;
 
-namespace richinfo {
+namespace evt_loop {
 
 int SetNonblocking(int fd) {
   int opts;
@@ -411,4 +411,4 @@ void BufferIOEvent::Send(const string& buffer) {
   }
 }
 
-}   // ns richinfo
+}   // ns evt_loop

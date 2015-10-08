@@ -3,7 +3,7 @@
 
 #include "tcp_client.h"
 
-namespace richinfo {
+namespace evt_loop {
 
 class BusinessTester : public ITcpEventHandler {
     public:
@@ -23,9 +23,9 @@ class BusinessTester : public ITcpEventHandler {
     private:
     TcpClient echoclient_;
 };
-}   // ns richinfo
+}   // ns evt_loop
 
-using namespace richinfo;
+using namespace evt_loop;
 
 int main(int argc, char **argv) {
   BusinessTester biz_tester;

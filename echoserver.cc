@@ -4,7 +4,7 @@
 #include "tcp_server.h"
 #include "tcp_client.h"
 
-namespace richinfo {
+namespace evt_loop {
 
 class EchoServer1_DataHandler : public ITcpEventHandler {
     public:
@@ -69,9 +69,9 @@ class SignalHandler : public SignalEvent {
   }
 };
 
-}  // ns richinfo
+}  // ns evt_loop
 
-using namespace richinfo;
+using namespace evt_loop;
 
 int main(int argc, char **argv) {
   BusinessTester biz_tester;

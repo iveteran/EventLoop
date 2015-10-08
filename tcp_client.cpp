@@ -1,6 +1,6 @@
 #include "tcp_client.h"
 
-namespace richinfo {
+namespace evt_loop {
 
 TcpClient::TcpClient(const char *host, uint16_t port, bool auto_reconnect, ITcpEventHandler* tcp_evt_handler)
     : auto_reconnect_(auto_reconnect), conn_(NULL), reconnect_timer_(this), tcp_evt_handler_(tcp_evt_handler)
@@ -143,4 +143,4 @@ void TcpClient::ReconnectTimer::OnTimer()
     }
 }
 
-}  // namespace richinfo
+}  // namespace evt_loop

@@ -3,7 +3,7 @@
 
 using std::map;
 
-namespace richinfo {
+namespace evt_loop {
 
 TcpServer::TcpServer(const char *host, uint16_t port, ITcpEventHandler* tcp_evt_handler)
     : tcp_evt_handler_(tcp_evt_handler)
@@ -138,4 +138,4 @@ void TcpServer::OnError(int errcode, const char* errstr)
     if (tcp_evt_handler_) tcp_evt_handler_->OnError(errcode, errstr);
 }
 
-}  // namespace richinfo
+}  // namespace evt_loop

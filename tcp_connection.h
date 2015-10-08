@@ -17,7 +17,7 @@
 #include "tcp_callbacks.h"
 #include "error_code.h"
 
-namespace richinfo {
+namespace evt_loop {
 
 struct IPAddress
 {
@@ -77,6 +77,6 @@ class TcpConnection : public BufferIOEvent
     TcpCreator*         creator_;
 };
 
-}  // namespace richinfo
+}  // namespace evt_loop
 
 #endif  // _TCP_CONNECTION_H

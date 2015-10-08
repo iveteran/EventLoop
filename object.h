@@ -8,7 +8,7 @@
 using std::string;
 using std::stringstream;
 
-namespace richinfo {
+namespace evt_loop {
 
 class Object
 {
@@ -107,6 +107,6 @@ class ObjectSerializable : public Object
 #undef Parent
 };
 
-}  // namespace richinfo
+}  // namespace evt_loop
 
 #endif // _OBJECT_H

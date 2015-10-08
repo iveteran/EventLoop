@@ -6,7 +6,7 @@
 
 using std::map;
 
-namespace richinfo {
+namespace evt_loop {
 
 class TcpServer: public TcpCreator
 {
@@ -34,6 +34,6 @@ class TcpServer: public TcpCreator
     ITcpEventHandler*    tcp_evt_handler_;
 };
 
-}  // namespace richinfo
+}  // namespace evt_loop
 
 #endif  // _TCP_SERVER_H

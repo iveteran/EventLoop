@@ -2,7 +2,7 @@
 #define _SINGLETON_TMPL_H
 #include <stdio.h>
 
-namespace richinfo {
+namespace evt_loop {
 
 /* Singleton Template */
 template<typename T>
@@ -42,6 +42,6 @@ class Singleton
 template<typename T>
 T* Singleton<T>::m_Instance = NULL;
 
-}  // ns richinfo
+}  // ns evt_loop
 
 #endif // _SINGLETON_TMPL_H

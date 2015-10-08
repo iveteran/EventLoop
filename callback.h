@@ -3,7 +3,7 @@
 
 #include "object.h"
 
-namespace richinfo {
+namespace evt_loop {
 
 template < typename ClassName >
 class ICallback : public Object
@@ -175,6 +175,6 @@ class Callback3 : public ICallback<ClassName>
 #undef Parent
 };
 
-}   // namespace richinfo
+}   // namespace evt_loop
 
 #endif  // _CALLBACK_H
