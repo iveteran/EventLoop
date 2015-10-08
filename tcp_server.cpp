@@ -58,6 +58,13 @@ bool TcpServer::Start()
         OnError(errno, strerror(errno));
         return false;
     }
+    int reuseaddr = 1;
+    if (setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1)
+    {
+        OnError(errno, strerror(errno));
+        close(fd_);
+        return false;
+    }
 
     int on = 1;
     setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));

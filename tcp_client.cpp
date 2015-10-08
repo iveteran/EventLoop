@@ -24,12 +24,25 @@ TcpClient::TcpClient(const char *host, uint16_t port, bool auto_reconnect, ITcpE
     Connect();
 }
 
+TcpClient::~TcpClient()
+{
+    Disconnect();
+}
+
 bool TcpClient::Connect()
 {
     bool success = Connect_();
     if (!success && auto_reconnect_)
         Reconnect();
     return success;
+}
+
+void TcpClient::Disconnect()
+{
+    if (conn_) {
+        delete conn_;
+        conn_ = NULL;
+    }
 }
 
 void TcpClient::Reconnect()
@@ -79,9 +92,16 @@ bool TcpClient::Connect_()
     sock_addr.sin_family = PF_INET;
     sock_addr.sin_port = htons(server_addr_.port_);
     inet_aton(server_addr_.ip_.c_str(), &sock_addr.sin_addr);
+    int reuseaddr = 1;
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1)
+    {
+        OnError(errno, strerror(errno));
+        close(fd);
+        return false;
+    }
 
     if (connect(fd, (sockaddr*)&sock_addr, sizeof(sockaddr_in)) == -1) {
-        printf("Connect failed: %s\n", strerror(errno));
+        OnError(errno, strerror(errno));
         close(fd);
         return false;
     }
