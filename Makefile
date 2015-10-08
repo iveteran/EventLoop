@@ -6,7 +6,7 @@
 
 VERSION    = 0.1
 
-OBJFILES   = eventloop.cc tcp_connection.cpp tcp_server.cpp tcp_client.cpp
+OBJFILES   = eventloop.cpp tcp_connection.cpp tcp_server.cpp tcp_client.cpp
 INCFILES   = eventloop.h tcp_connection.h tcp_server.h tcp_client.h tcp_callbacks.h callback.h object.h singleton_tmpl.h
 
 CFLAGS_GEN = -Wall -g $(CFLAGS) -DVERSION=\"$(VERSION)\"
@@ -20,16 +20,16 @@ all: echoserver echoclient
 	@echo
 	@echo "Make Complete. See README for how to use."
 	@echo
-	@echo "Having problems with it? Send complains and bugs to dccmx@dccmx.com"
+	@echo "Having problems with it? Send complains and bugs to iveteran.yuu@gmail.com"
 	@echo
 
-example: example.cc $(OBJFILES) $(INCFILES)
+example: example.cpp $(OBJFILES) $(INCFILES)
 	$(CXX) $(LDFLAGS) -o example $(CFLAGS_OPT) $(LIBS) $^
 
-echoserver: echoserver.cc $(OBJFILES) $(INCFILES)
+echoserver: echoserver.cpp $(OBJFILES) $(INCFILES)
 	$(CXX) $(LDFLAGS) -o echoserver $(CFLAGS_OPT) $(LIBS) $^
 
-echoclient: echoclient.cc $(OBJFILES) $(INCFILES)
+echoclient: echoclient.cpp $(OBJFILES) $(INCFILES)
 	$(CXX) $(LDFLAGS) -o echoclient $(CFLAGS_OPT) $(LIBS) $^
 
 clean:
