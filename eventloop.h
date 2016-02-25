@@ -153,11 +153,10 @@ class TimerEvent : public IEvent {
  public:
   TimerEvent(uint32_t events = IEvent::NONE) : IEvent(events) {}
 
- public:
   void SetTime(timeval tv) { time_ = tv; }
   timeval Time() const { return time_; }
 
- protected:
+ private:
   timeval time_;
 };
 
@@ -170,7 +169,7 @@ class PeriodicTimerEvent : public TimerEvent {
   void SetInterval(timeval inter) { interval_ = inter; }
   timeval GetInterval() const { return interval_; }
 
-  void Start();
+  void Start(EventLoop* el = NULL);
   void Stop();
 
   bool IsRunning() { return running_; }

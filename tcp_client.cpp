@@ -14,11 +14,12 @@ TcpClient::TcpClient(const char *host, uint16_t port, bool auto_reconnect, ITcpE
         server_addr_.ip_ = host;
     }
 
-    timeval tv;
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
-    reconnect_timer_.SetInterval(tv);
-    EV_Singleton->AddEvent(&reconnect_timer_);
+    if (auto_reconnect_) {
+        timeval tv;
+        tv.tv_sec = 1;
+        tv.tv_usec = 0;
+        reconnect_timer_.SetInterval(tv);
+    }
 
     EV_Singleton->AddEvent(this);
     Connect();
@@ -47,7 +48,7 @@ void TcpClient::Disconnect()
 
 void TcpClient::Reconnect()
 {
-    reconnect_timer_.Start();
+    reconnect_timer_.Start(EV_Singleton);
 }
 
 bool TcpClient::Send(const string& msg)
@@ -93,8 +94,7 @@ bool TcpClient::Connect_()
     sock_addr.sin_port = htons(server_addr_.port_);
     inet_aton(server_addr_.ip_.c_str(), &sock_addr.sin_addr);
     int reuseaddr = 1;
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1)
-    {
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1) {
         OnError(errno, strerror(errno));
         close(fd);
         return false;
@@ -131,13 +131,12 @@ void TcpClient::SendTempBuffer()
 
 void TcpClient::ReconnectTimer::OnTimer()
 {
-    if (!creator_->conn_)
-    {
+    if (!creator_->conn_) {  // if the connection is not created, then reconnect
         bool success = creator_->Connect_();
         if (success)
             creator_->reconnect_timer_.Stop();
         else
-            printf("Reconnect failed, retry %ld seconds later...\n", GetInterval().tv_sec);
+            printf("[TcpClient::ReconnectTimer::OnTimer] Reconnect failed, retry %ld seconds later...\n", GetInterval().tv_sec);
     } else {
         creator_->reconnect_timer_.Stop();
     }

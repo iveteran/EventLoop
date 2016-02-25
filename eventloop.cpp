@@ -69,17 +69,16 @@ class TimerManager {
   friend class EventLoop;
   class Compare {
    public:
-    bool operator()(const TimerEvent *e1, const TimerEvent *e2) {
-      timeval t1 = e1->Time();
-      timeval t2 = e2->Time();
-      return (t1.tv_sec < t2.tv_sec) || (t1.tv_sec == t2.tv_sec && t1.tv_usec < t2.tv_usec);
+    bool operator()(const timeval& tv1, const timeval& tv2) {
+      return (tv1.tv_sec < tv2.tv_sec) || (tv1.tv_sec == tv2.tv_sec && tv1.tv_usec < tv2.tv_usec);
     }
   };
 
-  typedef set<TimerEvent *, Compare> TimerSet;
+  typedef set<TimerEvent*> TimerSet;
+  typedef map<timeval, TimerSet, Compare> TimerMap;
 
  private:
-  TimerSet timers_;
+  TimerMap timers_;
 };
 
 // return time diff in ms
@@ -99,31 +98,56 @@ static timeval TimeAdd(timeval tv1, timeval tv2) {
 
 // TimerManager implementation
 int TimerManager::AddEvent(TimerEvent *e) {
-  return !timers_.insert(e).second;
+  //printf("[TimerManager::AddEvent] event object: %p, timeval: (%ld.%ld)\n", e, e->Time().tv_sec, e->Time().tv_usec);
+  TimerMap::iterator iter = timers_.find(e->Time());
+  if (iter != timers_.end()) {
+      iter->second.insert(e);
+  } else {
+      TimerSet event_set;
+      event_set.insert(e);
+      timers_.insert(make_pair(e->Time(), event_set));
+  }
+  return 0;
 }
 
 int TimerManager::DeleteEvent(TimerEvent *e) {
-  return timers_.erase(e) != 1;
+  TimerMap::iterator iter = timers_.find(e->Time());
+  if (iter != timers_.end()) {
+      iter->second.erase(e);
+  }
+  return 0;
 }
 
 int TimerManager::UpdateEvent(TimerEvent *e) {
-  timers_.erase(e);
-  return !timers_.insert(e).second;
+  TimerMap::iterator iter = timers_.find(e->Time());
+  if (iter != timers_.end()) {
+      iter->second.erase(e);
+      iter->second.insert(e);
+  } else {
+      TimerSet event_set;
+      event_set.insert(e);
+      timers_.insert(make_pair(e->Time(), event_set));
+  }
+  return 0;
 }
 
 // PeriodicTimerEvent implementation
 void PeriodicTimerEvent::OnEvents(uint32_t events) {
   OnTimer();
-  time_ = TimeAdd(el_->Now(), interval_);
-  el_->UpdateEvent(this);
+  if (running_) {
+    el_->DeleteEvent(this);
+    SetTime(TimeAdd(el_->Now(), interval_));
+    el_->AddEvent(this);
+  }
 }
 
-void PeriodicTimerEvent::Start() {
-  if (!el_) return;
+void PeriodicTimerEvent::Start(EventLoop *el) {
+  el_ = el ? el : el_;
+  if (!el_) {
+    return;
+  }
   running_ = true;
-  timeval tv;
-  gettimeofday(&tv, NULL);
-  SetTime(tv);
+  SetTime(TimeAdd(el_->Now(), interval_));
   el_->AddEvent(this);
 }
 
@@ -137,11 +161,11 @@ void PeriodicTimerEvent::Stop() {
 EventLoop::EventLoop() {
   epfd_ = epoll_create(256);
   timermanager_ = new TimerManager();
+  gettimeofday(&now_, NULL);
 }
 
 EventLoop::~EventLoop() {
   close(epfd_);
-  static_cast<TimerManager *>(timermanager_)->timers_.clear();
   delete static_cast<TimerManager *>(timermanager_);
 }
 
@@ -151,16 +175,21 @@ int EventLoop::CollectFileEvents(int timeout) {
 
 int EventLoop::DoTimeout() {
   int n = 0;
-  TimerManager::TimerSet& timers = static_cast<TimerManager *>(timermanager_)->timers_;
-  TimerManager::TimerSet::iterator ite = timers.begin();
-  while (ite != timers.end()) {
-    timeval tv = (*ite)->Time();
+  TimerManager::TimerMap& timers_map = static_cast<TimerManager *>(timermanager_)->timers_;
+  TimerManager::TimerMap::iterator iter = timers_map.begin();
+  while (iter != timers_map.end()) {
+    timeval tv = iter->first;
+    //printf("EventLoop::DoTimeout, now: %ld, tv: %ld\n", now_.tv_sec, tv.tv_sec);
     if (TimeDiff(now_, tv) < 0) break;
     n++;
-    TimerEvent *e = *ite;
-    timers.erase(ite);
-    e->OnEvents(TimerEvent::TIMER);
-    ite = timers.begin();
+    TimerManager::TimerSet events_set = iter->second;
+    TimerManager::TimerSet::iterator iter2;
+    for (iter2 = events_set.begin(); iter2 != events_set.end(); ++iter2) {
+      TimerEvent *e = *iter2;
+      e->OnEvents(TimerEvent::TIMER);
+    }
+    timers_map.erase(iter);
+    iter = timers_map.begin();
   }
   return n;
 }
@@ -197,8 +226,8 @@ void EventLoop::StartLoop() {
     gettimeofday(&now_, NULL);
 
     if (static_cast<TimerManager *>(timermanager_)->timers_.size() > 0) {
-      TimerManager::TimerSet::iterator ite = static_cast<TimerManager *>(timermanager_)->timers_.begin();
-      timeval tv = (*ite)->Time();
+      TimerManager::TimerMap::iterator iter = static_cast<TimerManager *>(timermanager_)->timers_.begin();
+      timeval tv = iter->first;
       int t = TimeDiff(tv, now_);
       if (t > 0 && timeout > t) timeout = t;
     }
@@ -269,21 +298,19 @@ int EventLoop::UpdateEvent(SignalEvent *e) {
 }
 
 int EventLoop::AddEvent(BufferIOEvent *e) {
-  AddEvent(dynamic_cast<IOEvent *>(e));
   e->el_ = this;
-  return 0;
+  return AddEvent(dynamic_cast<IOEvent *>(e));
 }
 
 int EventLoop::AddEvent(PeriodicTimerEvent *e) {
-  AddEvent(dynamic_cast<TimerEvent *>(e));
   e->el_ = this;
-  return 0;
+  return AddEvent(dynamic_cast<TimerEvent *>(e));
 }
 
 void SignalHandler(int signo) {
   set<SignalEvent *> events = SignalManager::Instance()->sig_events_[signo];
-  for (set<SignalEvent *>::iterator ite = events.begin(); ite != events.end(); ++ite) {
-    (*ite)->OnEvents(signo);
+  for (set<SignalEvent *>::iterator iter = events.begin(); iter != events.end(); ++iter) {
+    (*iter)->OnEvents(signo);
   }
 }
 
