@@ -10,8 +10,8 @@ void SocketAddrToIPAddress(const struct sockaddr_in& sock_addr, IPAddress& ip_ad
   ip_addr.port_ = sock_addr.sin_port;
 }
 
-TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, ITcpEventHandler* tcp_evt_handler, TcpCreator* creator)
-    : ready_(false), local_addr_(local_addr), peer_addr_(peer_addr), tcp_evt_handler_(tcp_evt_handler), creator_(creator)
+TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, TcpCallbacks* tcp_evt_cbs, TcpCreator* creator)
+    : ready_(false), local_addr_(local_addr), peer_addr_(peer_addr), tcp_evt_cbs_(tcp_evt_cbs), creator_(creator)
 {
     SetReady(fd);
     printf("[TcpConnection::TcpConnection] local_addr: %s, peer_addr: %s\n", local_addr_.ToString().c_str(), peer_addr_.ToString().c_str());
@@ -22,9 +22,9 @@ TcpConnection::~TcpConnection()
     Disconnect();
 }
 
-void TcpConnection::SetTcpEventHandler(ITcpEventHandler* evt_handler)
+void TcpConnection::SetTcpCallbacks(TcpCallbacks* tcp_evt_cbs)
 {
-    tcp_evt_handler_ = evt_handler;
+    tcp_evt_cbs_ = tcp_evt_cbs;
 }
 
 void TcpConnection::Disconnect()
@@ -60,18 +60,18 @@ const IPAddress& TcpConnection::GetPeerAddr() const
 
 void TcpConnection::OnReceived(const string& buffer)
 {
-    if (tcp_evt_handler_) tcp_evt_handler_->OnMessageRecvd(this, &buffer);
+    if (tcp_evt_cbs_) tcp_evt_cbs_->on_msg_recvd_cb(this, &buffer);
 }
 
 void TcpConnection::OnSent(const string& buffer)
 {
-    if (tcp_evt_handler_) tcp_evt_handler_->OnMessageSent(this, &buffer);
+    if (tcp_evt_cbs_) tcp_evt_cbs_->on_msg_sent_cb(this, &buffer);
 }
 
 void TcpConnection::OnClosed()
 {
     printf("[TcpConnection::OnClosed] client leave, fd: %d\n", fd_);
-    if (tcp_evt_handler_) tcp_evt_handler_->OnConnectionClosed(this);
+    if (tcp_evt_cbs_) tcp_evt_cbs_->on_closed_cb(this);
     if (creator_) {
         creator_->OnConnectionClosed(this);
     } else {
@@ -82,7 +82,7 @@ void TcpConnection::OnClosed()
 void TcpConnection::OnError(int errcode, const char* errstr)
 {
     printf("[TcpConnection::OnError] error string: %s\n", errstr);
-    if (tcp_evt_handler_) tcp_evt_handler_->OnError(errcode, errstr);
+    if (tcp_evt_cbs_) tcp_evt_cbs_->on_error_cb(errcode, errstr);
     //OnClosed();
 }
 

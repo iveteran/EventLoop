@@ -5,11 +5,13 @@
 
 namespace evt_loop {
 
-class BusinessTester : public ITcpEventHandler {
+class BusinessTester {
     public:
     BusinessTester() : echoclient_("localhost", 22223)
     {
-        echoclient_.SetTcpEventHandler(this);
+        TcpCallbacks *echo_client_cbs = new TcpCallbacks;
+        echo_client_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd, this, std::placeholders::_1, std::placeholders::_2);
+        echoclient_.SetTcpCallbacks(echo_client_cbs);
 
         echoclient_.Send("hello");
     }

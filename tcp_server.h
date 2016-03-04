@@ -2,18 +2,20 @@
 #define _TCP_SERVER_H
 
 #include <map>
+#include <memory>
 #include "tcp_connection.h"
 
-using std::map;
-
 namespace evt_loop {
+
+typedef std::map<int/*fd*/, TcpConnection*>     FdTcpConnMap;
+typedef std::shared_ptr<TcpCallbacks>           TcpCbsPtr;
 
 class TcpServer: public TcpCreator
 {
     public:
-    TcpServer(const char *host, uint16_t port, ITcpEventHandler* tcp_evt_handler = NULL);
+    TcpServer(const char *host, uint16_t port, TcpCallbacks* tcp_evt_cbs = NULL);
     ~TcpServer();
-    void SetTcpEventHandler(ITcpEventHandler* evt_handler);
+    void SetTcpCallbacks(TcpCallbacks* tcp_evt_cbs);
     TcpConnection* GetConnectionByFD(int fd);
 
     protected:
@@ -28,10 +30,9 @@ class TcpServer: public TcpCreator
     void OnConnectionClosed(TcpConnection* conn);
 
     private:
-    IPAddress server_addr_;
-    map<int/*fd*/, TcpConnection*> conn_map_;
-
-    ITcpEventHandler*    tcp_evt_handler_;
+    IPAddress       server_addr_;
+    FdTcpConnMap    conn_map_;
+    TcpCallbacks*   tcp_evt_cbs_;
 };
 
 }  // namespace evt_loop

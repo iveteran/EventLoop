@@ -1,12 +1,10 @@
 #include <map>
 #include "tcp_server.h"
 
-using std::map;
-
 namespace evt_loop {
 
-TcpServer::TcpServer(const char *host, uint16_t port, ITcpEventHandler* tcp_evt_handler)
-    : tcp_evt_handler_(tcp_evt_handler)
+TcpServer::TcpServer(const char *host, uint16_t port, TcpCallbacks* tcp_evt_cbs)
+    : tcp_evt_cbs_(tcp_evt_cbs)
 {
     server_addr_.port_ = port;
     if (host[0] == '\0' || strcmp(host, "localhost") == 0) {
@@ -27,7 +25,7 @@ TcpServer::~TcpServer()
 
 void TcpServer::Destory()
 {
-    map<int, TcpConnection*>::iterator iter;
+    std::map<int, TcpConnection*>::iterator iter;
     for (iter = conn_map_.begin(); iter != conn_map_.end(); ++iter) {
         delete iter->second;
     }
@@ -36,19 +34,19 @@ void TcpServer::Destory()
     close(fd_);
 }
 
-void TcpServer::SetTcpEventHandler(ITcpEventHandler* evt_hdlr)
+void TcpServer::SetTcpCallbacks(TcpCallbacks* tcp_evt_cbs)
 {
-    tcp_evt_handler_ = evt_hdlr;
+    tcp_evt_cbs_ = tcp_evt_cbs;
 
-    map<int, TcpConnection*>::iterator iter;
+    std::map<int, TcpConnection*>::iterator iter;
     for (iter = conn_map_.begin(); iter != conn_map_.end(); ++iter) {
-        iter->second->SetTcpEventHandler(tcp_evt_handler_);
+        iter->second->SetTcpCallbacks(tcp_evt_cbs_);
     }
 }
 
 TcpConnection* TcpServer::GetConnectionByFD(int fd)
 {
-    map<int, TcpConnection*>::iterator iter = conn_map_.find(fd);
+    std::map<int, TcpConnection*>::iterator iter = conn_map_.find(fd);
     return (iter != conn_map_.end() ? iter->second : NULL);
 }
 
@@ -112,15 +110,15 @@ void TcpServer::OnEvents(uint32_t events)
 
 void TcpServer::OnNewClient(int fd, const IPAddress& peer_addr)
 {
-    TcpConnection *conn = new TcpConnection(fd, server_addr_, peer_addr, tcp_evt_handler_, this);
+    TcpConnection *conn = new TcpConnection(fd, server_addr_, peer_addr, tcp_evt_cbs_, this);
     conn_map_.insert(std::make_pair(fd, conn));
-    if (tcp_evt_handler_) tcp_evt_handler_->OnNewConnection(conn);
+    if (tcp_evt_cbs_) tcp_evt_cbs_->on_new_client_cb(conn);
     printf("[TcpServer::OnNewClient] new client, fd: %d\n", fd);
 }
 
 void TcpServer::OnConnectionClosed(TcpConnection* conn)
 {
-    map<int, TcpConnection*>::iterator iter = conn_map_.find(conn->FD());
+    std::map<int, TcpConnection*>::iterator iter = conn_map_.find(conn->FD());
     if (iter != conn_map_.end()) {
         delete iter->second;
         conn_map_.erase(iter);
@@ -135,7 +133,7 @@ void TcpServer::OnError(int errcode, const char* errstr)
         Destory();
         Start();
     }
-    if (tcp_evt_handler_) tcp_evt_handler_->OnError(errcode, errstr);
+    if (tcp_evt_cbs_) tcp_evt_cbs_->on_error_cb(errcode, errstr);
 }
 
 }  // namespace evt_loop

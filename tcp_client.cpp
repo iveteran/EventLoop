@@ -2,8 +2,8 @@
 
 namespace evt_loop {
 
-TcpClient::TcpClient(const char *host, uint16_t port, bool auto_reconnect, ITcpEventHandler* tcp_evt_handler)
-    : auto_reconnect_(auto_reconnect), conn_(NULL), reconnect_timer_(this), tcp_evt_handler_(tcp_evt_handler)
+TcpClient::TcpClient(const char *host, uint16_t port, bool auto_reconnect, TcpCallbacks* tcp_evt_cbs)
+    : auto_reconnect_(auto_reconnect), conn_(NULL), reconnect_timer_(this), tcp_evt_cbs_(tcp_evt_cbs)
 {
     server_addr_.port_ = port;
     if (host[0] == '\0' || strcmp(host, "localhost") == 0) {
@@ -62,17 +62,17 @@ bool TcpClient::Send(const string& msg)
     return success;
 }
 
-void TcpClient::SetTcpEventHandler(ITcpEventHandler* evt_handler)
+void TcpClient::SetTcpCallbacks(TcpCallbacks* tcp_evt_cbs)
 {
-    tcp_evt_handler_ = evt_handler;
-    if (conn_) conn_->SetTcpEventHandler(tcp_evt_handler_);
+    tcp_evt_cbs_ = tcp_evt_cbs;
+    if (conn_) conn_->SetTcpCallbacks(tcp_evt_cbs_);
 }
 
 void TcpClient::OnConnected(int fd, const IPAddress& local_addr)
 {
-    conn_ = new TcpConnection(fd, local_addr, server_addr_, tcp_evt_handler_, this);
+    conn_ = new TcpConnection(fd, local_addr, server_addr_, tcp_evt_cbs_, this);
     SendTempBuffer();
-    if (tcp_evt_handler_) tcp_evt_handler_->OnNewConnection(conn_);
+    if (tcp_evt_cbs_) tcp_evt_cbs_->on_new_client_cb(conn_);
 }
 
 void TcpClient::OnConnectionClosed(TcpConnection* conn)
@@ -115,7 +115,7 @@ bool TcpClient::Connect_()
 void TcpClient::OnError(int errcode, const char* errstr)
 {
     printf("[TcpClient::OnError] error code: %d, error string: %s\n", errcode, errstr);
-    if (tcp_evt_handler_) tcp_evt_handler_->OnError(errcode, errstr);
+    if (tcp_evt_cbs_) tcp_evt_cbs_->on_error_cb(errcode, errstr);
 }
 
 void TcpClient::SendTempBuffer()

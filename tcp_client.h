@@ -8,12 +8,12 @@ namespace evt_loop {
 class TcpClient : public TcpCreator
 {
     public:
-    TcpClient(const char *host, uint16_t port, bool auto_reconnect = true, ITcpEventHandler* tcp_evt_handler = NULL);
+    TcpClient(const char *host, uint16_t port, bool auto_reconnect = true, TcpCallbacks* tcp_evt_cbs = NULL);
     ~TcpClient();
     bool Connect();
     void Disconnect();
     bool Send(const string& msg);
-    void SetTcpEventHandler(ITcpEventHandler* evt_handler);
+    void SetTcpCallbacks(TcpCallbacks* tcp_evt_cbs);
     TcpConnection* Connection() { return conn_; }
     int FD() const { return (conn_ ? conn_->FD() : -1); }  // Overrides interface of base class IOEvent
     
@@ -49,7 +49,7 @@ class TcpClient : public TcpCreator
     list<string>    tmp_sendbuf_list_;
     ReconnectTimer  reconnect_timer_;
 
-    ITcpEventHandler*    tcp_evt_handler_;
+    TcpCallbacks*   tcp_evt_cbs_;
 };
 
 }  // namespace evt_loop

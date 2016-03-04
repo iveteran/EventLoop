@@ -49,12 +49,12 @@ class TcpConnection : public BufferIOEvent
 {
   public:
     TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr,
-            ITcpEventHandler* tcp_evt_handler = NULL, TcpCreator* creator = NULL);
+            TcpCallbacks* tcp_evt_cbs = NULL, TcpCreator* creator = NULL);
     ~TcpConnection();
 
     void Disconnect();
 
-    void SetTcpEventHandler(ITcpEventHandler* evt_handler);
+    void SetTcpCallbacks(TcpCallbacks* tcp_evt_cbs);
 
     void SetReady(int fd);
     bool IsReady() const;
@@ -73,7 +73,7 @@ class TcpConnection : public BufferIOEvent
     IPAddress       local_addr_;
     IPAddress       peer_addr_;
 
-    ITcpEventHandler*   tcp_evt_handler_;
+    TcpCallbacks*       tcp_evt_cbs_;
     TcpCreator*         creator_;
 };
 
