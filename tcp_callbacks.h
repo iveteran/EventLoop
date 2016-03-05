@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <functional>
+#include <memory>
 
 namespace evt_loop {
 
@@ -38,6 +39,8 @@ struct TcpCallbacks {
     void EmptyClosedCb(TcpConnection*)                          { printf("Empty Connection Closed Callback\n"); }
     void EmptyErrorCb(int, const char*)                         { printf("Empty Connection Error Callback\n"); }
 };
+
+typedef std::shared_ptr<TcpCallbacks>           TcpCallbacksPtr;
 
 }  // namespace evt_loop
 

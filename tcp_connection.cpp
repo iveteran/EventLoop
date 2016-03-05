@@ -10,7 +10,7 @@ void SocketAddrToIPAddress(const struct sockaddr_in& sock_addr, IPAddress& ip_ad
   ip_addr.port_ = sock_addr.sin_port;
 }
 
-TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, TcpCallbacks* tcp_evt_cbs, TcpCreator* creator)
+TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, TcpCallbacksPtr tcp_evt_cbs, TcpCreator* creator)
     : ready_(false), local_addr_(local_addr), peer_addr_(peer_addr), tcp_evt_cbs_(tcp_evt_cbs), creator_(creator)
 {
     SetReady(fd);
@@ -22,7 +22,7 @@ TcpConnection::~TcpConnection()
     Disconnect();
 }
 
-void TcpConnection::SetTcpCallbacks(TcpCallbacks* tcp_evt_cbs)
+void TcpConnection::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
 {
     tcp_evt_cbs_ = tcp_evt_cbs;
 }

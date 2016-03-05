@@ -13,6 +13,8 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include <map>
+
 #include "eventloop.h"
 #include "tcp_callbacks.h"
 #include "error_code.h"
@@ -49,12 +51,12 @@ class TcpConnection : public BufferIOEvent
 {
   public:
     TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr,
-            TcpCallbacks* tcp_evt_cbs = NULL, TcpCreator* creator = NULL);
+            TcpCallbacksPtr tcp_evt_cbs = nullptr, TcpCreator* creator = nullptr);
     ~TcpConnection();
 
     void Disconnect();
 
-    void SetTcpCallbacks(TcpCallbacks* tcp_evt_cbs);
+    void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
 
     void SetReady(int fd);
     bool IsReady() const;
@@ -73,9 +75,12 @@ class TcpConnection : public BufferIOEvent
     IPAddress       local_addr_;
     IPAddress       peer_addr_;
 
-    TcpCallbacks*       tcp_evt_cbs_;
-    TcpCreator*         creator_;
+    TcpCallbacksPtr tcp_evt_cbs_;
+    TcpCreator*     creator_;
 };
+
+typedef std::shared_ptr<TcpConnection>          TcpConnectionPtr;
+typedef std::map<int/*fd*/, TcpConnectionPtr>   FdTcpConnMap;
 
 }  // namespace evt_loop
 

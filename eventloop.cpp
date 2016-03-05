@@ -17,9 +17,6 @@
 
 #define MAX_BYTES_RECEIVE       1024
 
-using std::set;
-using std::map;
-
 namespace evt_loop {
 
 int SetNonblocking(int fd) {
@@ -42,7 +39,7 @@ class SignalManager {
 
  private:
   friend void SignalHandler(int signo);
-  map<int, set<SignalEvent *> > sig_events_;
+  std::map<int, std::set<SignalEvent *> > sig_events_;
 
  public:
   static SignalManager *Instance() {
@@ -54,7 +51,7 @@ class SignalManager {
  private:
   SignalManager() {}
  private:
-  static SignalManager *instance_;
+  static SignalManager* instance_;
 };
 
 SignalManager *SignalManager::instance_ = NULL;
@@ -74,8 +71,8 @@ class TimerManager {
     }
   };
 
-  typedef set<TimerEvent*> TimerSet;
-  typedef map<timeval, TimerSet, Compare> TimerMap;
+  typedef std::set<TimerEvent*> TimerSet;
+  typedef std::map<timeval, TimerSet, Compare> TimerMap;
 
  private:
   TimerMap timers_;
@@ -160,13 +157,12 @@ void PeriodicTimerEvent::Stop() {
 // EventLoop implementation
 EventLoop::EventLoop() {
   epfd_ = epoll_create(256);
-  timermanager_ = new TimerManager();
+  timermanager_ = std::make_shared<TimerManager>();
   gettimeofday(&now_, NULL);
 }
 
 EventLoop::~EventLoop() {
   close(epfd_);
-  delete static_cast<TimerManager *>(timermanager_);
 }
 
 int EventLoop::CollectFileEvents(int timeout) {
@@ -175,7 +171,7 @@ int EventLoop::CollectFileEvents(int timeout) {
 
 int EventLoop::DoTimeout() {
   int n = 0;
-  TimerManager::TimerMap& timers_map = static_cast<TimerManager *>(timermanager_)->timers_;
+  TimerManager::TimerMap& timers_map = timermanager_->timers_;
   TimerManager::TimerMap::iterator iter = timers_map.begin();
   while (iter != timers_map.end()) {
     timeval tv = iter->first;
@@ -225,8 +221,8 @@ void EventLoop::StartLoop() {
     int timeout = 100;
     gettimeofday(&now_, NULL);
 
-    if (static_cast<TimerManager *>(timermanager_)->timers_.size() > 0) {
-      TimerManager::TimerMap::iterator iter = static_cast<TimerManager *>(timermanager_)->timers_.begin();
+    if (timermanager_->timers_.size() > 0) {
+      TimerManager::TimerMap::iterator iter = timermanager_->timers_.begin();
       timeval tv = iter->first;
       int t = TimeDiff(tv, now_);
       if (t > 0 && timeout > t) timeout = t;
@@ -273,15 +269,15 @@ int EventLoop::DeleteEvent(IOEvent *e) {
 
 int EventLoop::AddEvent(TimerEvent *e) {
   e->el_ = this;
-  return static_cast<TimerManager *>(timermanager_)->AddEvent(e);
+  return timermanager_->AddEvent(e);
 }
 
 int EventLoop::UpdateEvent(TimerEvent *e) {
-  return static_cast<TimerManager *>(timermanager_)->UpdateEvent(e);
+  return timermanager_->UpdateEvent(e);
 }
 
 int EventLoop::DeleteEvent(TimerEvent *e) {
-  return static_cast<TimerManager *>(timermanager_)->DeleteEvent(e);
+  return timermanager_->DeleteEvent(e);
 }
 
 int EventLoop::AddEvent(SignalEvent *e) {
@@ -299,17 +295,17 @@ int EventLoop::UpdateEvent(SignalEvent *e) {
 
 int EventLoop::AddEvent(BufferIOEvent *e) {
   e->el_ = this;
-  return AddEvent(dynamic_cast<IOEvent *>(e));
+  return AddEvent(e);
 }
 
 int EventLoop::AddEvent(PeriodicTimerEvent *e) {
   e->el_ = this;
-  return AddEvent(dynamic_cast<TimerEvent *>(e));
+  return AddEvent(e);
 }
 
 void SignalHandler(int signo) {
-  set<SignalEvent *> events = SignalManager::Instance()->sig_events_[signo];
-  for (set<SignalEvent *>::iterator iter = events.begin(); iter != events.end(); ++iter) {
+  std::set<SignalEvent *> events = SignalManager::Instance()->sig_events_[signo];
+  for (std::set<SignalEvent *>::iterator iter = events.begin(); iter != events.end(); ++iter) {
     (*iter)->OnEvents(signo);
   }
 }

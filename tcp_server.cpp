@@ -3,7 +3,7 @@
 
 namespace evt_loop {
 
-TcpServer::TcpServer(const char *host, uint16_t port, TcpCallbacks* tcp_evt_cbs)
+TcpServer::TcpServer(const char *host, uint16_t port, TcpCallbacksPtr tcp_evt_cbs)
     : tcp_evt_cbs_(tcp_evt_cbs)
 {
     server_addr_.port_ = port;
@@ -25,29 +25,31 @@ TcpServer::~TcpServer()
 
 void TcpServer::Destory()
 {
-    std::map<int, TcpConnection*>::iterator iter;
+    /*
+    FdTcpConnMap::iterator iter;
     for (iter = conn_map_.begin(); iter != conn_map_.end(); ++iter) {
         delete iter->second;
     }
+    */
     conn_map_.clear();
     EV_Singleton->DeleteEvent(this);
     close(fd_);
 }
 
-void TcpServer::SetTcpCallbacks(TcpCallbacks* tcp_evt_cbs)
+void TcpServer::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
 {
     tcp_evt_cbs_ = tcp_evt_cbs;
 
-    std::map<int, TcpConnection*>::iterator iter;
+    FdTcpConnMap::iterator iter;
     for (iter = conn_map_.begin(); iter != conn_map_.end(); ++iter) {
         iter->second->SetTcpCallbacks(tcp_evt_cbs_);
     }
 }
 
-TcpConnection* TcpServer::GetConnectionByFD(int fd)
+TcpConnectionPtr TcpServer::GetConnectionByFD(int fd)
 {
-    std::map<int, TcpConnection*>::iterator iter = conn_map_.find(fd);
-    return (iter != conn_map_.end() ? iter->second : NULL);
+    FdTcpConnMap::iterator iter = conn_map_.find(fd);
+    return (iter != conn_map_.end() ? iter->second : nullptr);
 }
 
 bool TcpServer::Start()
@@ -110,17 +112,17 @@ void TcpServer::OnEvents(uint32_t events)
 
 void TcpServer::OnNewClient(int fd, const IPAddress& peer_addr)
 {
-    TcpConnection *conn = new TcpConnection(fd, server_addr_, peer_addr, tcp_evt_cbs_, this);
+    TcpConnectionPtr conn(std::make_shared<TcpConnection>(fd, server_addr_, peer_addr, tcp_evt_cbs_, this));
     conn_map_.insert(std::make_pair(fd, conn));
-    if (tcp_evt_cbs_) tcp_evt_cbs_->on_new_client_cb(conn);
+    if (tcp_evt_cbs_) tcp_evt_cbs_->on_new_client_cb(conn.get());
     printf("[TcpServer::OnNewClient] new client, fd: %d\n", fd);
 }
 
 void TcpServer::OnConnectionClosed(TcpConnection* conn)
 {
-    std::map<int, TcpConnection*>::iterator iter = conn_map_.find(conn->FD());
+    FdTcpConnMap::iterator iter = conn_map_.find(conn->FD());
     if (iter != conn_map_.end()) {
-        delete iter->second;
+        //delete iter->second;
         conn_map_.erase(iter);
     }
 }

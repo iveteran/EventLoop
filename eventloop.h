@@ -7,6 +7,7 @@
 #include <sys/epoll.h>
 #include <string>
 #include <list>
+#include <memory>
 
 using std::string;
 using std::list;
@@ -15,6 +16,7 @@ namespace evt_loop {
 
 class EventLoop;
 class SignalManager;
+class TimerManager;
 
 class IEvent {
   friend class EventLoop;
@@ -226,7 +228,7 @@ class EventLoop {
   timeval now_;
   bool stop_;
 
-  void *timermanager_;
+  std::shared_ptr<TimerManager> timermanager_;
 };
 
 int SetNonblocking(int fd);

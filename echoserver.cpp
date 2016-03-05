@@ -10,15 +10,15 @@ class BusinessTester {
     public:
     BusinessTester() : echoserver_("0.0.0.0", 22222), echoserver2_("0.0.0.0", 22223), echoclient_("localhost", 22222)
     {
-        TcpCallbacks *echo_svr_1_cbs = new TcpCallbacks;
+        TcpCallbacksPtr echo_svr_1_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_svr_1_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd_1, this, std::placeholders::_1, std::placeholders::_2);
         echoserver_.SetTcpCallbacks(echo_svr_1_cbs);
 
-        TcpCallbacks *echo_svr_2_cbs = new TcpCallbacks;
+        TcpCallbacksPtr echo_svr_2_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_svr_2_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd_2, this, std::placeholders::_1, std::placeholders::_2);
         echoserver2_.SetTcpCallbacks(echo_svr_2_cbs);
 
-        TcpCallbacks *echo_client_cbs = new TcpCallbacks;
+        TcpCallbacksPtr echo_client_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_client_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd_3, this, std::placeholders::_1, std::placeholders::_2);
         echoclient_.SetTcpCallbacks(echo_client_cbs);
 

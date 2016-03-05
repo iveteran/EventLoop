@@ -8,13 +8,13 @@ namespace evt_loop {
 class TcpClient : public TcpCreator
 {
     public:
-    TcpClient(const char *host, uint16_t port, bool auto_reconnect = true, TcpCallbacks* tcp_evt_cbs = NULL);
+    TcpClient(const char *host, uint16_t port, bool auto_reconnect = true, TcpCallbacksPtr tcp_evt_cbs = nullptr);
     ~TcpClient();
     bool Connect();
     void Disconnect();
     bool Send(const string& msg);
-    void SetTcpCallbacks(TcpCallbacks* tcp_evt_cbs);
-    TcpConnection* Connection() { return conn_; }
+    void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
+    TcpConnectionPtr& Connection() { return conn_; }
     int FD() const { return (conn_ ? conn_->FD() : -1); }  // Overrides interface of base class IOEvent
     
     private:
@@ -43,13 +43,13 @@ class TcpClient : public TcpCreator
     };
 
   private:
-    bool            auto_reconnect_;
-    IPAddress       server_addr_;
-    TcpConnection*  conn_;
-    list<string>    tmp_sendbuf_list_;
-    ReconnectTimer  reconnect_timer_;
+    bool                auto_reconnect_;
+    IPAddress           server_addr_;
+    TcpConnectionPtr    conn_;
+    list<string>        tmp_sendbuf_list_;
+    ReconnectTimer      reconnect_timer_;
 
-    TcpCallbacks*   tcp_evt_cbs_;
+    TcpCallbacksPtr     tcp_evt_cbs_;
 };
 
 }  // namespace evt_loop
