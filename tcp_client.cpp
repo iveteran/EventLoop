@@ -3,7 +3,7 @@
 namespace evt_loop {
 
 TcpClient::TcpClient(const char *host, uint16_t port, bool auto_reconnect, TcpCallbacksPtr tcp_evt_cbs)
-    : auto_reconnect_(auto_reconnect), conn_(NULL), reconnect_timer_(this), tcp_evt_cbs_(tcp_evt_cbs)
+    : auto_reconnect_(auto_reconnect), conn_(nullptr), reconnect_timer_(this), tcp_evt_cbs_(tcp_evt_cbs)
 {
     server_addr_.port_ = port;
     if (host[0] == '\0' || strcmp(host, "localhost") == 0) {

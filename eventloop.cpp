@@ -333,7 +333,30 @@ int SignalManager::UpdateEvent(SignalEvent *e) {
   return 0;
 }
 
+void IOEvent::AddWriteEvent() {
+  if (el_ && !(events_ & IOEvent::WRITE))
+  {
+    SetEvents(events_ | IOEvent::WRITE);
+    el_->UpdateEvent(this);
+  }
+}
+void IOEvent::DeleteWriteEvent() {
+  if (el_ && (events_ & IOEvent::WRITE))
+  {
+    SetEvents(events_ & (~IOEvent::WRITE));
+    el_->UpdateEvent(this);
+  }
+}
+
 // BufferIOEvent implementation
+void BufferIOEvent::ClearBuff() {
+  recvbuf_.clear();
+  sendbuf_list_.clear();
+}
+bool BufferIOEvent::BuffEmpty() {
+  return sendbuf_list_.empty();
+}
+
 int BufferIOEvent::ReceiveData(string& rtn_data) {
   char buffer[MAX_BYTES_RECEIVE] = {0};
   int len = read(fd_, buffer, sizeof(buffer));
@@ -364,14 +387,10 @@ int BufferIOEvent::SendData() {
     if (len < 0) {
       return len;   // occurs error
     }
-
     sent_ += len;
     total_sent += sent_;
     if (sent_ == tosend) {
-      SetEvents(events_ & (~IOEvent::WRITE));
-      el_->UpdateEvent(this);
       OnSent(sendbuf);
-
       sendbuf_list_.pop_front();
       sent_ = 0;
     }
@@ -379,10 +398,24 @@ int BufferIOEvent::SendData() {
       break;
     }
   }
+  if (sendbuf_list_.empty()) {
+    DeleteWriteEvent();  // All data in the output buffer has been sent, then remove writing event from epoll
+  }
   return total_sent;
 }
 
 void BufferIOEvent::OnEvents(uint32_t events) {
+  if (events & EPOLLHUP) {
+    printf("OnEvents() EPOLLHUP event received, local connect maybe closed!");
+    OnClosed();
+    return;
+  }
+  if (events & EPOLLRDHUP) {
+    printf("OnEvents() EPOLLRDHUP event received, peer connect maybe closed!");
+    OnClosed();
+    return;
+  }
+
   if (events & IOEvent::READ) {
     string rtn_data;
     int len = ReceiveData(rtn_data);
@@ -429,8 +462,7 @@ void BufferIOEvent::Send(const char *buffer, uint32_t len) {
 void BufferIOEvent::Send(const string& buffer) {
   sendbuf_list_.push_back(buffer);
   if (!(events_ & IOEvent::WRITE)) {
-    SetEvents(events_ | IOEvent::WRITE);
-    el_->UpdateEvent(this);
+    AddWriteEvent();  // The output buffer has data now, then add writing event to epoll again if epoll has no writing event
   }
 }
 

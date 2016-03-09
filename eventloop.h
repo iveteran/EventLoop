@@ -58,6 +58,8 @@ class IOEvent : public IEvent {
  public:
   void SetFD(int fd) { fd_ = fd; }
   int FD() const { return fd_; }
+  void AddWriteEvent();
+  void DeleteWriteEvent();
 
  protected:
   virtual void OnCreated(int fd) {};
@@ -78,6 +80,8 @@ class BufferIOEvent : public IOEvent {
 
  public:
   void SetReceiveLen(uint32_t len);
+  void ClearBuff();
+  bool BuffEmpty();
   void Send(const char *buffer, uint32_t len);
   void Send(const string& buffer);
 

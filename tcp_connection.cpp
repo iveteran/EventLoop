@@ -30,7 +30,8 @@ void TcpConnection::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
 void TcpConnection::Disconnect()
 {
     EV_Singleton->DeleteEvent(this);
-    close(fd_);
+    if (fd_ >= 0) close(fd_);
+    SetFD(-1);
     ready_ = false;
 }
 
@@ -41,6 +42,9 @@ void TcpConnection::SetReady(int fd)
     SetFD(fd);
     EV_Singleton->AddEvent(this);
     ready_ = true;
+    if (!BuffEmpty()) {
+        AddWriteEvent();
+    }
 }
 
 bool TcpConnection::IsReady() const

@@ -19,7 +19,7 @@ class TcpClient : public TcpCreator
     
     private:
     void OnEvents(uint32_t events) {}
-    void SetFD(int fd);  // Hides interface of base class IOEvent
+    void SetFD(int fd) { if (conn_) conn_->SetFD(fd); }  // Hides interface of base class IOEvent
 
     bool Connect_();
     void Reconnect();
