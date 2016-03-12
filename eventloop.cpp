@@ -295,12 +295,12 @@ int EventLoop::UpdateEvent(SignalEvent *e) {
 
 int EventLoop::AddEvent(BufferIOEvent *e) {
   e->el_ = this;
-  return AddEvent(e);
+  return AddEvent(dynamic_cast<IOEvent *>(e));
 }
 
 int EventLoop::AddEvent(PeriodicTimerEvent *e) {
   e->el_ = this;
-  return AddEvent(e);
+  return AddEvent(dynamic_cast<TimerEvent *>(e));
 }
 
 void SignalHandler(int signo) {
