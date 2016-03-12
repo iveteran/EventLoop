@@ -1,13 +1,13 @@
-#ifndef EVENT_LOOP_H_
-#define EVENT_LOOP_H_
+#ifndef _EVENT_LOOP_H
+#define _EVENT_LOOP_H
 
 #include <stdint.h>
-#include <time.h>
 #include <signal.h>
 #include <sys/epoll.h>
 #include <string>
 #include <list>
 #include <memory>
+#include "utils.h"
 
 using std::string;
 using std::list;
@@ -73,7 +73,7 @@ class IOEvent : public IEvent {
 class BufferIOEvent : public IOEvent {
   friend class EventLoop;
  public: BufferIOEvent(uint32_t events = IOEvent::READ | IOEvent::ERROR)
-    :IOEvent(events), torecv_(0), sent_(0)/*, el_(NULL)*/ {
+    :IOEvent(events), torecv_(0), sent_(0) {
   }
 
  public:
@@ -137,7 +137,7 @@ class SignalEvent : public IEvent {
   };
 
  public:
-  SignalEvent(uint32_t events = IEvent::NONE) : IEvent(events) {}
+  SignalEvent(uint32_t events = IEvent::NONE) : IEvent(events), sig_no_(UNDEFINED) {}
 
  public:
   void SetSignal(SIGNO sig_no) { sig_no_ = sig_no; }
@@ -155,21 +155,21 @@ class TimerEvent : public IEvent {
  public:
   TimerEvent(uint32_t events = IEvent::NONE) : IEvent(events) {}
 
-  void SetTime(timeval tv) { time_ = tv; }
-  timeval Time() const { return time_; }
+  void SetTime(const TimeVal& tv) { time_ = tv; }
+  const TimeVal& Time() const { return time_; }
 
  private:
-  timeval time_;
+  TimeVal time_;
 };
 
 class PeriodicTimerEvent : public TimerEvent {
   friend class EventLoop;
  public:
-  PeriodicTimerEvent() :TimerEvent(IEvent::NONE)/*, el_(NULL)*/ {};
-  PeriodicTimerEvent(timeval inter) :TimerEvent(IEvent::NONE), interval_(inter)/*, el_(NULL)*/ {};
+  PeriodicTimerEvent() : TimerEvent(IEvent::NONE), running_(false) {};
+  PeriodicTimerEvent(const TimeVal& inter) : TimerEvent(IEvent::NONE), interval_(inter), running_(false) {};
 
-  void SetInterval(timeval inter) { interval_ = inter; }
-  timeval GetInterval() const { return interval_; }
+  void SetInterval(const TimeVal& inter) { interval_ = inter; }
+  const TimeVal& GetInterval() const { return interval_; }
 
   void Start(EventLoop* el = NULL);
   void Stop();
@@ -182,8 +182,8 @@ class PeriodicTimerEvent : public TimerEvent {
   void OnEvents(uint32_t events);
 
  private:
-  timeval interval_;
-  bool running_;
+  TimeVal   interval_;
+  bool      running_;
 };
 
 class EventLoop {
@@ -215,7 +215,7 @@ class EventLoop {
   void StartLoop();
   void StopLoop();
 
-  timeval Now() const { return now_; }
+  const TimeVal& Now() const { return now_; }
 
  private:
   int CollectFileEvents(int timeout);
@@ -225,8 +225,8 @@ class EventLoop {
   int epfd_;
   epoll_event evs_[256];
 
-  timeval now_;
-  bool stop_;
+  TimeVal   now_;
+  bool      stop_;
 
   std::shared_ptr<TimerManager> timermanager_;
 };
@@ -238,4 +238,4 @@ int SetNonblocking(int fd);
 #include "singleton_tmpl.h"
 #define EV_Singleton       (Singleton<EventLoop>::GetInstance())
 
-#endif // EVENT_LOOP_H_
+#endif // _EVENT_LOOP_H

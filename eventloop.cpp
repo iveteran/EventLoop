@@ -6,7 +6,6 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/time.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <signal.h>
@@ -64,34 +63,13 @@ class TimerManager {
 
  private:
   friend class EventLoop;
-  class Compare {
-   public:
-    bool operator()(const timeval& tv1, const timeval& tv2) {
-      return (tv1.tv_sec < tv2.tv_sec) || (tv1.tv_sec == tv2.tv_sec && tv1.tv_usec < tv2.tv_usec);
-    }
-  };
 
   typedef std::set<TimerEvent*> TimerSet;
-  typedef std::map<timeval, TimerSet, Compare> TimerMap;
+  typedef std::map<TimeVal, TimerSet> TimerMap;
 
  private:
   TimerMap timers_;
 };
-
-// return time diff in ms
-static int TimeDiff(timeval tv1, timeval tv2) {
-  return (tv1.tv_sec - tv2.tv_sec) * 1000 + (tv1.tv_usec - tv2.tv_usec) / 1000;
-}
-
-// add time in ms to tv
-static timeval TimeAdd(timeval tv1, timeval tv2) {
-  timeval t = tv1;
-  t.tv_sec += tv2.tv_sec;
-  t.tv_usec += tv2.tv_usec;
-  t.tv_sec += t.tv_usec / 1000000;
-  t.tv_usec %= 1000000;
-  return t;
-}
 
 // TimerManager implementation
 int TimerManager::AddEvent(TimerEvent *e) {
@@ -133,7 +111,7 @@ void PeriodicTimerEvent::OnEvents(uint32_t events) {
   OnTimer();
   if (running_) {
     el_->DeleteEvent(this);
-    SetTime(TimeAdd(el_->Now(), interval_));
+    SetTime(el_->Now() + interval_);
     el_->AddEvent(this);
   }
 }
@@ -144,7 +122,7 @@ void PeriodicTimerEvent::Start(EventLoop *el) {
     return;
   }
   running_ = true;
-  SetTime(TimeAdd(el_->Now(), interval_));
+  SetTime(el_->Now() + interval_);
   el_->AddEvent(this);
 }
 
@@ -158,7 +136,8 @@ void PeriodicTimerEvent::Stop() {
 EventLoop::EventLoop() {
   epfd_ = epoll_create(256);
   timermanager_ = std::make_shared<TimerManager>();
-  gettimeofday(&now_, NULL);
+  now_.SetNow();
+  stop_ = true;
 }
 
 EventLoop::~EventLoop() {
@@ -174,9 +153,9 @@ int EventLoop::DoTimeout() {
   TimerManager::TimerMap& timers_map = timermanager_->timers_;
   TimerManager::TimerMap::iterator iter = timers_map.begin();
   while (iter != timers_map.end()) {
-    timeval tv = iter->first;
-    //printf("EventLoop::DoTimeout, now: %ld, tv: %ld\n", now_.tv_sec, tv.tv_sec);
-    if (TimeDiff(now_, tv) < 0) break;
+    TimeVal tv = iter->first;
+    //printf("EventLoop::DoTimeout, now: %ld, tv: %ld\n", now_.Seconds(), tv.Seconds());
+    if (TimeVal::MsDiff(now_, tv) < 0) break;
     n++;
     TimerManager::TimerSet events_set = iter->second;
     TimerManager::TimerSet::iterator iter2;
@@ -194,9 +173,7 @@ int EventLoop::ProcessEvents(int timeout) {
   int i, nt, n;
 
   n = CollectFileEvents(timeout);
-
-  gettimeofday(&now_, NULL);
-
+  now_.SetNow();
   nt = DoTimeout();
 
   for(i = 0; i < n; i++) {
@@ -219,12 +196,12 @@ void EventLoop::StartLoop() {
   stop_ = false;
   while (!stop_) {
     int timeout = 100;
-    gettimeofday(&now_, NULL);
+    now_.SetNow();
 
     if (timermanager_->timers_.size() > 0) {
       TimerManager::TimerMap::iterator iter = timermanager_->timers_.begin();
-      timeval tv = iter->first;
-      int t = TimeDiff(tv, now_);
+      TimeVal time = iter->first;
+      int t = TimeVal::MsDiff(time, now_);
       if (t > 0 && timeout > t) timeout = t;
     }
 
