@@ -14,18 +14,18 @@ class BusinessTester {
         echo_client_cbs->on_new_client_cb = std::bind(&BusinessTester::OnConnectionCreated, this, std::placeholders::_1);
         echoclient_.SetTcpCallbacks(echo_client_cbs);
 
-        echoclient_.Send("hello");
+        echoclient_.Send("ping");
     }
 
     protected:
     void OnMessageRecvd(TcpConnection* conn, const string* msg)
     {
-        printf("[echoclient] received message, fd: %d, message: %s\n", conn->FD(), msg->c_str());
+        printf("[echoclient] received message, fd: %d, message: %s, length: %d\n", conn->FD(), msg->c_str(), msg->size());
     }
     void OnConnectionCreated(TcpConnection* conn)
     {
         printf("[echoclient] connection created, fd: %d\n", conn->FD());
-        conn->Send("hello2");
+        conn->Send("ping");
     }
 
     private:

@@ -23,22 +23,26 @@ class BusinessTester {
         echoclient_.SetTcpCallbacks(echo_client_cbs);
 
         echoclient_.Send("hello");
+        echoclient_.Send("hello china");
     }
 
     private:
     void OnMessageRecvd_1(TcpConnection* conn, const string* msg)
     {
-        printf("[echoserver1] fd: %d, message: %s\n", conn->FD(), msg->c_str());
+        printf("[echoserver1] fd: %d, message: %s, length: %d\n", conn->FD(), msg->c_str(), msg->size());
         conn->Send(*msg);
     }
     void OnMessageRecvd_2(TcpConnection* conn, const string* msg)
     {
-        printf("[echoserver2] fd: %d, message: %s\n", conn->FD(), msg->c_str());
-        conn->Send(*msg);
+        printf("[echoserver2] fd: %d, message: %s, length: %d\n", conn->FD(), msg->c_str(), msg->size());
+        if (*msg == "ping")
+          conn->Send("pong");
+        else
+          conn->Send(*msg);
     }
     void OnMessageRecvd_3(TcpConnection* conn, const string* msg)
     {
-        printf("[echoclient] fd: %d, message: %s\n", conn->FD(), msg->c_str());
+        printf("[echoclient] fd: %d, message: %s, length: %d\n", conn->FD(), msg->c_str(), msg->size());
     }
 
     private:

@@ -14,7 +14,7 @@
 
 #include "eventloop.h"
 
-#define MAX_BYTES_RECEIVE       1024
+#define MAX_BYTES_RECEIVE       4096
 
 namespace evt_loop {
 
@@ -311,100 +311,94 @@ int SignalManager::UpdateEvent(SignalEvent *e) {
 }
 
 // BufferIOEvent implementation
-int BufferIOEvent::ReceiveData(string& rtn_data) {
-  char buffer[MAX_BYTES_RECEIVE] = {0};
-  int len = read(fd_, buffer, sizeof(buffer));
-  if (len <= 0) {
-    return len;    // occurs error or received EOF
+int BufferIOEvent::ReceiveData() {
+  char buffer[MAX_BYTES_RECEIVE];
+  int read_bytes = (msg_hdr_.length == 0 ? sizeof(msg_hdr_) : std::min(msg_hdr_.length, (uint32_t)sizeof(buffer)));
+  int len = read(fd_, buffer, read_bytes);
+  if (len < 0) {
+    OnError(errno, strerror(errno));
   }
+  else if (len == 0 ) {
+    OnClosed();
+  } else {
+    recvbuf_.append(buffer, len);
 
-  recvbuf_ += string(buffer, len);
-  if (recvbuf_.size() >= torecv_) {
-    if (torecv_ > 0) {
-      rtn_data = recvbuf_.substr(0, torecv_);
-      recvbuf_ = recvbuf_.substr(torecv_);
+    if (msg_hdr_.length == 0 && recvbuf_.size() >= sizeof(msg_header)) {
+      memcpy(&msg_hdr_, recvbuf_.data(), sizeof(msg_hdr_));
+      printf("[BufferIOEvent::ReceiveData] msg_header{ length: %d, msg_id: %d }\n", msg_hdr_.length, msg_hdr_.msg_id);
+      if (recvbuf_.capacity() < msg_hdr_.length) {
+        recvbuf_.reserve(msg_hdr_.length);
+      }
     }
-    else {
-      rtn_data = recvbuf_;
-      recvbuf_.clear();
+    if (recvbuf_.size() >= msg_hdr_.length) {
+      OnReceived(recvbuf_.substr(sizeof(msg_header), msg_hdr_.length - sizeof(msg_header)));
+      recvbuf_ = recvbuf_.substr(msg_hdr_.length);
+      msg_hdr_.length = 0;
+      printf("[BufferIOEvent::ReceiveData] recvbuf_ size: %d }\n", recvbuf_.size());
     }
   }
-  return (!rtn_data.empty() ? rtn_data.size() : recvbuf_.size());
+  return len;
 }
 
 int BufferIOEvent::SendData() {
-  uint32_t total_sent = 0;
-  while (!sendbuf_list_.empty()) {
-    const string& sendbuf = sendbuf_list_.front();
-    uint32_t tosend = sendbuf.size();
-    int len = write(fd_, sendbuf.data() + sent_, tosend - sent_);
+  uint32_t cur_sent = 0;
+  while (!sendmsg_list_.empty()) {
+    const string& sendmsg = sendmsg_list_.front();
+    uint32_t tosend = sendmsg.size();
+    int len = write(fd_, sendmsg.data() + sent_, tosend - sent_);
     if (len < 0) {
-      return len;   // occurs error
+      OnError(errno, strerror(errno));
+      break;
     }
 
     sent_ += len;
-    total_sent += sent_;
+    cur_sent += len;
     if (sent_ == tosend) {
       SetEvents(events_ & (~IOEvent::WRITE));
       el_->UpdateEvent(this);
-      OnSent(sendbuf);
+      OnSent(sendmsg);
 
-      sendbuf_list_.pop_front();
+      sendmsg_list_.pop_front();
       sent_ = 0;
-    }
-    else {
+    } else {
+      /// sent_ less than tosend, breaking the sending loop and wait for next writing event
       break;
     }
   }
-  return total_sent;
+  return cur_sent;
 }
 
 void BufferIOEvent::OnEvents(uint32_t events) {
-  if (events & IOEvent::READ) {
-    string rtn_data;
-    int len = ReceiveData(rtn_data);
-    if (len < 0) {
-      OnError(errno, strerror(errno));
-      return;
-    }
-    else if (len == 0 ) {
-      OnClosed();
-      return;
-    }
-
-    if (!rtn_data.empty()) {
-      OnReceived(rtn_data);
-    }
-  }
-
+  /// The WRITE events should deal with before the READ events
   if (events & IOEvent::WRITE) {
-    while (!sendbuf_list_.empty()) {
-      int len = SendData();
-      if (len < 0) {
-        OnError(errno, strerror(errno));
-        return;
-      }
-    }
+    SendData();
   }
-
+  if (events & IOEvent::READ) {
+    ReceiveData();
+  }
   if (events & IOEvent::ERROR) {
     OnError(errno, strerror(errno));
-    return;
   }
-
 }
 
-void BufferIOEvent::SetReceiveLen(uint32_t len) {
-  torecv_ = len;
+void BufferIOEvent::Send(const string& data) {
+  Send(data.data(), data.size());
 }
 
-void BufferIOEvent::Send(const char *buffer, uint32_t len) {
-  const string sendbuf(buffer, len);
-  Send(sendbuf);
+void BufferIOEvent::Send(const char *data, uint32_t len) {
+  msg_header msg_hdr;
+  msg_hdr.length = len + sizeof(msg_hdr);
+  msg_hdr.msg_id = ++msg_seq_;
+  printf("[BufferIOEvent::Send] msg_header{ length: %d, msg_id: %d }\n", msg_hdr.length, msg_hdr.msg_id);
+  string msg;
+  msg.reserve(msg_hdr.length);
+  msg.append((char*)&msg_hdr, sizeof(msg_hdr));
+  msg.append(data, len);
+  SendInner(msg);
 }
 
-void BufferIOEvent::Send(const string& buffer) {
-  sendbuf_list_.push_back(buffer);
+void BufferIOEvent::SendInner(const string& msg) {
+  sendmsg_list_.push_back(msg);
   if (!(events_ & IOEvent::WRITE)) {
     SetEvents(events_ | IOEvent::WRITE);
     el_->UpdateEvent(this);
