@@ -6,7 +6,6 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/time.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <signal.h>
@@ -15,7 +14,7 @@
 
 #include "eventloop.h"
 
-#define MAX_BYTES_RECEIVE       1024
+#define MAX_BYTES_RECEIVE       4096
 
 namespace evt_loop {
 
@@ -64,34 +63,13 @@ class TimerManager {
 
  private:
   friend class EventLoop;
-  class Compare {
-   public:
-    bool operator()(const timeval& tv1, const timeval& tv2) {
-      return (tv1.tv_sec < tv2.tv_sec) || (tv1.tv_sec == tv2.tv_sec && tv1.tv_usec < tv2.tv_usec);
-    }
-  };
 
   typedef std::set<TimerEvent*> TimerSet;
-  typedef std::map<timeval, TimerSet, Compare> TimerMap;
+  typedef std::map<TimeVal, TimerSet> TimerMap;
 
  private:
   TimerMap timers_;
 };
-
-// return time diff in ms
-static int TimeDiff(timeval tv1, timeval tv2) {
-  return (tv1.tv_sec - tv2.tv_sec) * 1000 + (tv1.tv_usec - tv2.tv_usec) / 1000;
-}
-
-// add time in ms to tv
-static timeval TimeAdd(timeval tv1, timeval tv2) {
-  timeval t = tv1;
-  t.tv_sec += tv2.tv_sec;
-  t.tv_usec += tv2.tv_usec;
-  t.tv_sec += t.tv_usec / 1000000;
-  t.tv_usec %= 1000000;
-  return t;
-}
 
 // TimerManager implementation
 int TimerManager::AddEvent(TimerEvent *e) {
@@ -133,7 +111,7 @@ void PeriodicTimerEvent::OnEvents(uint32_t events) {
   OnTimer();
   if (running_) {
     el_->DeleteEvent(this);
-    SetTime(TimeAdd(el_->Now(), interval_));
+    SetTime(el_->Now() + interval_);
     el_->AddEvent(this);
   }
 }
@@ -144,7 +122,7 @@ void PeriodicTimerEvent::Start(EventLoop *el) {
     return;
   }
   running_ = true;
-  SetTime(TimeAdd(el_->Now(), interval_));
+  SetTime(el_->Now() + interval_);
   el_->AddEvent(this);
 }
 
@@ -158,7 +136,8 @@ void PeriodicTimerEvent::Stop() {
 EventLoop::EventLoop() {
   epfd_ = epoll_create(256);
   timermanager_ = std::make_shared<TimerManager>();
-  gettimeofday(&now_, NULL);
+  now_.SetNow();
+  stop_ = true;
 }
 
 EventLoop::~EventLoop() {
@@ -174,9 +153,9 @@ int EventLoop::DoTimeout() {
   TimerManager::TimerMap& timers_map = timermanager_->timers_;
   TimerManager::TimerMap::iterator iter = timers_map.begin();
   while (iter != timers_map.end()) {
-    timeval tv = iter->first;
-    //printf("EventLoop::DoTimeout, now: %ld, tv: %ld\n", now_.tv_sec, tv.tv_sec);
-    if (TimeDiff(now_, tv) < 0) break;
+    TimeVal tv = iter->first;
+    //printf("EventLoop::DoTimeout, now: %ld, tv: %ld\n", now_.Seconds(), tv.Seconds());
+    if (TimeVal::MsDiff(now_, tv) < 0) break;
     n++;
     TimerManager::TimerSet events_set = iter->second;
     TimerManager::TimerSet::iterator iter2;
@@ -194,9 +173,7 @@ int EventLoop::ProcessEvents(int timeout) {
   int i, nt, n;
 
   n = CollectFileEvents(timeout);
-
-  gettimeofday(&now_, NULL);
-
+  now_.SetNow();
   nt = DoTimeout();
 
   for(i = 0; i < n; i++) {
@@ -219,12 +196,12 @@ void EventLoop::StartLoop() {
   stop_ = false;
   while (!stop_) {
     int timeout = 100;
-    gettimeofday(&now_, NULL);
+    now_.SetNow();
 
     if (timermanager_->timers_.size() > 0) {
       TimerManager::TimerMap::iterator iter = timermanager_->timers_.begin();
-      timeval tv = iter->first;
-      int t = TimeDiff(tv, now_);
+      TimeVal time = iter->first;
+      int t = TimeVal::MsDiff(time, now_);
       if (t > 0 && timeout > t) timeout = t;
     }
 
@@ -239,7 +216,7 @@ int EventLoop::AddEvent(IOEvent *e) {
   ev.events = 0;
   if (events & IOEvent::READ) ev.events |= EPOLLIN;
   if (events & IOEvent::WRITE) ev.events |= EPOLLOUT;
-  if (events & IOEvent::ERROR) ev.events |= EPOLLHUP | EPOLLERR;
+  if (events & IOEvent::ERROR) ev.events |= EPOLLHUP | EPOLLRDHUP | EPOLLERR;
   ev.data.fd = e->fd_;
   ev.data.ptr = e;
 
@@ -255,7 +232,7 @@ int EventLoop::UpdateEvent(IOEvent *e) {
   ev.events = 0;
   if (events & IOEvent::READ) ev.events |= EPOLLIN;
   if (events & IOEvent::WRITE) ev.events |= EPOLLOUT;
-  if (events & IOEvent::ERROR) ev.events |= EPOLLHUP | EPOLLERR;
+  if (events & IOEvent::ERROR) ev.events |= EPOLLHUP | EPOLLRDHUP | EPOLLERR;
   ev.data.fd = e->fd_;
   ev.data.ptr = e;
 
@@ -295,12 +272,12 @@ int EventLoop::UpdateEvent(SignalEvent *e) {
 
 int EventLoop::AddEvent(BufferIOEvent *e) {
   e->el_ = this;
-  return AddEvent(e);
+  return AddEvent(dynamic_cast<IOEvent *>(e));
 }
 
 int EventLoop::AddEvent(PeriodicTimerEvent *e) {
   e->el_ = this;
-  return AddEvent(e);
+  return AddEvent(dynamic_cast<TimerEvent *>(e));
 }
 
 void SignalHandler(int signo) {
@@ -351,116 +328,99 @@ void IOEvent::DeleteWriteEvent() {
 // BufferIOEvent implementation
 void BufferIOEvent::ClearBuff() {
   recvbuf_.clear();
-  sendbuf_list_.clear();
+  sendmsg_list_.clear();
 }
 bool BufferIOEvent::BuffEmpty() {
-  return sendbuf_list_.empty();
+  return sendmsg_list_.empty();
 }
 
-int BufferIOEvent::ReceiveData(string& rtn_data) {
-  char buffer[MAX_BYTES_RECEIVE] = {0};
-  int len = read(fd_, buffer, sizeof(buffer));
-  if (len <= 0) {
-    return len;    // occurs error or received EOF
+int BufferIOEvent::ReceiveData() {
+  char buffer[MAX_BYTES_RECEIVE];
+  int read_bytes = (msg_hdr_.length == 0 ? sizeof(msg_hdr_) : std::min(msg_hdr_.length, (uint32_t)sizeof(buffer)));
+  int len = read(fd_, buffer, read_bytes);
+  if (len < 0) {
+    OnError(errno, strerror(errno));
   }
+  else if (len == 0 ) {
+    OnClosed();
+  } else {
+    recvbuf_.append(buffer, len);
 
-  recvbuf_ += string(buffer, len);
-  if (recvbuf_.size() >= torecv_) {
-    if (torecv_ > 0) {
-      rtn_data = recvbuf_.substr(0, torecv_);
-      recvbuf_ = recvbuf_.substr(torecv_);
+    if (msg_hdr_.length == 0 && recvbuf_.size() >= sizeof(msg_header)) {
+      memcpy(&msg_hdr_, recvbuf_.data(), sizeof(msg_hdr_));
+      printf("[BufferIOEvent::ReceiveData] msg_header{ length: %d, msg_id: %d }\n", msg_hdr_.length, msg_hdr_.msg_id);
+      if (recvbuf_.capacity() < msg_hdr_.length) {
+        recvbuf_.reserve(msg_hdr_.length);
+      }
     }
-    else {
-      rtn_data = recvbuf_;
-      recvbuf_.clear();
+    if (recvbuf_.size() >= msg_hdr_.length) {
+      OnReceived(recvbuf_.substr(sizeof(msg_header), msg_hdr_.length - sizeof(msg_header)));
+      recvbuf_ = recvbuf_.substr(msg_hdr_.length);
+      msg_hdr_.length = 0;
+      printf("[BufferIOEvent::ReceiveData] recvbuf_ size: %d }\n", recvbuf_.size());
     }
   }
-  return (!rtn_data.empty() ? rtn_data.size() : recvbuf_.size());
+  return len;
 }
 
 int BufferIOEvent::SendData() {
-  uint32_t total_sent = 0;
-  while (!sendbuf_list_.empty()) {
-    const string& sendbuf = sendbuf_list_.front();
-    uint32_t tosend = sendbuf.size();
-    int len = write(fd_, sendbuf.data() + sent_, tosend - sent_);
+  uint32_t cur_sent = 0;
+  while (!sendmsg_list_.empty()) {
+    const string& sendmsg = sendmsg_list_.front();
+    uint32_t tosend = sendmsg.size();
+    int len = write(fd_, sendmsg.data() + sent_, tosend - sent_);
     if (len < 0) {
-      return len;   // occurs error
+      OnError(errno, strerror(errno));
+      break;
     }
     sent_ += len;
-    total_sent += sent_;
+    cur_sent += len;
     if (sent_ == tosend) {
-      OnSent(sendbuf);
-      sendbuf_list_.pop_front();
+      OnSent(sendmsg);
+      sendmsg_list_.pop_front();
       sent_ = 0;
-    }
-    else {
+    } else {
+      /// sent_ less than tosend, breaking the sending loop and wait for next writing event
       break;
     }
   }
-  if (sendbuf_list_.empty()) {
+  if (sendmsg_list_.empty()) {
     DeleteWriteEvent();  // All data in the output buffer has been sent, then remove writing event from epoll
   }
-  return total_sent;
+  return cur_sent;
 }
 
 void BufferIOEvent::OnEvents(uint32_t events) {
-  if (events & EPOLLHUP) {
-    printf("OnEvents() EPOLLHUP event received, local connect maybe closed!");
-    OnClosed();
-    return;
-  }
-  if (events & EPOLLRDHUP) {
-    printf("OnEvents() EPOLLRDHUP event received, peer connect maybe closed!");
-    OnClosed();
-    return;
-  }
-
-  if (events & IOEvent::READ) {
-    string rtn_data;
-    int len = ReceiveData(rtn_data);
-    if (len < 0) {
-      OnError(errno, strerror(errno));
-      return;
-    }
-    else if (len == 0 ) {
-      OnClosed();
-      return;
-    }
-
-    if (!rtn_data.empty()) {
-      OnReceived(rtn_data);
-    }
-  }
-
+  /// The WRITE events should deal with before the READ events
   if (events & IOEvent::WRITE) {
-    while (!sendbuf_list_.empty()) {
-      int len = SendData();
-      if (len < 0) {
-        OnError(errno, strerror(errno));
-        return;
-      }
-    }
+    SendData();
   }
-
+  if (events & IOEvent::READ) {
+    ReceiveData();
+  }
   if (events & IOEvent::ERROR) {
     OnError(errno, strerror(errno));
-    return;
   }
-
 }
 
-void BufferIOEvent::SetReceiveLen(uint32_t len) {
-  torecv_ = len;
+void BufferIOEvent::Send(const string& data) {
+  Send(data.data(), data.size());
 }
 
-void BufferIOEvent::Send(const char *buffer, uint32_t len) {
-  const string sendbuf(buffer, len);
-  Send(sendbuf);
+void BufferIOEvent::Send(const char *data, uint32_t len) {
+  msg_header msg_hdr;
+  msg_hdr.length = len + sizeof(msg_hdr);
+  msg_hdr.msg_id = ++msg_seq_;
+  printf("[BufferIOEvent::Send] msg_header{ length: %d, msg_id: %d }\n", msg_hdr.length, msg_hdr.msg_id);
+  string msg;
+  msg.reserve(msg_hdr.length);
+  msg.append((char*)&msg_hdr, sizeof(msg_hdr));
+  msg.append(data, len);
+  SendInner(msg);
 }
 
-void BufferIOEvent::Send(const string& buffer) {
-  sendbuf_list_.push_back(buffer);
+void BufferIOEvent::SendInner(const string& msg) {
+  sendmsg_list_.push_back(msg);
   if (!(events_ & IOEvent::WRITE)) {
     AddWriteEvent();  // The output buffer has data now, then add writing event to epoll again if epoll has no writing event
   }

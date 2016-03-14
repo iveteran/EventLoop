@@ -1,18 +1,32 @@
-#ifndef EVENT_LOOP_H_
-#define EVENT_LOOP_H_
+#ifndef _EVENT_LOOP_H
+#define _EVENT_LOOP_H
 
+#include <string.h>
 #include <stdint.h>
-#include <time.h>
 #include <signal.h>
 #include <sys/epoll.h>
 #include <string>
 #include <list>
 #include <memory>
+#include "utils.h"
 
 using std::string;
 using std::list;
 
 namespace evt_loop {
+
+#pragma pack(1)
+struct msg_header {
+  uint32_t  length;
+  uint16_t  msg_type;
+  uint32_t  msg_id;
+  uint8_t   protocol;
+  //char      payload[0];
+  msg_header() {
+    memset(this, 0, sizeof(*this));
+  }
+};
+#pragma pack()
 
 class EventLoop;
 class SignalManager;
@@ -73,17 +87,17 @@ class IOEvent : public IEvent {
 };
 
 class BufferIOEvent : public IOEvent {
-  friend class EventLoop;
+ friend class EventLoop;
  public: BufferIOEvent(uint32_t events = IOEvent::READ | IOEvent::ERROR)
-    :IOEvent(events), torecv_(0), sent_(0)/*, el_(NULL)*/ {
+    :IOEvent(events), sent_(0) {
   }
 
  public:
-  void SetReceiveLen(uint32_t len);
   void ClearBuff();
   bool BuffEmpty();
-  void Send(const char *buffer, uint32_t len);
-  void Send(const string& buffer);
+  void Send(const string& data);
+  void Send(const char *data, uint32_t len);
+  const msg_header& GetMsgHeader() const { return msg_hdr_; }
 
  protected:
   virtual void OnReceived(const string& recvbuf) {};
@@ -91,14 +105,16 @@ class BufferIOEvent : public IOEvent {
 
  private:
   void OnEvents(uint32_t events);
-  int ReceiveData(string& rtn_data);
+  int ReceiveData();
   int SendData();
+  void SendInner(const string& msg);
 
  private:
+  uint32_t msg_seq_;
+  msg_header msg_hdr_;
   string recvbuf_;
-  uint32_t torecv_;
 
-  list<string> sendbuf_list_;
+  list<string> sendmsg_list_;
   uint32_t sent_;
 };
 
@@ -141,7 +157,7 @@ class SignalEvent : public IEvent {
   };
 
  public:
-  SignalEvent(uint32_t events = IEvent::NONE) : IEvent(events) {}
+  SignalEvent(uint32_t events = IEvent::NONE) : IEvent(events), sig_no_(UNDEFINED) {}
 
  public:
   void SetSignal(SIGNO sig_no) { sig_no_ = sig_no; }
@@ -159,21 +175,21 @@ class TimerEvent : public IEvent {
  public:
   TimerEvent(uint32_t events = IEvent::NONE) : IEvent(events) {}
 
-  void SetTime(timeval tv) { time_ = tv; }
-  timeval Time() const { return time_; }
+  void SetTime(const TimeVal& tv) { time_ = tv; }
+  const TimeVal& Time() const { return time_; }
 
  private:
-  timeval time_;
+  TimeVal time_;
 };
 
 class PeriodicTimerEvent : public TimerEvent {
   friend class EventLoop;
  public:
-  PeriodicTimerEvent() :TimerEvent(IEvent::NONE)/*, el_(NULL)*/ {};
-  PeriodicTimerEvent(timeval inter) :TimerEvent(IEvent::NONE), interval_(inter)/*, el_(NULL)*/ {};
+  PeriodicTimerEvent() : TimerEvent(IEvent::NONE), running_(false) {};
+  PeriodicTimerEvent(const TimeVal& inter) : TimerEvent(IEvent::NONE), interval_(inter), running_(false) {};
 
-  void SetInterval(timeval inter) { interval_ = inter; }
-  timeval GetInterval() const { return interval_; }
+  void SetInterval(const TimeVal& inter) { interval_ = inter; }
+  const TimeVal& GetInterval() const { return interval_; }
 
   void Start(EventLoop* el = NULL);
   void Stop();
@@ -186,8 +202,8 @@ class PeriodicTimerEvent : public TimerEvent {
   void OnEvents(uint32_t events);
 
  private:
-  timeval interval_;
-  bool running_;
+  TimeVal   interval_;
+  bool      running_;
 };
 
 class EventLoop {
@@ -219,7 +235,7 @@ class EventLoop {
   void StartLoop();
   void StopLoop();
 
-  timeval Now() const { return now_; }
+  const TimeVal& Now() const { return now_; }
 
  private:
   int CollectFileEvents(int timeout);
@@ -229,8 +245,8 @@ class EventLoop {
   int epfd_;
   epoll_event evs_[256];
 
-  timeval now_;
-  bool stop_;
+  TimeVal   now_;
+  bool      stop_;
 
   std::shared_ptr<TimerManager> timermanager_;
 };
@@ -242,4 +258,4 @@ int SetNonblocking(int fd);
 #include "singleton_tmpl.h"
 #define EV_Singleton       (Singleton<EventLoop>::GetInstance())
 
-#endif // EVENT_LOOP_H_
+#endif // _EVENT_LOOP_H
