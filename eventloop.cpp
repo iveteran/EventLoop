@@ -396,7 +396,9 @@ void BufferIOEvent::OnEvents(uint32_t events) {
 
 void BufferIOEvent::Send(const Message& msg) {
   MessagePtr msg_ptr = std::make_shared<Message>(msg);
+#ifndef _MSG_MINIMUM_PACKAGING
   msg_ptr->Header()->msg_id = ++msg_seq_;
+#endif
   SendInner(msg_ptr);
 }
 
@@ -406,8 +408,12 @@ void BufferIOEvent::Send(const string& data) {
 
 void BufferIOEvent::Send(const char *data, uint32_t len) {
   MessagePtr msg_pre = std::make_shared<Message>(data, len, Message::HAS_NO_HDR);
+#ifndef _MSG_MINIMUM_PACKAGING
   msg_pre->Header()->msg_id = ++msg_seq_;
   printf("[BufferIOEvent::Send] msg_header{ length: %d, msg_id: %d }\n", msg_pre->Size(), msg_pre->Header()->msg_id);
+#else
+  printf("[BufferIOEvent::Send] msg_header{ length: %d }\n", msg_pre->Size());
+#endif
   SendInner(msg_pre);
 }
 

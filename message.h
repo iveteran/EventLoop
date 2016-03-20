@@ -12,9 +12,11 @@ class Message {
 #pragma pack(1)
   struct HDR {
     uint32_t  length;
+#ifndef _MSG_MINIMUM_PACKAGING
     uint16_t  msg_type;
     uint32_t  msg_id;
     uint8_t   protocol;
+#endif
     char      payload[0];
     HDR()     { memset(this, 0, sizeof(*this)); }
   };
