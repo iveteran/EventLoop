@@ -327,16 +327,16 @@ void IOEvent::DeleteWriteEvent() {
 
 // BufferIOEvent implementation
 void BufferIOEvent::ClearBuff() {
-  recvbuf_.clear();
-  sendmsg_list_.clear();
+  rx_msg_.Clear();
+  tx_msg_mq_.clear();
 }
-bool BufferIOEvent::BuffEmpty() {
-  return sendmsg_list_.empty();
+bool BufferIOEvent::TxBuffEmpty() {
+  return tx_msg_mq_.empty();
 }
 
 int BufferIOEvent::ReceiveData() {
   char buffer[MAX_BYTES_RECEIVE];
-  int read_bytes = (msg_hdr_.length == 0 ? sizeof(msg_hdr_) : std::min(msg_hdr_.length, (uint32_t)sizeof(buffer)));
+  int read_bytes = std::min(rx_msg_.MoreSize(), (size_t)sizeof(buffer));
   int len = read(fd_, buffer, read_bytes);
   if (len < 0) {
     OnError(errno, strerror(errno));
@@ -344,20 +344,11 @@ int BufferIOEvent::ReceiveData() {
   else if (len == 0 ) {
     OnClosed();
   } else {
-    recvbuf_.append(buffer, len);
+    rx_msg_.AppendData(buffer, len);
 
-    if (msg_hdr_.length == 0 && recvbuf_.size() >= sizeof(msg_header)) {
-      memcpy(&msg_hdr_, recvbuf_.data(), sizeof(msg_hdr_));
-      printf("[BufferIOEvent::ReceiveData] msg_header{ length: %d, msg_id: %d }\n", msg_hdr_.length, msg_hdr_.msg_id);
-      if (recvbuf_.capacity() < msg_hdr_.length) {
-        recvbuf_.reserve(msg_hdr_.length);
-      }
-    }
-    if (recvbuf_.size() >= msg_hdr_.length) {
-      OnReceived(recvbuf_.substr(sizeof(msg_header), msg_hdr_.length - sizeof(msg_header)));
-      recvbuf_ = recvbuf_.substr(msg_hdr_.length);
-      msg_hdr_.length = 0;
-      printf("[BufferIOEvent::ReceiveData] recvbuf_ size: %d }\n", recvbuf_.size());
+    if (rx_msg_.Completion()) {
+      OnReceived(&rx_msg_);
+      rx_msg_.Clear();
     }
   }
   return len;
@@ -365,10 +356,10 @@ int BufferIOEvent::ReceiveData() {
 
 int BufferIOEvent::SendData() {
   uint32_t cur_sent = 0;
-  while (!sendmsg_list_.empty()) {
-    const string& sendmsg = sendmsg_list_.front();
-    uint32_t tosend = sendmsg.size();
-    int len = write(fd_, sendmsg.data() + sent_, tosend - sent_);
+  while (!tx_msg_mq_.empty()) {
+    const MessagePtr& tx_msg = tx_msg_mq_.front();
+    uint32_t tosend = tx_msg->Size();
+    int len = write(fd_, tx_msg->Data().data() + sent_, tosend - sent_);
     if (len < 0) {
       OnError(errno, strerror(errno));
       break;
@@ -376,15 +367,15 @@ int BufferIOEvent::SendData() {
     sent_ += len;
     cur_sent += len;
     if (sent_ == tosend) {
-      OnSent(sendmsg);
-      sendmsg_list_.pop_front();
+      OnSent(tx_msg.get());
+      tx_msg_mq_.pop_front();
       sent_ = 0;
     } else {
       /// sent_ less than tosend, breaking the sending loop and wait for next writing event
       break;
     }
   }
-  if (sendmsg_list_.empty()) {
+  if (tx_msg_mq_.empty()) {
     DeleteWriteEvent();  // All data in the output buffer has been sent, then remove writing event from epoll
   }
   return cur_sent;
@@ -403,24 +394,25 @@ void BufferIOEvent::OnEvents(uint32_t events) {
   }
 }
 
+void BufferIOEvent::Send(const Message& msg) {
+  MessagePtr msg_ptr = std::make_shared<Message>(msg);
+  msg_ptr->Header()->msg_id = ++msg_seq_;
+  SendInner(msg_ptr);
+}
+
 void BufferIOEvent::Send(const string& data) {
   Send(data.data(), data.size());
 }
 
 void BufferIOEvent::Send(const char *data, uint32_t len) {
-  msg_header msg_hdr;
-  msg_hdr.length = len + sizeof(msg_hdr);
-  msg_hdr.msg_id = ++msg_seq_;
-  printf("[BufferIOEvent::Send] msg_header{ length: %d, msg_id: %d }\n", msg_hdr.length, msg_hdr.msg_id);
-  string msg;
-  msg.reserve(msg_hdr.length);
-  msg.append((char*)&msg_hdr, sizeof(msg_hdr));
-  msg.append(data, len);
-  SendInner(msg);
+  MessagePtr msg_pre = std::make_shared<Message>(data, len, Message::HAS_NO_HDR);
+  msg_pre->Header()->msg_id = ++msg_seq_;
+  printf("[BufferIOEvent::Send] msg_header{ length: %d, msg_id: %d }\n", msg_pre->Size(), msg_pre->Header()->msg_id);
+  SendInner(msg_pre);
 }
 
-void BufferIOEvent::SendInner(const string& msg) {
-  sendmsg_list_.push_back(msg);
+void BufferIOEvent::SendInner(const MessagePtr& msg) {
+  tx_msg_mq_.push_back(msg);
   if (!(events_ & IOEvent::WRITE)) {
     AddWriteEvent();  // The output buffer has data now, then add writing event to epoll again if epoll has no writing event
   }

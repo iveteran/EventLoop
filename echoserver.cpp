@@ -26,22 +26,24 @@ class BusinessTester {
     }
 
     private:
-    void OnMessageRecvd_1(TcpConnection* conn, const string* msg)
+    void OnMessageRecvd_1(TcpConnection* conn, const Message* msg)
     {
-        printf("[echoserver1] fd: %d, message: %s, length: %d\n", conn->FD(), msg->c_str(), msg->size());
+        printf("[echoserver1] fd: %d, message: %s, length: %d\n", conn->FD(), msg->Payload(), msg->PayloadSize());
+        //conn->Send(msg->Payload(), msg->PayloadSize());
         conn->Send(*msg);
     }
-    void OnMessageRecvd_2(TcpConnection* conn, const string* msg)
+    void OnMessageRecvd_2(TcpConnection* conn, const Message* msg)
     {
-        printf("[echoserver2] fd: %d, message: %s, length: %d\n", conn->FD(), msg->c_str(), msg->size());
-        if (*msg == "ping")
+        printf("[echoserver2] fd: %d, message: %s, length: %d\n", conn->FD(), msg->Payload(), msg->PayloadSize());
+        if (!strncmp(msg->Payload(), "ping", msg->PayloadSize()))
           conn->Send("pong");
         else
-          conn->Send(*msg);
+          conn->Send(msg->Payload(), msg->PayloadSize());
+          //conn->Send(*msg);
     }
-    void OnMessageRecvd_3(TcpConnection* conn, const string* msg)
+    void OnMessageRecvd_3(TcpConnection* conn, const Message* msg)
     {
-        printf("[echoclient] fd: %d, message: %s, length: %d\n", conn->FD(), msg->c_str(), msg->size());
+        printf("[echoclient] fd: %d, message: %s, length: %d\n", conn->FD(), msg->Payload(), msg->PayloadSize());
     }
 
     private:

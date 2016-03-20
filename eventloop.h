@@ -9,24 +9,12 @@
 #include <list>
 #include <memory>
 #include "utils.h"
+#include "message.h"
 
 using std::string;
 using std::list;
 
 namespace evt_loop {
-
-#pragma pack(1)
-struct msg_header {
-  uint32_t  length;
-  uint16_t  msg_type;
-  uint32_t  msg_id;
-  uint8_t   protocol;
-  //char      payload[0];
-  msg_header() {
-    memset(this, 0, sizeof(*this));
-  }
-};
-#pragma pack()
 
 class EventLoop;
 class SignalManager;
@@ -89,33 +77,31 @@ class IOEvent : public IEvent {
 class BufferIOEvent : public IOEvent {
  friend class EventLoop;
  public: BufferIOEvent(uint32_t events = IOEvent::READ | IOEvent::ERROR)
-    :IOEvent(events), sent_(0) {
+    :IOEvent(events), sent_(0), msg_seq_(0) {
   }
 
  public:
   void ClearBuff();
-  bool BuffEmpty();
+  bool TxBuffEmpty();
+  void Send(const Message& msg);
   void Send(const string& data);
   void Send(const char *data, uint32_t len);
-  const msg_header& GetMsgHeader() const { return msg_hdr_; }
 
  protected:
-  virtual void OnReceived(const string& recvbuf) {};
-  virtual void OnSent(const string& sentbuf) {};
+  virtual void OnReceived(const Message* recvbuf) {};
+  virtual void OnSent(const Message* sentbuf) {};
 
  private:
   void OnEvents(uint32_t events);
   int ReceiveData();
   int SendData();
-  void SendInner(const string& msg);
+  void SendInner(const MessagePtr& msg);
 
  private:
-  uint32_t msg_seq_;
-  msg_header msg_hdr_;
-  string recvbuf_;
-
-  list<string> sendmsg_list_;
-  uint32_t sent_;
+  Message       rx_msg_;
+  MessageMQ     tx_msg_mq_;
+  uint32_t      sent_;
+  uint32_t      msg_seq_;
 };
 
 class SignalEvent : public IEvent {

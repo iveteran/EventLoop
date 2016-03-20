@@ -42,7 +42,7 @@ void TcpConnection::SetReady(int fd)
     SetFD(fd);
     EV_Singleton->AddEvent(this);
     ready_ = true;
-    if (!BuffEmpty()) {
+    if (!TxBuffEmpty()) {
         AddWriteEvent();
     }
 }
@@ -62,14 +62,14 @@ const IPAddress& TcpConnection::GetPeerAddr() const
     return peer_addr_;
 }
 
-void TcpConnection::OnReceived(const string& buffer)
+void TcpConnection::OnReceived(const Message* msg)
 {
-    if (tcp_evt_cbs_) tcp_evt_cbs_->on_msg_recvd_cb(this, &buffer);
+    if (tcp_evt_cbs_) tcp_evt_cbs_->on_msg_recvd_cb(this, msg);
 }
 
-void TcpConnection::OnSent(const string& buffer)
+void TcpConnection::OnSent(const Message* msg)
 {
-    if (tcp_evt_cbs_) tcp_evt_cbs_->on_msg_sent_cb(this, &buffer);
+    if (tcp_evt_cbs_) tcp_evt_cbs_->on_msg_sent_cb(this, msg);
 }
 
 void TcpConnection::OnClosed()

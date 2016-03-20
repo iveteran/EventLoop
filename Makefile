@@ -6,8 +6,8 @@
 
 VERSION    = 0.1
 
-OBJFILES   = eventloop.cpp tcp_connection.cpp tcp_server.cpp tcp_client.cpp utils.cpp
-INCFILES   = eventloop.h tcp_connection.h tcp_server.h tcp_client.h tcp_callbacks.h callback.h object.h singleton_tmpl.h utils.h
+OBJFILES   = eventloop.cpp tcp_connection.cpp tcp_server.cpp tcp_client.cpp utils.cpp message.cpp
+INCFILES   = eventloop.h tcp_connection.h tcp_server.h tcp_client.h tcp_callbacks.h callback.h object.h singleton_tmpl.h utils.h message.h
 
 CFLAGS_GEN = -Wall -g $(CFLAGS) -DVERSION=\"$(VERSION)\"
 CFLAGS_DBG = -ggdb $(CFLAGS_GEN)

@@ -65,8 +65,8 @@ class TcpConnection : public BufferIOEvent
     const IPAddress& GetPeerAddr() const;
 
   protected:
-    void OnReceived(const string& buffer);
-    void OnSent(const string& buffer);
+    void OnReceived(const Message* buffer);
+    void OnSent(const Message* buffer);
     void OnClosed();
     void OnError(int errcode, const char* errstr);
 

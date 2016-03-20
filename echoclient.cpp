@@ -18,9 +18,9 @@ class BusinessTester {
     }
 
     protected:
-    void OnMessageRecvd(TcpConnection* conn, const string* msg)
+    void OnMessageRecvd(TcpConnection* conn, const Message* msg)
     {
-        printf("[echoclient] received message, fd: %d, message: %s, length: %d\n", conn->FD(), msg->c_str(), msg->size());
+        printf("[echoclient] received message, fd: %d, message: %s, length: %d\n", conn->FD(), msg->Payload(), msg->PayloadSize());
     }
     void OnConnectionCreated(TcpConnection* conn)
     {

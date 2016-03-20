@@ -8,9 +8,10 @@
 namespace evt_loop {
 
 class TcpConnection;
+class Message;
 
-typedef std::function<void (TcpConnection*, const std::string*) >   OnMsgRecvdCallback;
-typedef std::function<void (TcpConnection*, const std::string*) >   OnMsgSentCallback;
+typedef std::function<void (TcpConnection*, const Message*) >       OnMsgRecvdCallback;
+typedef std::function<void (TcpConnection*, const Message*) >       OnMsgSentCallback;
 typedef std::function<void (TcpConnection*) >                       OnNewClientCallback;
 typedef std::function<void (TcpConnection*) >                       OnClosedCallback;
 typedef std::function<void (int, const char*) >                     OnErrorCallback;
@@ -33,8 +34,8 @@ struct TcpCallbacks {
     OnErrorCallback     on_error_cb;
 
     private:
-    void EmptyMsgRecvdCb(TcpConnection*, const std::string*)    { printf("Empty Message Received Callback\n"); }
-    void EmptyMsgSentCb(TcpConnection*, const std::string*)     { printf("Empty Message Sent Callback\n"); }
+    void EmptyMsgRecvdCb(TcpConnection*, const Message*)        { printf("Empty Message Received Callback\n"); }
+    void EmptyMsgSentCb(TcpConnection*, const Message*)         { printf("Empty Message Sent Callback\n"); }
     void EmptyNewClientCb(TcpConnection*)                       { printf("Empty New Client Callback\n"); }
     void EmptyClosedCb(TcpConnection*)                          { printf("Empty Connection Closed Callback\n"); }
     void EmptyErrorCb(int, const char*)                         { printf("Empty Connection Error Callback\n"); }
