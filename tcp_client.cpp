@@ -2,8 +2,8 @@
 
 namespace evt_loop {
 
-TcpClient::TcpClient(const char *host, uint16_t port, bool auto_reconnect, TcpCallbacksPtr tcp_evt_cbs)
-    : auto_reconnect_(auto_reconnect), conn_(nullptr), reconnect_timer_(this), tcp_evt_cbs_(tcp_evt_cbs)
+TcpClient::TcpClient(const char *host, uint16_t port, MessageType msg_type, bool auto_reconnect, TcpCallbacksPtr tcp_evt_cbs)
+    : msg_type_(msg_type), auto_reconnect_(auto_reconnect), conn_(nullptr), reconnect_timer_(this), tcp_evt_cbs_(tcp_evt_cbs)
 {
     server_addr_.port_ = port;
     if (host[0] == '\0' || strcmp(host, "localhost") == 0) {
@@ -71,6 +71,7 @@ void TcpClient::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
 void TcpClient::OnConnected(int fd, const IPAddress& local_addr)
 {
     conn_ = std::make_shared<TcpConnection>(fd, local_addr, server_addr_, tcp_evt_cbs_, this);
+    conn_->SetMessageType(msg_type_);
     SendTempBuffer();
     if (tcp_evt_cbs_) tcp_evt_cbs_->on_new_client_cb(conn_.get());
 }

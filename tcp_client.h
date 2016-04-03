@@ -8,7 +8,8 @@ namespace evt_loop {
 class TcpClient : public TcpCreator
 {
     public:
-    TcpClient(const char *host, uint16_t port, bool auto_reconnect = true, TcpCallbacksPtr tcp_evt_cbs = nullptr);
+      TcpClient(const char *host, uint16_t port, MessageType msg_type = MessageType::BINARY,
+          bool auto_reconnect = true, TcpCallbacksPtr tcp_evt_cbs = nullptr);
     ~TcpClient();
     bool Connect();
     void Disconnect();
@@ -43,8 +44,9 @@ class TcpClient : public TcpCreator
     };
 
   private:
-    bool                auto_reconnect_;
     IPAddress           server_addr_;
+    MessageType         msg_type_;
+    bool                auto_reconnect_;
     TcpConnectionPtr    conn_;
     list<string>        tmp_sendbuf_list_;
     ReconnectTimer      reconnect_timer_;

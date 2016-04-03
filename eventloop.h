@@ -77,10 +77,11 @@ class IOEvent : public IEvent {
 class BufferIOEvent : public IOEvent {
  friend class EventLoop;
  public: BufferIOEvent(uint32_t events = IOEvent::READ | IOEvent::ERROR)
-    :IOEvent(events), sent_(0), msg_seq_(0) {
+    : IOEvent(events), sent_(0), msg_seq_(0) {
   }
 
  public:
+  void SetMessageType(MessageType msg_type) { msg_type_ = msg_type; rx_msg_ = CreateMessage(msg_type_); }
   void ClearBuff();
   bool TxBuffEmpty();
   void Send(const Message& msg);
@@ -88,8 +89,8 @@ class BufferIOEvent : public IOEvent {
   void Send(const char *data, uint32_t len);
 
  protected:
-  virtual void OnReceived(const Message* recvbuf) {};
-  virtual void OnSent(const Message* sentbuf) {};
+  virtual void OnReceived(const Message* msg) { };
+  virtual void OnSent(const Message* msg) { };
 
  private:
   void OnEvents(uint32_t events);
@@ -98,10 +99,11 @@ class BufferIOEvent : public IOEvent {
   void SendInner(const MessagePtr& msg);
 
  private:
-  Message       rx_msg_;
+  MessagePtr    rx_msg_;
   MessageMQ     tx_msg_mq_;
   uint32_t      sent_;
   uint32_t      msg_seq_;
+  MessageType   msg_type_;
 };
 
 class SignalEvent : public IEvent {

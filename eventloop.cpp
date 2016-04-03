@@ -327,7 +327,7 @@ void IOEvent::DeleteWriteEvent() {
 
 // BufferIOEvent implementation
 void BufferIOEvent::ClearBuff() {
-  rx_msg_.Clear();
+  rx_msg_->Clear();
   tx_msg_mq_.clear();
 }
 bool BufferIOEvent::TxBuffEmpty() {
@@ -336,19 +336,23 @@ bool BufferIOEvent::TxBuffEmpty() {
 
 int BufferIOEvent::ReceiveData() {
   char buffer[MAX_BYTES_RECEIVE];
-  int read_bytes = std::min(rx_msg_.MoreSize(), (size_t)sizeof(buffer));
+  int read_bytes = std::min(rx_msg_->MoreSize(), (size_t)sizeof(buffer));
   int len = read(fd_, buffer, read_bytes);
+  //printf("[BufferIOEvent::ReceiveData] read_bytes: %d, got: %d\n", read_bytes, len);
   if (len < 0) {
     OnError(errno, strerror(errno));
   }
   else if (len == 0 ) {
     OnClosed();
   } else {
-    rx_msg_.AppendData(buffer, len);
+    size_t feeds = rx_msg_->AppendData(buffer, len);
+    UNUSED(feeds);
+    //printf("[BufferIOEvent::ReceiveData] Received bytes: %d, Feeds %d bytes of AppendData, rx_msg_ size: %d, msg length: %d\n",
+    //    len, feeds, rx_msg_->Size(), dynamic_cast<BinaryMessage*>(rx_msg_.get())->Header()->length);
 
-    if (rx_msg_.Completion()) {
-      OnReceived(&rx_msg_);
-      rx_msg_.Clear();
+    if (rx_msg_->Completion()) {
+      OnReceived(rx_msg_.get());
+      rx_msg_->Clear();
     }
   }
   return len;
@@ -395,9 +399,13 @@ void BufferIOEvent::OnEvents(uint32_t events) {
 }
 
 void BufferIOEvent::Send(const Message& msg) {
-  MessagePtr msg_ptr = std::make_shared<Message>(msg);
-#ifndef _MSG_MINIMUM_PACKAGING
-  msg_ptr->Header()->msg_id = ++msg_seq_;
+  //MessagePtr msg_ptr = std::make_shared<Message>(msg);
+  MessagePtr msg_ptr = CreateMessage(msg);
+#ifndef _BINARY_MSG_MINIMUM_PACKAGING
+  if (msg_type_ == MessageType::BINARY) {
+    BinaryMessage* bmsg = static_cast<BinaryMessage*>(msg_ptr.get());
+    bmsg->Header()->msg_id = ++msg_seq_;
+  }
 #endif
   SendInner(msg_ptr);
 }
@@ -407,14 +415,19 @@ void BufferIOEvent::Send(const string& data) {
 }
 
 void BufferIOEvent::Send(const char *data, uint32_t len) {
-  MessagePtr msg_pre = std::make_shared<Message>(data, len, Message::HAS_NO_HDR);
-#ifndef _MSG_MINIMUM_PACKAGING
-  msg_pre->Header()->msg_id = ++msg_seq_;
-  printf("[BufferIOEvent::Send] msg_header{ length: %d, msg_id: %d }\n", msg_pre->Size(), msg_pre->Header()->msg_id);
+  //MessagePtr msg_ptr = std::make_shared<Message>(data, len, Message::HAS_NO_HDR);
+  MessagePtr msg_ptr = CreateMessage(msg_type_, data, len);
+#ifndef _BINARY_MSG_MINIMUM_PACKAGING
+  if (msg_type_ == MessageType::BINARY) {
+    BinaryMessage* bmsg = static_cast<BinaryMessage*>(msg_ptr.get());
+    bmsg->Header()->msg_id = ++msg_seq_;
+    printf("[BufferIOEvent::Send] msg_header{ length: %d, msg_id: %d }\n",
+        bmsg->Size(), bmsg->Header()->msg_id);
+  }
 #else
-  printf("[BufferIOEvent::Send] msg_header{ length: %d }\n", msg_pre->Size());
+  printf("[BufferIOEvent::Send] msg_header{ length: %d }\n", msg_ptr->Size());
 #endif
-  SendInner(msg_pre);
+  SendInner(msg_ptr);
 }
 
 void BufferIOEvent::SendInner(const MessagePtr& msg) {

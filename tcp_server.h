@@ -8,7 +8,7 @@ namespace evt_loop {
 class TcpServer: public TcpCreator
 {
     public:
-    TcpServer(const char *host, uint16_t port, TcpCallbacksPtr tcp_evt_cbs = nullptr);
+    TcpServer(const char *host, uint16_t port, MessageType msg_type = MessageType::BINARY, TcpCallbacksPtr tcp_evt_cbs = nullptr);
     ~TcpServer();
     void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
     TcpConnectionPtr GetConnectionByFD(int fd);
@@ -26,6 +26,7 @@ class TcpServer: public TcpCreator
 
     private:
     IPAddress       server_addr_;
+    MessageType     msg_type_;
     FdTcpConnMap    conn_map_;
     TcpCallbacksPtr tcp_evt_cbs_;
 };

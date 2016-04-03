@@ -3,8 +3,8 @@
 
 namespace evt_loop {
 
-TcpServer::TcpServer(const char *host, uint16_t port, TcpCallbacksPtr tcp_evt_cbs)
-    : tcp_evt_cbs_(tcp_evt_cbs)
+TcpServer::TcpServer(const char *host, uint16_t port, MessageType msg_type, TcpCallbacksPtr tcp_evt_cbs)
+    : msg_type_(msg_type), tcp_evt_cbs_(tcp_evt_cbs)
 {
     server_addr_.port_ = port;
     if (host[0] == '\0' || strcmp(host, "localhost") == 0) {
@@ -113,6 +113,7 @@ void TcpServer::OnEvents(uint32_t events)
 void TcpServer::OnNewClient(int fd, const IPAddress& peer_addr)
 {
     TcpConnectionPtr conn(std::make_shared<TcpConnection>(fd, server_addr_, peer_addr, tcp_evt_cbs_, this));
+    conn->SetMessageType(msg_type_);
     conn_map_.insert(std::make_pair(fd, conn));
     if (tcp_evt_cbs_) tcp_evt_cbs_->on_new_client_cb(conn.get());
     printf("[TcpServer::OnNewClient] new client, fd: %d\n", fd);
