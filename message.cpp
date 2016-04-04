@@ -34,7 +34,7 @@ size_t JsonMessage::AppendData(const char* data, uint32_t size) {
       rbc_++;
     }
     if (lbc_ == rbc_) {
-      feed_size = i;
+      feed_size = i + 1;
       break;
     }
   }
@@ -174,6 +174,37 @@ MessagePtr CreateMessage(const Message& msg) {
       break;
   }
   return msg_ptr;
+}
+
+MessagePtr& MessageMQ::Last() {
+  if (mq_.empty()) {
+    mq_.push(CreateMessage(msg_type_));
+  }
+  return mq_.back();
+}
+MessagePtr& MessageMQ::First() {
+  if (mq_.empty()) {
+    mq_.push(CreateMessage(msg_type_));
+  }
+  return mq_.front();
+}
+void MessageMQ::AppendData(const char* data, uint32_t size) {
+  size_t feeds = 0;
+  while (feeds < size) {
+    if (Last()->Completion()) {
+      mq_.push(CreateMessage(msg_type_));
+    }
+    feeds += Last()->AppendData(&data[feeds], size - feeds);
+    if (Last()->Completion()) {
+      printf("[MessageMQ] Recieved a complation message, type: %d, size: %u\n", Last()->Type(), Last()->Size());
+    }
+  }
+}
+void MessageMQ::Apply(MessageDispatcher& cb) {
+  while (!mq_.empty() && mq_.front()->Completion()) {
+    cb(mq_.front().get());
+    mq_.pop();
+  }
 }
 
 }  // evt_loop

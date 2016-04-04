@@ -81,7 +81,13 @@ class BufferIOEvent : public IOEvent {
   }
 
  public:
-  void SetMessageType(MessageType msg_type) { msg_type_ = msg_type; rx_msg_ = CreateMessage(msg_type_); }
+  void SetMessageType(const MessageType& msg_type) {
+    msg_type_ = msg_type;
+    rx_msg_mq_.Clear();
+    rx_msg_mq_.SetMessageType(msg_type_);
+    tx_msg_mq_.Clear();
+    tx_msg_mq_.SetMessageType(msg_type_);
+  }
   void ClearBuff();
   bool TxBuffEmpty();
   void Send(const Message& msg);
@@ -99,11 +105,11 @@ class BufferIOEvent : public IOEvent {
   void SendInner(const MessagePtr& msg);
 
  private:
-  MessagePtr    rx_msg_;
+  MessageType   msg_type_;
+  MessageMQ     rx_msg_mq_;
   MessageMQ     tx_msg_mq_;
   uint32_t      sent_;
   uint32_t      msg_seq_;
-  MessageType   msg_type_;
 };
 
 class SignalEvent : public IEvent {

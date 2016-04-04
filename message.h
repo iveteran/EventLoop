@@ -2,7 +2,7 @@
 #define _MESSAGE_H
 
 #include <string.h>
-#include <deque>
+#include <queue>
 #include <memory>
 
 #define UNUSED(var) ((void)var)
@@ -10,6 +10,7 @@
 namespace evt_loop {
 
 enum MessageType {
+  UNKNOWN,
   BINARY,
   CRLF,
   JSON,
@@ -136,11 +137,32 @@ class BinaryMessage : public Message {
 };
 
 typedef std::shared_ptr<Message>  MessagePtr;
-typedef std::deque<MessagePtr>    MessageMQ;
 
 MessagePtr CreateMessage(MessageType msg_type);
 MessagePtr CreateMessage(MessageType msg_type, const char* data, size_t length, bool bmsg_has_no_hdr = BinaryMessage::HAS_NO_HDR);
 MessagePtr CreateMessage(const Message& msg);
+
+class MessageMQ {
+  public:
+  typedef std::function<void (const Message*) > MessageDispatcher;
+
+  void SetMessageType(const MessageType& msg_type) { msg_type_ = msg_type; }
+  size_t Size() const { return mq_.size(); }
+  bool Empty() const { return mq_.empty(); }
+  void Clear() { while (!mq_.empty()) { mq_.pop(); } }
+  MessagePtr& Last();
+  void Push(const MessagePtr& msg) { mq_.push(msg); }
+  MessagePtr& First();
+  void EraseFirst() { mq_.pop(); }
+
+  size_t NeedMore() { return Last()->MoreSize(); }
+  void AppendData(const char* data, uint32_t size);
+  void Apply(MessageDispatcher& cb);
+
+  private:
+  MessageType msg_type_;
+  std::queue<MessagePtr> mq_;
+};
 
 }  // evt_loop
 #endif  // _MESSAGE_H

@@ -327,41 +327,35 @@ void IOEvent::DeleteWriteEvent() {
 
 // BufferIOEvent implementation
 void BufferIOEvent::ClearBuff() {
-  rx_msg_->Clear();
-  tx_msg_mq_.clear();
+  rx_msg_mq_.Clear();
+  tx_msg_mq_.Clear();
 }
 bool BufferIOEvent::TxBuffEmpty() {
-  return tx_msg_mq_.empty();
+  return tx_msg_mq_.Empty();
 }
 
 int BufferIOEvent::ReceiveData() {
   char buffer[MAX_BYTES_RECEIVE];
-  int read_bytes = std::min(rx_msg_->MoreSize(), (size_t)sizeof(buffer));
+  int read_bytes = std::min(rx_msg_mq_.NeedMore(), (size_t)sizeof(buffer));
   int len = read(fd_, buffer, read_bytes);
-  //printf("[BufferIOEvent::ReceiveData] read_bytes: %d, got: %d\n", read_bytes, len);
+  printf("[BufferIOEvent::ReceiveData] to read: %d, got: %d\n", read_bytes, len);
   if (len < 0) {
     OnError(errno, strerror(errno));
   }
   else if (len == 0 ) {
     OnClosed();
   } else {
-    size_t feeds = rx_msg_->AppendData(buffer, len);
-    UNUSED(feeds);
-    //printf("[BufferIOEvent::ReceiveData] Received bytes: %d, Feeds %d bytes of AppendData, rx_msg_ size: %d, msg length: %d\n",
-    //    len, feeds, rx_msg_->Size(), dynamic_cast<BinaryMessage*>(rx_msg_.get())->Header()->length);
-
-    if (rx_msg_->Completion()) {
-      OnReceived(rx_msg_.get());
-      rx_msg_->Clear();
-    }
+    rx_msg_mq_.AppendData(buffer, len);
+    MessageMQ::MessageDispatcher processing_msg_cb = std::bind(&BufferIOEvent::OnReceived, this, std::placeholders::_1);
+    rx_msg_mq_.Apply(processing_msg_cb);
   }
   return len;
 }
 
 int BufferIOEvent::SendData() {
   uint32_t cur_sent = 0;
-  while (!tx_msg_mq_.empty()) {
-    const MessagePtr& tx_msg = tx_msg_mq_.front();
+  while (!tx_msg_mq_.Empty()) {
+    const MessagePtr& tx_msg = tx_msg_mq_.First();
     uint32_t tosend = tx_msg->Size();
     int len = write(fd_, tx_msg->Data().data() + sent_, tosend - sent_);
     if (len < 0) {
@@ -372,14 +366,14 @@ int BufferIOEvent::SendData() {
     cur_sent += len;
     if (sent_ == tosend) {
       OnSent(tx_msg.get());
-      tx_msg_mq_.pop_front();
+      tx_msg_mq_.EraseFirst();
       sent_ = 0;
     } else {
       /// sent_ less than tosend, breaking the sending loop and wait for next writing event
       break;
     }
   }
-  if (tx_msg_mq_.empty()) {
+  if (tx_msg_mq_.Empty()) {
     DeleteWriteEvent();  // All data in the output buffer has been sent, then remove writing event from epoll
   }
   return cur_sent;
@@ -399,7 +393,6 @@ void BufferIOEvent::OnEvents(uint32_t events) {
 }
 
 void BufferIOEvent::Send(const Message& msg) {
-  //MessagePtr msg_ptr = std::make_shared<Message>(msg);
   MessagePtr msg_ptr = CreateMessage(msg);
 #ifndef _BINARY_MSG_MINIMUM_PACKAGING
   if (msg_type_ == MessageType::BINARY) {
@@ -415,7 +408,6 @@ void BufferIOEvent::Send(const string& data) {
 }
 
 void BufferIOEvent::Send(const char *data, uint32_t len) {
-  //MessagePtr msg_ptr = std::make_shared<Message>(data, len, Message::HAS_NO_HDR);
   MessagePtr msg_ptr = CreateMessage(msg_type_, data, len);
 #ifndef _BINARY_MSG_MINIMUM_PACKAGING
   if (msg_type_ == MessageType::BINARY) {
@@ -431,7 +423,7 @@ void BufferIOEvent::Send(const char *data, uint32_t len) {
 }
 
 void BufferIOEvent::SendInner(const MessagePtr& msg) {
-  tx_msg_mq_.push_back(msg);
+  tx_msg_mq_.Push(msg);
   if (!(events_ & IOEvent::WRITE)) {
     AddWriteEvent();  // The output buffer has data now, then add writing event to epoll again if epoll has no writing event
   }
