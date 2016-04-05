@@ -7,7 +7,7 @@ namespace evt_loop {
 
 class BusinessTester {
     public:
-    BusinessTester() : echoclient_("localhost", 22223)
+    BusinessTester() : echoclient_("localhost", 20000, MessageType::BINARY)
     {
         TcpCallbacksPtr echo_client_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_client_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd, this, std::placeholders::_1, std::placeholders::_2);
