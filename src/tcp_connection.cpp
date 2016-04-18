@@ -11,7 +11,7 @@ void SocketAddrToIPAddress(const struct sockaddr_in& sock_addr, IPAddress& ip_ad
 }
 
 TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, TcpCallbacksPtr tcp_evt_cbs, TcpCreator* creator)
-    : ready_(false), local_addr_(local_addr), peer_addr_(peer_addr), tcp_evt_cbs_(tcp_evt_cbs), creator_(creator)
+    : id_(0), ready_(false), local_addr_(local_addr), peer_addr_(peer_addr), tcp_evt_cbs_(tcp_evt_cbs), creator_(creator)
 {
     SetReady(fd);
     printf("[TcpConnection::TcpConnection] local_addr: %s, peer_addr: %s\n", local_addr_.ToString().c_str(), peer_addr_.ToString().c_str());

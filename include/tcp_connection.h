@@ -54,6 +54,9 @@ class TcpConnection : public BufferIOEvent
             TcpCallbacksPtr tcp_evt_cbs = nullptr, TcpCreator* creator = nullptr);
     ~TcpConnection();
 
+    uint32_t ID() const { return id_; }
+    void SetID(uint32_t id) { id_ = id; }
+
     void Disconnect();
 
     void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
@@ -71,6 +74,7 @@ class TcpConnection : public BufferIOEvent
     void OnError(int errcode, const char* errstr);
 
   private:
+    uint32_t        id_;
     bool            ready_;
     IPAddress       local_addr_;
     IPAddress       peer_addr_;
