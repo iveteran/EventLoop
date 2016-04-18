@@ -1,5 +1,7 @@
 #include "utils.h"
 
+namespace evt_loop {
+
 TimeVal::TimeVal(uint32_t sec, uint32_t usec)
 {
   tv_.tv_sec = sec;
@@ -63,3 +65,13 @@ int32_t TimeVal::MsDiff(const TimeVal& lv, const TimeVal& rv) {
 }
 
 TimeVal TimeVal::Now() { TimeVal time; return time.SetNow(); }
+
+void SocketAddrToIPAddress(const struct sockaddr_in& sock_addr, IPAddress& ip_addr)
+{
+  char buffer[INET_ADDRSTRLEN] = {0};
+  inet_ntop(sock_addr.sin_family, (void*)&sock_addr.sin_addr, buffer, sizeof(buffer));
+  ip_addr.ip_.assign(buffer);
+  ip_addr.port_ = sock_addr.sin_port;
+}
+
+}  // namespace evt_loop

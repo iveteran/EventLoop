@@ -60,8 +60,14 @@ class IOEvent : public IEvent {
  public:
   void SetFD(int fd) { fd_ = fd; }
   int FD() const { return fd_; }
+
+  void AddReadEvent();
+  void DeleteReadEvent();
   void AddWriteEvent();
   void DeleteWriteEvent();
+  void AddErrorEvent();
+  void DeleteErrorEvent();
+  void ClearAllEvents();
 
  protected:
   virtual void OnCreated(int fd) {};
@@ -76,7 +82,8 @@ class IOEvent : public IEvent {
 
 class BufferIOEvent : public IOEvent {
  friend class EventLoop;
- public: BufferIOEvent(uint32_t events = IOEvent::READ | IOEvent::ERROR)
+ public:
+  BufferIOEvent(uint32_t events = IOEvent::READ | IOEvent::ERROR)
     : IOEvent(events), sent_(0), msg_seq_(0) {
   }
 
@@ -232,6 +239,7 @@ class EventLoop {
   const TimeVal& Now() const { return now_; }
 
  private:
+  int SetEvent(IOEvent *e, int op);
   int CollectFileEvents(int timeout);
   int DoTimeout();
 

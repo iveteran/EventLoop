@@ -2,14 +2,6 @@
 
 namespace evt_loop {
 
-void SocketAddrToIPAddress(const struct sockaddr_in& sock_addr, IPAddress& ip_addr)
-{
-  char buffer[INET_ADDRSTRLEN] = {0};
-  inet_ntop(sock_addr.sin_family, (void*)&sock_addr.sin_addr, buffer, sizeof(buffer));
-  ip_addr.ip_.assign(buffer);
-  ip_addr.port_ = sock_addr.sin_port;
-}
-
 TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, TcpCallbacksPtr tcp_evt_cbs, TcpCreator* creator)
     : id_(0), ready_(false), local_addr_(local_addr), peer_addr_(peer_addr), tcp_evt_cbs_(tcp_evt_cbs), creator_(creator)
 {

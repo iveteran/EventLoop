@@ -48,7 +48,8 @@ void TcpClient::Disconnect()
 
 void TcpClient::Reconnect()
 {
-    reconnect_timer_.Start(EV_Singleton);
+    if (!reconnect_timer_.IsRunning())
+      reconnect_timer_.Start(EV_Singleton);
 }
 
 bool TcpClient::Send(const string& msg)

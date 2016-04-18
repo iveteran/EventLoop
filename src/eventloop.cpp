@@ -209,7 +209,8 @@ void EventLoop::StartLoop() {
   }
 }
 
-int EventLoop::AddEvent(IOEvent *e) {
+int EventLoop::SetEvent(IOEvent *e, int op)
+{
   epoll_event ev = {0, {0}};
   uint32_t events = e->events_;
 
@@ -220,23 +221,17 @@ int EventLoop::AddEvent(IOEvent *e) {
   ev.data.fd = e->fd_;
   ev.data.ptr = e;
 
-  SetNonblocking(e->fd_);
+  return epoll_ctl(epfd_, op, e->fd_, &ev);
+}
 
-  return epoll_ctl(epfd_, EPOLL_CTL_ADD, e->fd_, &ev);
+int EventLoop::AddEvent(IOEvent *e) {
+  e->el_ = this;
+  SetNonblocking(e->fd_);
+  return SetEvent(e, EPOLL_CTL_ADD);
 }
 
 int EventLoop::UpdateEvent(IOEvent *e) {
-  epoll_event ev = {0, {0}};
-  uint32_t events = e->events_;
-
-  ev.events = 0;
-  if (events & IOEvent::READ) ev.events |= EPOLLIN;
-  if (events & IOEvent::WRITE) ev.events |= EPOLLOUT;
-  if (events & IOEvent::ERROR) ev.events |= EPOLLHUP | EPOLLRDHUP | EPOLLERR;
-  ev.data.fd = e->fd_;
-  ev.data.ptr = e;
-
-  return epoll_ctl(epfd_, EPOLL_CTL_MOD, e->fd_, &ev);
+  return SetEvent(e, EPOLL_CTL_MOD);
 }
 
 int EventLoop::DeleteEvent(IOEvent *e) {
@@ -271,13 +266,11 @@ int EventLoop::UpdateEvent(SignalEvent *e) {
 }
 
 int EventLoop::AddEvent(BufferIOEvent *e) {
-  e->el_ = this;
-  return AddEvent(dynamic_cast<IOEvent *>(e));
+  return AddEvent(static_cast<IOEvent *>(e));
 }
 
 int EventLoop::AddEvent(PeriodicTimerEvent *e) {
-  e->el_ = this;
-  return AddEvent(dynamic_cast<TimerEvent *>(e));
+  return AddEvent(static_cast<TimerEvent *>(e));
 }
 
 void SignalHandler(int signo) {
@@ -310,6 +303,21 @@ int SignalManager::UpdateEvent(SignalEvent *e) {
   return 0;
 }
 
+void IOEvent::AddReadEvent() {
+  if (el_ && !(events_ & IOEvent::READ))
+  {
+    SetEvents(events_ | IOEvent::READ);
+    el_->UpdateEvent(this);
+  }
+}
+void IOEvent::DeleteReadEvent() {
+  if (el_ && (events_ & IOEvent::READ))
+  {
+    SetEvents(events_ & (~IOEvent::READ));
+    el_->UpdateEvent(this);
+  }
+}
+
 void IOEvent::AddWriteEvent() {
   if (el_ && !(events_ & IOEvent::WRITE))
   {
@@ -321,6 +329,27 @@ void IOEvent::DeleteWriteEvent() {
   if (el_ && (events_ & IOEvent::WRITE))
   {
     SetEvents(events_ & (~IOEvent::WRITE));
+    el_->UpdateEvent(this);
+  }
+}
+
+void IOEvent::AddErrorEvent() {
+  if (el_ && !(events_ & IOEvent::ERROR))
+  {
+    SetEvents(events_ | IOEvent::ERROR);
+    el_->UpdateEvent(this);
+  }
+}
+void IOEvent::DeleteErrorEvent() {
+  if (el_ && (events_ & IOEvent::ERROR))
+  {
+    SetEvents(events_ & (~IOEvent::ERROR));
+    el_->UpdateEvent(this);
+  }
+}
+void IOEvent::ClearAllEvents() {
+  if (el_) {
+    SetEvents(0);
     el_->UpdateEvent(this);
   }
 }
@@ -417,7 +446,7 @@ void BufferIOEvent::Send(const char *data, uint32_t len) {
         bmsg->Size(), bmsg->Header()->msg_id);
   }
 #else
-  printf("[BufferIOEvent::Send] msg_header{ length: %d }\n", msg_ptr->Size());
+  printf("[BufferIOEvent::Send] msg_header{ length: %ld }\n", msg_ptr->Size());
 #endif
   SendInner(msg_ptr);
 }

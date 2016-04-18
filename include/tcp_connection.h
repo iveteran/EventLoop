@@ -18,24 +18,9 @@
 #include "eventloop.h"
 #include "tcp_callbacks.h"
 #include "error_code.h"
+#include "utils.h"
 
 namespace evt_loop {
-
-struct IPAddress
-{
-  string ip_;
-  uint16_t port_;
-
-  IPAddress(string ip = "", uint16_t port = 0) : ip_(ip), port_(port) {}
-  string ToString() const
-  {
-      char buffer[256] = {0};
-      snprintf(buffer, sizeof(buffer), "{ ip: %s, port: %d }", ip_.c_str(), port_);
-      return buffer;
-  }
-};
-
-void SocketAddrToIPAddress(const struct sockaddr_in& sock_addr, IPAddress& ip_addr);
 
 class TcpConnection;
 

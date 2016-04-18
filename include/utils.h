@@ -4,6 +4,14 @@
 #include <stdint.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <string>
+
+using std::string;
+
+namespace evt_loop {
 
 class TimeVal {
  public:
@@ -28,5 +36,23 @@ class TimeVal {
  private:
   timeval tv_;
 };
+
+struct IPAddress
+{
+  string ip_;
+  uint16_t port_;
+
+  IPAddress(string ip = "", uint16_t port = 0) : ip_(ip), port_(port) {}
+  string ToString() const
+  {
+      char buffer[256] = {0};
+      snprintf(buffer, sizeof(buffer), "{ ip: %s, port: %d }", ip_.c_str(), port_);
+      return buffer;
+  }
+};
+
+void SocketAddrToIPAddress(const struct sockaddr_in& sock_addr, IPAddress& ip_addr);
+
+}  // namespace evt_loop
 
 #endif  // _UTILS_H
