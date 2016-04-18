@@ -1,7 +1,10 @@
 TARGET   = libel.a
 
+REDIS_SDK_PATH = $(HOME)/sdks/hiredis-master
+
 CPPFLAGS = -Wall -std=c++0x
-CXXFLAGS = -I../include
+CXXFLAGS = -I../include \
+           -I$(REDIS_SDK_PATH)
 
 CXX      = g++
 RM       = rm -f
