@@ -413,7 +413,7 @@ void BufferIOEvent::Send(const char *data, uint32_t len) {
   if (msg_type_ == MessageType::BINARY) {
     BinaryMessage* bmsg = static_cast<BinaryMessage*>(msg_ptr.get());
     bmsg->Header()->msg_id = ++msg_seq_;
-    printf("[BufferIOEvent::Send] msg_header{ length: %d, msg_id: %d }\n",
+    printf("[BufferIOEvent::Send] msg_header{ length: %ld, msg_id: %d }\n",
         bmsg->Size(), bmsg->Header()->msg_id);
   }
 #else

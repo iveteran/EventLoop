@@ -196,7 +196,7 @@ void MessageMQ::AppendData(const char* data, uint32_t size) {
     }
     feeds += Last()->AppendData(&data[feeds], size - feeds);
     if (Last()->Completion()) {
-      printf("[MessageMQ] Recieved a complation message, type: %d, size: %u\n", Last()->Type(), Last()->Size());
+      printf("[MessageMQ] Recieved a complation message, type: %d, size: %lu\n", Last()->Type(), Last()->Size());
     }
   }
 }

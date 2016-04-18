@@ -137,7 +137,7 @@ void TcpClient::ReconnectTimer::OnTimer()
         if (success)
             creator_->reconnect_timer_.Stop();
         else
-            printf("[TcpClient::ReconnectTimer::OnTimer] Reconnect failed, retry %ld seconds later...\n", GetInterval().Seconds());
+            printf("[TcpClient::ReconnectTimer::OnTimer] Reconnect failed, retry %u seconds later...\n", GetInterval().Seconds());
     } else {
         creator_->reconnect_timer_.Stop();
     }

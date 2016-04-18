@@ -52,13 +52,13 @@ class BusinessTester {
     private:
     void OnMessageRecvd_1(TcpConnection* conn, const Message* msg)
     {
-        printf("[echoserver1] fd: %d, message: %s, length: %d\n", conn->FD(), msg->Payload(), msg->PayloadSize());
+        printf("[echoserver1] fd: %d, message: %s, length: %lu\n", conn->FD(), msg->Payload(), msg->PayloadSize());
         //conn->Send(msg->Payload(), msg->PayloadSize());
         conn->Send(*msg);
     }
     void OnMessageRecvd_2(TcpConnection* conn, const Message* msg)
     {
-        printf("[echoserver2] fd: %d, message: %s, length: %d\n", conn->FD(), msg->Payload(), msg->PayloadSize());
+        printf("[echoserver2] fd: %d, message: %s, length: %lu\n", conn->FD(), msg->Payload(), msg->PayloadSize());
         if (!strncmp(msg->Payload(), "ping", msg->PayloadSize()))
           conn->Send("pong");
         else
@@ -67,7 +67,7 @@ class BusinessTester {
     }
     void OnMessageRecvd_Client(TcpConnection* conn, const Message* msg)
     {
-        printf("[echoclient] fd: %d, message: %s, length: %d\n", conn->FD(), msg->Payload(), msg->PayloadSize());
+        printf("[echoclient] fd: %d, message: %s, length: %lu\n", conn->FD(), msg->Payload(), msg->PayloadSize());
     }
 
     private:
