@@ -7,7 +7,8 @@
 #include <async.h>
 #include <hiredis.h>
 
-namespace evt_loop {
+using namespace evt_loop;
+namespace hiredis {
 
 class RedisMessage {
   public:
@@ -67,6 +68,6 @@ class RedisAsyncClient : public IOEvent {
   RedisCallbacksPtr   redis_cbs_;
 };
 
-}  // ns evt_loop
+}  // ns hiredis
 
 #endif /* !_HIREDIS_ADAPTER_H */

@@ -2,14 +2,15 @@
 #include "hiredis_adapter.h"
 
 using namespace evt_loop;
+using namespace hiredis;
 
 class RedisAsyncClient_Test {
     public:
     RedisAsyncClient_Test() : m_client("localhost", 6379)
     {
       RedisCallbacksPtr redis_cbs = std::make_shared<RedisCallbacks>();
-      redis_cbs->on_new_client_cb = std::bind(&RedisAsyncClient_Test::OnConnectionCreated, this, std::placeholders::_1);
-      redis_cbs->on_msg_recvd_cb = std::bind(&RedisAsyncClient_Test::OnMessageRecvd, this, std::placeholders::_1, std::placeholders::_2);
+      redis_cbs->on_connected_cb = std::bind(&RedisAsyncClient_Test::OnConnectionCreated, this, std::placeholders::_1);
+      redis_cbs->on_reply_cb = std::bind(&RedisAsyncClient_Test::OnMessageRecvd, this, std::placeholders::_1, std::placeholders::_2);
       m_client.SetRedisCallbacks(redis_cbs);
     }
 

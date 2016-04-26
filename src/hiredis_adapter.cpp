@@ -1,6 +1,6 @@
 #include "hiredis_adapter.h"
 
-namespace evt_loop {
+namespace hiredis {
 
 static void __RedisEventloopAddReadEvent(void * adapter)
 {
@@ -176,7 +176,7 @@ void RedisAsyncClient::SendTempBuffer()
 
 void RedisAsyncClient::OnEvents(uint32_t events)
 {
-  printf("[RedisAsyncClient::OnEvents] events: %d\n", events);
+  //printf("[RedisAsyncClient::OnEvents] events: %d\n", events);
   if (events & IOEvent::WRITE) {
     redisAsyncHandleWrite(redis_ctx_); 
   }
@@ -196,14 +196,14 @@ void RedisAsyncClient::OnRedisReply(const redisAsyncContext* ctx, redisReply* re
       ctx->c.fd, reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
   */
   RedisMessage rmsg(reply);
-  if (redis_cbs_) redis_cbs_->on_msg_recvd_cb(this, &rmsg);
+  if (redis_cbs_) redis_cbs_->on_reply_cb(this, &rmsg);
 }
 void RedisAsyncClient::OnRedisConnect(const redisAsyncContext* ctx, int status)
 {
   printf("[RedisAsyncClient::OnRedisConnect] connection fd: %d, status: %d\n", ctx->c.fd, status);
   if (status == 0) {
     //SendTempBuffer();
-    if (redis_cbs_) redis_cbs_->on_new_client_cb(this);
+    if (redis_cbs_) redis_cbs_->on_connected_cb(this);
   } else {
     Reconnect();
   }
@@ -235,4 +235,4 @@ void RedisAsyncClient::ReconnectTimer::OnTimer()
   }
 }
 
-}  // namespace evt_loop
+}  // namespace hiredis
