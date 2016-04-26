@@ -18,6 +18,11 @@
 
 namespace evt_loop {
 
+time_t Now()
+{
+  return EV_Singleton->UnixTime();
+}
+
 int SetNonblocking(int fd) {
   int opts;
   if ((opts = fcntl(fd, F_GETFL)) != -1) {
@@ -37,7 +42,7 @@ class SignalManager {
   int UpdateEvent(SignalEvent *e);
 
  private:
-  friend void SignalHandler(int signo);
+  friend void HandleSignal(int signo);
   std::map<int, std::set<SignalEvent *> > sig_events_;
 
  public:
@@ -273,7 +278,7 @@ int EventLoop::AddEvent(PeriodicTimerEvent *e) {
   return AddEvent(static_cast<TimerEvent *>(e));
 }
 
-void SignalHandler(int signo) {
+void HandleSignal(int signo) {
   std::set<SignalEvent *> events = SignalManager::Instance()->sig_events_[signo];
   for (std::set<SignalEvent *>::iterator iter = events.begin(); iter != events.end(); ++iter) {
     (*iter)->OnEvents(signo);
@@ -281,26 +286,43 @@ void SignalHandler(int signo) {
 }
 
 int SignalManager::AddEvent(SignalEvent *e) {
-  struct sigaction action;
-  action.sa_handler = SignalHandler;
-  action.sa_flags = SA_RESTART;
-  sigemptyset(&action.sa_mask);
-
-  sig_events_[e->Signal()].insert(e);
-  sigaction(e->Signal(), &action, NULL);
+  auto& sig_hdlr_set = sig_events_[e->Signal()];
+  if (sig_hdlr_set.empty()) {
+    struct sigaction action;
+    action.sa_handler = HandleSignal;
+    action.sa_flags = SA_RESTART;
+    sigemptyset(&action.sa_mask);
+    sigaction(e->Signal(), &action, NULL);
+  }
+  sig_hdlr_set.insert(e);
 
   return 0;
 }
 
 int SignalManager::DeleteEvent(SignalEvent *e) {
-  sig_events_[e->Signal()].erase(e);
+  auto& sig_hdlr_set = sig_events_[e->Signal()];
+  sig_hdlr_set.erase(e);
+  if (sig_hdlr_set.empty()) {
+    sigaction(e->Signal(), NULL, NULL);
+  }
   return 0;
 }
 
 int SignalManager::UpdateEvent(SignalEvent *e) {
+  /*
+  // FIXME: below has no effect
   sig_events_[e->Signal()].erase(e);
   sig_events_[e->Signal()].insert(e);
+  */
   return 0;
+}
+
+SignalHandler::SignalHandler(SIGNO signo, const OnSignalCallback& cb) :
+    SignalEvent(signo), signal_cb_(cb) {
+  SignalManager::Instance()->AddEvent(this);
+}
+SignalHandler::~SignalHandler() {
+  SignalManager::Instance()->DeleteEvent(this);
 }
 
 void IOEvent::AddReadEvent() {

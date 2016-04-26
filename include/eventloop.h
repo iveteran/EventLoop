@@ -17,12 +17,9 @@ using std::list;
 namespace evt_loop {
 
 class EventLoop;
-class SignalManager;
 class TimerManager;
 
 class IEvent {
-  friend class EventLoop;
-  friend class SignalManager;
  public:
   static const uint32_t  NONE = 0;
   static const uint32_t  ONESHOT = 1 << 30;
@@ -81,7 +78,6 @@ class IOEvent : public IEvent {
 };
 
 class BufferIOEvent : public IOEvent {
- friend class EventLoop;
  public:
   BufferIOEvent(uint32_t events = IOEvent::READ | IOEvent::ERROR)
     : IOEvent(events), sent_(0), msg_seq_(0) {
@@ -158,7 +154,7 @@ class SignalEvent : public IEvent {
   };
 
  public:
-  SignalEvent(uint32_t events = IEvent::NONE) : IEvent(events), sig_no_(UNDEFINED) {}
+  SignalEvent(SIGNO signo) : sig_no_(signo) {}
 
  public:
   void SetSignal(SIGNO sig_no) { sig_no_ = sig_no; }
@@ -166,6 +162,23 @@ class SignalEvent : public IEvent {
 
  protected:
   SIGNO sig_no_;
+};
+
+class SignalHandler : public SignalEvent
+{
+  typedef std::function<void (SignalHandler*, uint32_t)>   OnSignalCallback;
+  public:
+  SignalHandler(SIGNO signo, const OnSignalCallback& cb);
+  ~SignalHandler();
+
+  private:
+  void OnEvents(uint32_t events) {
+    printf("SignalHandler receives signal (%d).\n", events);
+    signal_cb_(this, events);
+  }
+
+  private:
+  OnSignalCallback   signal_cb_;
 };
 
 class TimerEvent : public IEvent {
@@ -184,7 +197,6 @@ class TimerEvent : public IEvent {
 };
 
 class PeriodicTimerEvent : public TimerEvent {
-  friend class EventLoop;
  public:
   PeriodicTimerEvent() : TimerEvent(IEvent::NONE), running_(false) {};
   PeriodicTimerEvent(const TimeVal& inter) : TimerEvent(IEvent::NONE), interval_(inter), running_(false) {};
@@ -205,6 +217,16 @@ class PeriodicTimerEvent : public TimerEvent {
  private:
   TimeVal   interval_;
   bool      running_;
+};
+
+class PeriodicTimer : public PeriodicTimerEvent {
+  typedef std::function<void (PeriodicTimer*)>  OnTimerCallback;
+  public:
+    PeriodicTimer(const OnTimerCallback& cb) : timer_cb_(cb) { }
+    void OnTimer() { timer_cb_(this); }
+
+  private:
+    OnTimerCallback timer_cb_;
 };
 
 class EventLoop {
@@ -237,6 +259,7 @@ class EventLoop {
   void StopLoop();
 
   const TimeVal& Now() const { return now_; }
+  time_t UnixTime() const { return now_.Seconds(); }
 
  private:
   int SetEvent(IOEvent *e, int op);
@@ -253,6 +276,7 @@ class EventLoop {
   std::shared_ptr<TimerManager> timermanager_;
 };
 
+time_t Now();
 int SetNonblocking(int fd);
 
 }  // ns evt_loop

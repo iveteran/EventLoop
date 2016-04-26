@@ -48,6 +48,11 @@ class BusinessTester {
         echo_svr_2_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd_2, this, std::placeholders::_1, std::placeholders::_2);
         echoserver_binary2_.SetTcpCallbacks(echo_svr_2_cbs);
     }
+    void OnSignal(SignalHandler* sh, uint32_t signo)
+    {
+        printf("Shutdown\n");
+        EV_Singleton->StopLoop();
+    }
 
     private:
     void OnMessageRecvd_1(TcpConnection* conn, const Message* msg)
@@ -80,28 +85,13 @@ class BusinessTester {
     TcpServer echoserver_binary2_;
 };
 
-class SignalHandler : public SignalEvent {
- public:
-  SignalHandler()
-  {
-      SetSignal(SignalEvent::INT);
-      EV_Singleton->AddEvent(this);
-  }
-
- protected:
-  void OnEvents(uint32_t events) {
-    printf("shutdown\n");
-    EV_Singleton->StopLoop();
-  }
-};
-
 }  // ns evt_loop
 
 using namespace evt_loop;
 
 int main(int argc, char **argv) {
   BusinessTester biz_tester;
-  SignalHandler s;
+  SignalHandler sh(SignalEvent::INT, std::bind(&BusinessTester::OnSignal, &biz_tester, std::placeholders::_1, std::placeholders::_2));
 
   EV_Singleton->StartLoop();
 

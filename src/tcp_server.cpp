@@ -131,11 +131,6 @@ void TcpServer::OnConnectionClosed(TcpConnection* conn)
 void TcpServer::OnError(int errcode, const char* errstr)
 {
     printf("[TcpServer::OnError] error code: %d, error string: %s\n", errcode, errstr);
-    if (errcode >= ERR_CODE_SERVERITY) {
-        // restart acceptor
-        Destory();
-        Start();
-    }
     if (tcp_evt_cbs_) tcp_evt_cbs_->on_error_cb(errcode, errstr);
 }
 

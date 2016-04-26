@@ -28,20 +28,9 @@ class TcpClient : public TcpCreator
     void OnConnected(int fd, const IPAddress& local_addr);
     void OnConnectionClosed(TcpConnection* conn);
     void OnError(int errcode, const char* errstr);
+    void OnTimer(PeriodicTimer* timer);
 
     void SendTempBuffer();
-
-    private:
-    class ReconnectTimer : public PeriodicTimerEvent
-    {
-        friend class TcpClient;
-        public:
-        ReconnectTimer(TcpClient* creator) : creator_(creator) { }
-        void OnTimer();
-
-        private:
-        TcpClient* creator_;
-    };
 
   private:
     IPAddress           server_addr_;
@@ -49,7 +38,7 @@ class TcpClient : public TcpCreator
     bool                auto_reconnect_;
     TcpConnectionPtr    conn_;
     list<string>        tmp_sendbuf_list_;
-    ReconnectTimer      reconnect_timer_;
+    PeriodicTimer       reconnect_timer_;
 
     TcpCallbacksPtr     tcp_evt_cbs_;
 };
