@@ -6,6 +6,7 @@ REDIS_SDK_PATH = $(HOME)/sdks/hiredis-master
 
 CPPFLAGS = -Wall -std=c++0x
 CXXFLAGS = -I../include \
+           -I../plugin/redis \
            -I$(REDIS_SDK_PATH)
 
 LDFLAGS  = -L../src -lel \
@@ -23,7 +24,11 @@ TARGET_3_OBJS = hiredis_example.o
 
 .PHONY : all clean cleanall rebuild
 
+ifdef ENABLE_REDIS_API
 all : $(TARGET_1) $(TARGET_2) $(TARGET_3)
+else
+all : $(TARGET_1) $(TARGET_2)
+endif
 
 $(TARGET_1) : $(TARGET_1_OBJS)
 	$(CXX) -o $(TARGET_1) $(TARGET_1_OBJS) $(LDFLAGS)
