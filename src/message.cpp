@@ -73,11 +73,7 @@ size_t BinaryMessage::AppendData(const char* data, uint32_t length) {
 
   if (hdr_ == NULL && data_.size() >= sizeof(HDR)) {
     hdr_ = (HDR*)data_.data();
-#ifndef _BINARY_MSG_MINIMUM_PACKAGING
-    printf("[BinaryMessage::AppendData] HDR{ length: %d, msg_id: %d }\n", hdr_->length, hdr_->msg_id);
-#else
-    printf("[BinaryMessage::AppendData] HDR{ length: %d }\n", hdr_->length);
-#endif
+    printf("[BinaryMessage::AppendData] HDR: %s\n", hdr_->ToString().c_str());
     if (data_.capacity() < hdr_->length) {
       data_.reserve(hdr_->length);
       hdr_ = (HDR*)data_.data();

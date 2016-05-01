@@ -100,13 +100,23 @@ class BinaryMessage : public Message {
 #pragma pack(1)
   struct HDR {
     uint32_t  length;
-#ifndef _MSG_MINIMUM_PACKAGING
+#ifdef _BINARY_MSG_EXTEND_PACKAGING
     uint16_t  msg_type;
     uint32_t  msg_id;
     uint8_t   protocol;
 #endif
     char      payload[0];
     HDR()     { memset(this, 0, sizeof(*this)); }
+    std::string ToString() const {
+      char buffer[128];
+#ifdef _BINARY_MSG_EXTEND_PACKAGING
+      snprintf(buffer, sizeof(buffer), "{ length: %u, msg_type: %u, msg_id: %u, protocol: %u }",
+          length, msg_type, msg_id, protocol);
+#else
+      snprintf(buffer, sizeof(buffer), "{ length: %u }", length);
+#endif
+      return buffer;
+    }
   };
 #pragma pack()
 

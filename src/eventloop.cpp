@@ -158,12 +158,4 @@ int EventLoop::UpdateEvent(SignalEvent *e) {
   return SignalManager::Instance()->UpdateEvent(e);
 }
 
-int EventLoop::AddEvent(BufferIOEvent *e) {
-  return AddEvent(static_cast<IOEvent *>(e));
-}
-
-int EventLoop::AddEvent(PeriodicTimerEvent *e) {
-  return AddEvent(static_cast<TimerEvent *>(e));
-}
-
 }   // ns evt_loop

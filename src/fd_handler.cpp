@@ -127,7 +127,7 @@ void BufferIOEvent::OnEvents(uint32_t events) {
 
 void BufferIOEvent::Send(const Message& msg) {
   MessagePtr msg_ptr = CreateMessage(msg);
-#ifndef _BINARY_MSG_MINIMUM_PACKAGING
+#ifdef _BINARY_MSG_EXTEND_PACKAGING
   if (msg_type_ == MessageType::BINARY) {
     BinaryMessage* bmsg = static_cast<BinaryMessage*>(msg_ptr.get());
     bmsg->Header()->msg_id = ++msg_seq_;
@@ -142,16 +142,14 @@ void BufferIOEvent::Send(const string& data) {
 
 void BufferIOEvent::Send(const char *data, uint32_t len) {
   MessagePtr msg_ptr = CreateMessage(msg_type_, data, len);
-#ifndef _BINARY_MSG_MINIMUM_PACKAGING
   if (msg_type_ == MessageType::BINARY) {
     BinaryMessage* bmsg = static_cast<BinaryMessage*>(msg_ptr.get());
+#ifdef _BINARY_MSG_EXTEND_PACKAGING
     bmsg->Header()->msg_id = ++msg_seq_;
-    printf("[BufferIOEvent::Send] msg_header{ length: %ld, msg_id: %d }\n",
-        bmsg->Size(), bmsg->Header()->msg_id);
-  }
-#else
-  printf("[BufferIOEvent::Send] msg_header{ length: %ld }\n", msg_ptr->Size());
 #endif
+    printf("[BufferIOEvent::Send] HDR: %s\n", bmsg->Header()->ToString().c_str());
+  }
+  printf("[BufferIOEvent::Send] message size: %ld\n", msg_ptr->Size());
   SendInner(msg_ptr);
 }
 

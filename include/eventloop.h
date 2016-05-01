@@ -14,6 +14,9 @@ class SignalEvent;
 class TimerEvent;
 class PeriodicTimerEvent;
 
+time_t Now();
+int SetNonblocking(int fd);
+
 class EventLoop {
  public:
   EventLoop();
@@ -32,9 +35,6 @@ class EventLoop {
   int AddEvent(SignalEvent *e);
   int DeleteEvent(SignalEvent *e);
   int UpdateEvent(SignalEvent *e);
-
-  int AddEvent(BufferIOEvent *e);
-  int AddEvent(PeriodicTimerEvent *e);
 
   // do epoll_waite and collect events
   int ProcessEvents(int timeout);
@@ -60,9 +60,6 @@ class EventLoop {
 
   std::shared_ptr<TimerManager> timermanager_;
 };
-
-time_t Now();
-int SetNonblocking(int fd);
 
 }  // ns evt_loop
 
