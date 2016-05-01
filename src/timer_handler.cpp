@@ -5,6 +5,17 @@ namespace evt_loop
 {
 
 // PeriodicTimerEvent implementation
+PeriodicTimerEvent::PeriodicTimerEvent() :
+  TimerEvent(IEvent::NONE), running_(false)
+{
+  el_ = EV_Singleton;
+}
+PeriodicTimerEvent::PeriodicTimerEvent(const TimeVal& inter) :
+  TimerEvent(IEvent::NONE), interval_(inter), running_(false)
+{
+  el_ = EV_Singleton;
+}
+
 void PeriodicTimerEvent::OnEvents(uint32_t events) {
   OnTimer();
   if (running_) {
@@ -14,8 +25,7 @@ void PeriodicTimerEvent::OnEvents(uint32_t events) {
   }
 }
 
-void PeriodicTimerEvent::Start(EventLoop *el) {
-  el_ = el ? el : el_;
+void PeriodicTimerEvent::Start() {
   if (!el_) {
     return;
   }

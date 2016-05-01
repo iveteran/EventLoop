@@ -97,7 +97,7 @@ void RedisAsyncClient::Reconnect()
 {
   //Disconnect();
   if (!reconnect_timer_.IsRunning())
-    reconnect_timer_.Start(EV_Singleton);
+    reconnect_timer_.Start();
 }
 
 /*

@@ -21,7 +21,7 @@ void SessionManager::SetupTimeoutChecker(uint32_t timeout)
     }
     TimeVal tv(m_timeout, 0);
     m_timeout_checker.SetInterval(tv);
-    m_timeout_checker.Start(EV_Singleton);
+    m_timeout_checker.Start();
   }
 }
 void SessionManager::AddSession(const SessionPtr& sess_ptr)

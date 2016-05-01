@@ -27,13 +27,13 @@ class TimerEvent : public IEvent {
 
 class PeriodicTimerEvent : public TimerEvent {
  public:
-  PeriodicTimerEvent() : TimerEvent(IEvent::NONE), running_(false) {};
-  PeriodicTimerEvent(const TimeVal& inter) : TimerEvent(IEvent::NONE), interval_(inter), running_(false) {};
+  PeriodicTimerEvent();
+  PeriodicTimerEvent(const TimeVal& inter);
 
   void SetInterval(const TimeVal& inter) { interval_ = inter; }
   const TimeVal& GetInterval() const { return interval_; }
 
-  void Start(EventLoop* el = NULL);
+  void Start();
   void Stop();
 
   bool IsRunning() { return running_; }

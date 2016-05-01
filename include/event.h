@@ -16,8 +16,7 @@ class IEvent {
   static const uint32_t  TIMEOUT = 1 << 31;
 
  public:
-  IEvent(uint32_t events = 0) : el_(NULL) { events_ = events; }
-
+  IEvent(uint32_t events = 0, EventLoop* el = NULL) : events_(events), el_(el) { }
   virtual ~IEvent() {};
 
   virtual void OnEvents(uint32_t events) = 0;

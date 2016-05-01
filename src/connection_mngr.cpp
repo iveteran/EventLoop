@@ -21,7 +21,7 @@ void ConnectionManager::SetupInactivityChecker(uint32_t timeout)
     }
     TimeVal tv(m_timeout, 0);
     m_inactivity_checker.SetInterval(tv);
-    m_inactivity_checker.Start(EV_Singleton);
+    m_inactivity_checker.Start();
   }
 }
 void ConnectionManager::AddConnection(TcpConnection* conn)
