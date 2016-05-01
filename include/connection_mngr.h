@@ -22,7 +22,8 @@ typedef std::shared_ptr<ConnectionContext>  ConnectionContextPtr;
 class ConnectionManager
 {
     public:
-    ConnectionManager();
+    ConnectionManager(uint32_t timeout = 0);
+    void SetupInactivityChecker(uint32_t timeout);
     void AddConnection(TcpConnection* conn);
     TcpConnection* GetConnection(ClientID cid);
     void RemoveConnection(ClientID cid);
@@ -38,6 +39,7 @@ class ConnectionManager
     std::map<ClientID, ConnectionContextPtr>  m_client_map;
     std::map<time_t, ConnectionContextPtr>    m_activity_map;
 
+    uint32_t m_timeout;
     PeriodicTimer m_inactivity_checker;
 };
 

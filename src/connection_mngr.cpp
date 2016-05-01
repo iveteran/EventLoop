@@ -1,17 +1,29 @@
 #include "connection_mngr.h"
 
-#define CONNECTION_ACTIVITY_TIMEOUT (60 * 1)
-
 namespace evt_loop {
 
-ConnectionManager::ConnectionManager() :
+ConnectionManager::ConnectionManager(uint32_t timeout) :
+    m_timeout(0),
     m_inactivity_checker(std::bind(&ConnectionManager::OnConnectionInactivityCb, this, std::placeholders::_1))
 {
-    TimeVal tv(CONNECTION_ACTIVITY_TIMEOUT, 0);
-    m_inactivity_checker.SetInterval(tv);
-    m_inactivity_checker.Start(EV_Singleton);
+    SetupInactivityChecker(timeout);
 }
 
+void ConnectionManager::SetupInactivityChecker(uint32_t timeout)
+{
+  if (timeout == 0 && timeout != m_timeout) {
+    m_timeout = timeout;
+    m_inactivity_checker.Stop();
+  } else if (timeout > 0 && timeout != m_timeout) {
+    m_timeout = timeout;
+    if (m_inactivity_checker.IsRunning()) {
+      m_inactivity_checker.Stop();
+    }
+    TimeVal tv(m_timeout, 0);
+    m_inactivity_checker.SetInterval(tv);
+    m_inactivity_checker.Start(EV_Singleton);
+  }
+}
 void ConnectionManager::AddConnection(TcpConnection* conn)
 {
     ConnectionContextPtr conn_ctx = std::make_shared<ConnectionContext>(conn);
@@ -58,7 +70,7 @@ void ConnectionManager::CloseInactivityConnection()
         time_t act_time = iter->first;
         auto& conn_ctx = iter->second;
         time_t now = Now();
-        if (now - act_time >= CONNECTION_ACTIVITY_TIMEOUT)
+        if (now - act_time >= m_timeout)
         {
             conn_ctx->conn->Disconnect();
 

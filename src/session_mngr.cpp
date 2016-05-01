@@ -1,17 +1,29 @@
 #include "session_mngr.h"
 
-#define SESSION_TIMEOUT (6 * 1)
-
 namespace evt_loop {
 
-SessionManager::SessionManager() :
+SessionManager::SessionManager(uint32_t timeout) :
+    m_timeout(0),
     m_timeout_checker(std::bind(&SessionManager::CheckSessionTimeoutCb, this, std::placeholders::_1))
 {
-    TimeVal tv(SESSION_TIMEOUT, 0);
-    m_timeout_checker.SetInterval(tv);
-    m_timeout_checker.Start(EV_Singleton);
+    SetupTimeoutChecker(timeout);
 }
 
+void SessionManager::SetupTimeoutChecker(uint32_t timeout)
+{
+  if (timeout == 0 && timeout != m_timeout) {
+    m_timeout = timeout;
+    m_timeout_checker.Stop();
+  } else if (timeout > 0 && timeout != m_timeout) {
+    m_timeout = timeout;
+    if (m_timeout_checker.IsRunning()) {
+      m_timeout_checker.Stop();
+    }
+    TimeVal tv(m_timeout, 0);
+    m_timeout_checker.SetInterval(tv);
+    m_timeout_checker.Start(EV_Singleton);
+  }
+}
 void SessionManager::AddSession(const SessionPtr& sess_ptr)
 {
     m_session_map.insert(std::make_pair(sess_ptr->sid, sess_ptr));
@@ -51,7 +63,7 @@ void SessionManager::CheckSessionTimeoutCb(PeriodicTimer* timer)
         time_t create_time = iter->first;
         auto& sess_ptr = iter->second;
         time_t now = Now();
-        if (now - create_time >= SESSION_TIMEOUT)
+        if (now - create_time >= m_timeout)
         {
             sess_ptr->requester->Send(*sess_ptr->response);  // send timeout response
 
