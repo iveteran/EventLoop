@@ -1,7 +1,13 @@
 #ifndef _TCP_CLIENT_H
 #define _TCP_CLIENT_H
 
+#include <string>
+#include <list>
 #include "tcp_connection.h"
+#include "timer_handler.h"
+
+using std::string;
+using std::list;
 
 namespace evt_loop {
 

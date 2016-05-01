@@ -1,4 +1,6 @@
+#include "eventloop.h"
 #include "tcp_connection.h"
+#include <unistd.h>
 
 namespace evt_loop {
 

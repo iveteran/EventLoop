@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "el.h"
 #include "hiredis_adapter.h"
 
 using namespace evt_loop;

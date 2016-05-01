@@ -1,24 +1,15 @@
 #ifndef _TCP_CONNECTION_H
 #define _TCP_CONNECTION_H
 
-#include <time.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <fcntl.h>
-#include <errno.h>
-
 #include <map>
+#include <memory>
 
-#include "eventloop.h"
+#include "fd_handler.h"
 #include "tcp_callbacks.h"
-#include "error_code.h"
 #include "utils.h"
+
+using std::map;
+using std::shared_ptr;
 
 namespace evt_loop {
 
@@ -68,8 +59,8 @@ class TcpConnection : public BufferIOEvent
     TcpCreator*     creator_;
 };
 
-typedef std::shared_ptr<TcpConnection>          TcpConnectionPtr;
-typedef std::map<int/*fd*/, TcpConnectionPtr>   FdTcpConnMap;
+typedef shared_ptr<TcpConnection>          TcpConnectionPtr;
+typedef map<int/*fd*/, TcpConnectionPtr>   FdTcpConnMap;
 
 }  // namespace evt_loop
 

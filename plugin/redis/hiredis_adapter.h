@@ -1,7 +1,7 @@
 #ifndef _HIREDIS_ADAPTER_H
 #define _HIREDIS_ADAPTER_H
 
-#include "eventloop.h"
+#include "el.h"
 #include "redis_callbacks.h"
 #include "utils.h"
 #include <async.h>
