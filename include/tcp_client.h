@@ -11,7 +11,7 @@ using std::list;
 
 namespace evt_loop {
 
-class TcpClient : public TcpCreator
+class TcpClient : public IOEvent
 {
     public:
       TcpClient(const char *host, uint16_t port, MessageType msg_type = MessageType::BINARY,

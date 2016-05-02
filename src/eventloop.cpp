@@ -15,6 +15,7 @@ time_t Now()
 }
 
 int SetNonblocking(int fd) {
+  if (fd < 0) return -1;
   int opts;
   if ((opts = fcntl(fd, F_GETFL)) != -1) {
     opts = opts | O_NONBLOCK;
@@ -104,6 +105,7 @@ void EventLoop::StartLoop() {
 
 int EventLoop::SetEvent(IOEvent *e, int op)
 {
+  if (e->fd_ < 0) return -1;
   epoll_event ev = {0, {0}};
   uint32_t events = e->events_;
 
@@ -128,6 +130,7 @@ int EventLoop::UpdateEvent(IOEvent *e) {
 }
 
 int EventLoop::DeleteEvent(IOEvent *e) {
+  if (e->fd_ < 0) return -1;
   epoll_event ev; // kernel before 2.6.9 requires
   return epoll_ctl(epfd_, EPOLL_CTL_DEL, e->fd_, &ev);
 }

@@ -11,17 +11,19 @@ SessionManager::SessionManager(uint32_t timeout) :
 
 void SessionManager::SetupTimeoutChecker(uint32_t timeout)
 {
-  if (timeout == 0 && timeout != m_timeout) {
-    m_timeout = timeout;
-    m_timeout_checker.Stop();
-  } else if (timeout > 0 && timeout != m_timeout) {
-    m_timeout = timeout;
-    if (m_timeout_checker.IsRunning()) {
+  if (timeout != m_timeout) {
+    if (timeout == 0) {
       m_timeout_checker.Stop();
+      m_timeout = timeout;
+    } else {
+      if (m_timeout_checker.IsRunning()) {
+        m_timeout_checker.Stop();
+      }
+      m_timeout = timeout;
+      TimeVal tv(m_timeout, 0);
+      m_timeout_checker.SetInterval(tv);
+      m_timeout_checker.Start();
     }
-    TimeVal tv(m_timeout, 0);
-    m_timeout_checker.SetInterval(tv);
-    m_timeout_checker.Start();
   }
 }
 void SessionManager::AddSession(const SessionPtr& sess_ptr)

@@ -13,21 +13,11 @@ using std::shared_ptr;
 
 namespace evt_loop {
 
-class TcpConnection;
-
-class TcpCreator: public IOEvent
-{
-  protected:
-    TcpCreator() : IOEvent(IOEvent::READ | IOEvent::ERROR) {}
-  public:
-    virtual void OnConnectionClosed(TcpConnection* conn) = 0;
-};
-
 class TcpConnection : public BufferIOEvent
 {
   public:
     TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr,
-            TcpCallbacksPtr tcp_evt_cbs = nullptr, TcpCreator* creator = nullptr);
+            const OnClosedCallback& close_cb, TcpCallbacksPtr tcp_evt_cbs = nullptr);
     ~TcpConnection();
 
     uint32_t ID() const { return id_; }
@@ -36,9 +26,6 @@ class TcpConnection : public BufferIOEvent
     void Disconnect();
 
     void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
-
-    void SetReady(int fd);
-    bool IsReady() const;
 
     const IPAddress& GetLocalAddr() const;
     const IPAddress& GetPeerAddr() const;
@@ -51,12 +38,11 @@ class TcpConnection : public BufferIOEvent
 
   private:
     uint32_t        id_;
-    bool            ready_;
     IPAddress       local_addr_;
     IPAddress       peer_addr_;
 
-    TcpCallbacksPtr tcp_evt_cbs_;
-    TcpCreator*     creator_;
+    OnClosedCallback  creator_notification_cb_;
+    TcpCallbacksPtr   tcp_evt_cbs_;
 };
 
 typedef shared_ptr<TcpConnection>          TcpConnectionPtr;

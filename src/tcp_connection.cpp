@@ -4,11 +4,13 @@
 
 namespace evt_loop {
 
-TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, TcpCallbacksPtr tcp_evt_cbs, TcpCreator* creator)
-    : id_(0), ready_(false), local_addr_(local_addr), peer_addr_(peer_addr), tcp_evt_cbs_(tcp_evt_cbs), creator_(creator)
+TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr,
+    const OnClosedCallback& close_cb, TcpCallbacksPtr tcp_evt_cbs) :
+  BufferIOEvent(fd), id_(0), local_addr_(local_addr), peer_addr_(peer_addr),
+  creator_notification_cb_(close_cb), tcp_evt_cbs_(tcp_evt_cbs)
 {
-    SetReady(fd);
-    printf("[TcpConnection::TcpConnection] local_addr: %s, peer_addr: %s\n", local_addr_.ToString().c_str(), peer_addr_.ToString().c_str());
+    printf("[TcpConnection::TcpConnection] local_addr: %s, peer_addr: %s\n",
+        local_addr_.ToString().c_str(), peer_addr_.ToString().c_str());
 }
 
 TcpConnection::~TcpConnection()
@@ -23,27 +25,10 @@ void TcpConnection::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
 
 void TcpConnection::Disconnect()
 {
-    EV_Singleton->DeleteEvent(this);
-    if (fd_ >= 0) close(fd_);
-    SetFD(-1);
-    ready_ = false;
-}
-
-void TcpConnection::SetReady(int fd)
-{
-    if (fd < 0) return;
-
-    SetFD(fd);
-    EV_Singleton->AddEvent(this);
-    ready_ = true;
-    if (!TxBuffEmpty()) {
-        AddWriteEvent();
+    if (fd_ >= -1) {
+        close(fd_);
+        SetFD(-1);
     }
-}
-
-bool TcpConnection::IsReady() const
-{
-    return ready_;
 }
 
 const IPAddress& TcpConnection::GetLocalAddr() const
@@ -70,11 +55,7 @@ void TcpConnection::OnClosed()
 {
     printf("[TcpConnection::OnClosed] client leave, fd: %d\n", fd_);
     if (tcp_evt_cbs_) tcp_evt_cbs_->on_closed_cb(this);
-    if (creator_) {
-        creator_->OnConnectionClosed(this);
-    } else {
-        Disconnect();
-    }
+    creator_notification_cb_(this);
 }
 
 void TcpConnection::OnError(int errcode, const char* errstr)

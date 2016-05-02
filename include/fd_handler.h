@@ -20,11 +20,11 @@ class IOEvent : public IEvent {
   static const uint32_t  CLOSED = 1 << 4;
 
  public:
-  IOEvent(uint32_t events = IEvent::NONE) : IEvent(events), fd_(-1) {}
-  virtual ~IOEvent() { };
+  IOEvent(int fd = -1, uint32_t events = IOEvent::READ | IOEvent::ERROR);
+  virtual ~IOEvent();
 
  public:
-  void SetFD(int fd) { fd_ = fd; }
+  void SetFD(int fd);
   int FD() const { return fd_; }
 
   void AddReadEvent();
@@ -48,8 +48,8 @@ class IOEvent : public IEvent {
 
 class BufferIOEvent : public IOEvent {
  public:
-  BufferIOEvent(uint32_t events = IOEvent::READ | IOEvent::ERROR)
-    : IOEvent(events), sent_(0), msg_seq_(0) {
+  BufferIOEvent(int fd, uint32_t events = IOEvent::READ | IOEvent::ERROR)
+    : IOEvent(fd, events), sent_(0), msg_seq_(0) {
   }
 
  public:

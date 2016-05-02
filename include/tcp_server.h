@@ -5,7 +5,7 @@
 
 namespace evt_loop {
 
-class TcpServer: public TcpCreator
+class TcpServer: public IOEvent
 {
     public:
     TcpServer(const char *host, uint16_t port, MessageType msg_type = MessageType::BINARY, TcpCallbacksPtr tcp_evt_cbs = nullptr);

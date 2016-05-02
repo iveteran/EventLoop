@@ -7,6 +7,36 @@
 namespace evt_loop
 {
 
+bool ValidFD(int fd) {
+  return fd >= 0;
+}
+
+IOEvent::IOEvent(int fd, uint32_t events) :
+  IEvent(events), fd_(fd)
+{
+  if (ValidFD(fd_)) {
+    EV_Singleton->AddEvent(this);
+  }
+}
+IOEvent::~IOEvent() {
+  if (ValidFD(fd_)) {
+    EV_Singleton->DeleteEvent(this);
+  }
+}
+void IOEvent::SetFD(int fd) {
+  if (fd != fd_) {
+    if (!ValidFD(fd)) {
+      EV_Singleton->DeleteEvent(this);
+      fd_ = fd;
+    } else {
+      if (ValidFD(fd_)) {
+        EV_Singleton->DeleteEvent(this);
+      }
+      fd_ = fd;
+      EV_Singleton->AddEvent(this);
+    }
+  }
+}
 void IOEvent::AddReadEvent() {
   if (el_ && !(events_ & IOEvent::READ))
   {

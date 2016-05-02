@@ -25,7 +25,6 @@ TcpClient::TcpClient(const char *host, uint16_t port, MessageType msg_type, bool
         reconnect_timer_.SetInterval(tv);
     }
 
-    EV_Singleton->AddEvent(this);
     Connect();
 }
 
@@ -75,7 +74,8 @@ void TcpClient::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
 
 void TcpClient::OnConnected(int fd, const IPAddress& local_addr)
 {
-    conn_ = std::make_shared<TcpConnection>(fd, local_addr, server_addr_, tcp_evt_cbs_, this);
+    conn_ = std::make_shared<TcpConnection>(fd, local_addr, server_addr_,
+        std::bind(&TcpClient::OnConnectionClosed, this, std::placeholders::_1), tcp_evt_cbs_);
     conn_->SetMessageType(msg_type_);
     SendTempBuffer();
     if (tcp_evt_cbs_) tcp_evt_cbs_->on_new_client_cb(conn_.get());

@@ -26,15 +26,9 @@ TcpServer::~TcpServer()
 
 void TcpServer::Destory()
 {
-    /*
-    FdTcpConnMap::iterator iter;
-    for (iter = conn_map_.begin(); iter != conn_map_.end(); ++iter) {
-        delete iter->second;
-    }
-    */
     conn_map_.clear();
-    EV_Singleton->DeleteEvent(this);
     close(fd_);
+    SetFD(-1);
 }
 
 void TcpServer::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
@@ -55,20 +49,21 @@ TcpConnectionPtr TcpServer::GetConnectionByFD(int fd)
 
 bool TcpServer::Start()
 {
-    if ((fd_ = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
+    int fd = -1;
+    if ((fd = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
         OnError(errno, strerror(errno));
         return false;
     }
     int reuseaddr = 1;
-    if (setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1)
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1)
     {
         OnError(errno, strerror(errno));
-        close(fd_);
+        close(fd);
         return false;
     }
 
     int on = 1;
-    setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
 
     sockaddr_in sock_addr;
     memset(&sock_addr, 0, sizeof(sockaddr_in));
@@ -79,13 +74,11 @@ bool TcpServer::Start()
         return false;
     }
 
-    if (bind(fd_, (sockaddr*)&sock_addr, sizeof(sockaddr_in)) == -1 || listen(fd_, 10) == -1) {
+    if (bind(fd, (sockaddr*)&sock_addr, sizeof(sockaddr_in)) == -1 || listen(fd, 10) == -1) {
         OnError(errno, strerror(errno));
         return false;
     }
-
-    SetFD(fd_);
-    EV_Singleton->AddEvent(this);
+    SetFD(fd);
 
     return true;
 }
@@ -113,15 +106,17 @@ void TcpServer::OnEvents(uint32_t events)
 
 void TcpServer::OnNewClient(int fd, const IPAddress& peer_addr)
 {
-    TcpConnectionPtr conn(std::make_shared<TcpConnection>(fd, server_addr_, peer_addr, tcp_evt_cbs_, this));
+    TcpConnectionPtr conn = std::make_shared<TcpConnection>(fd, server_addr_, peer_addr,
+          std::bind(&TcpServer::OnConnectionClosed, this, std::placeholders::_1), tcp_evt_cbs_);
     conn->SetMessageType(msg_type_);
     conn_map_.insert(std::make_pair(fd, conn));
     if (tcp_evt_cbs_) tcp_evt_cbs_->on_new_client_cb(conn.get());
-    printf("[TcpServer::OnNewClient] new client, fd: %d\n", fd);
+    printf("[TcpServer::OnNewClient] new connection, fd: %d\n", fd);
 }
 
 void TcpServer::OnConnectionClosed(TcpConnection* conn)
 {
+    printf("[TcpServer::OnConnectionClosed] Erase connection, fd: %d\n", conn->FD());
     FdTcpConnMap::iterator iter = conn_map_.find(conn->FD());
     if (iter != conn_map_.end()) {
         //delete iter->second;

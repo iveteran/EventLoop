@@ -26,9 +26,7 @@ void PeriodicTimerEvent::OnEvents(uint32_t events) {
 }
 
 void PeriodicTimerEvent::Start() {
-  if (!el_) {
-    return;
-  }
+  if (!el_) return;
   running_ = true;
   SetTime(el_->Now() + interval_);
   el_->AddEvent(this);

@@ -156,7 +156,6 @@ int RedisAsyncClient::SetContext(redisAsyncContext * ctx)
   redisAsyncSetDisconnectCallback(redis_ctx_, __RedisDisconnectCallback);
 
   SetFD(redis_ctx_->c.fd);
-  EV_Singleton->AddEvent(this);
 
   return REDIS_OK;
 }

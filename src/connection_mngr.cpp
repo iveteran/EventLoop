@@ -11,17 +11,19 @@ ConnectionManager::ConnectionManager(uint32_t timeout) :
 
 void ConnectionManager::SetupInactivityChecker(uint32_t timeout)
 {
-  if (timeout == 0 && timeout != m_timeout) {
-    m_timeout = timeout;
-    m_inactivity_checker.Stop();
-  } else if (timeout > 0 && timeout != m_timeout) {
-    m_timeout = timeout;
-    if (m_inactivity_checker.IsRunning()) {
+  if (timeout != m_timeout) {
+    if (timeout == 0) {
       m_inactivity_checker.Stop();
+      m_timeout = timeout;
+    } else {
+      if (m_inactivity_checker.IsRunning()) {
+        m_inactivity_checker.Stop();
+      }
+      m_timeout = timeout;
+      TimeVal tv(m_timeout, 0);
+      m_inactivity_checker.SetInterval(tv);
+      m_inactivity_checker.Start();
     }
-    TimeVal tv(m_timeout, 0);
-    m_inactivity_checker.SetInterval(tv);
-    m_inactivity_checker.Start();
   }
 }
 void ConnectionManager::AddConnection(TcpConnection* conn)

@@ -8,8 +8,9 @@ CPPFLAGS = -Wall -std=c++0x
 CXXFLAGS = -I../include \
            -I../plugin/redis \
            -I$(REDIS_SDK_PATH)
+LDFLAGS = 
 
-LDFLAGS  = -L../src -lel \
+DEP_LIBS = ../src/libel.a \
            $(REDIS_SDK_PATH)/libhiredis.a
 
 CXX      = g++
@@ -30,14 +31,14 @@ else
 all : $(TARGET_1) $(TARGET_2)
 endif
 
-$(TARGET_1) : $(TARGET_1_OBJS)
-	$(CXX) -o $(TARGET_1) $(TARGET_1_OBJS) $(LDFLAGS)
+$(TARGET_1) : $(TARGET_1_OBJS) $(DEP_LIBS)
+	$(CXX) -o $(TARGET_1) $(TARGET_1_OBJS) $(DEP_LIBS) $(LDFLAGS)
 
-$(TARGET_2) : $(TARGET_2_OBJS)
-	$(CXX) -o $(TARGET_2) $(TARGET_2_OBJS) $(LDFLAGS)
+$(TARGET_2) : $(TARGET_2_OBJS) $(DEP_LIBS)
+	$(CXX) -o $(TARGET_2) $(TARGET_2_OBJS) $(DEP_LIBS) $(LDFLAGS)
 
-$(TARGET_3) : $(TARGET_3_OBJS)
-	$(CXX) -o $(TARGET_3) $(TARGET_3_OBJS) $(LDFLAGS)
+$(TARGET_3) : $(TARGET_3_OBJS) $(DEP_LIBS)
+	$(CXX) -o $(TARGET_3) $(TARGET_3_OBJS) $(DEP_LIBS) $(LDFLAGS)
 
 rebuild: clean all
 
