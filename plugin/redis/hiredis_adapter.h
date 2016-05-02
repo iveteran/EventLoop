@@ -45,25 +45,14 @@ class RedisAsyncClient : public IOEvent {
 
   void OnEvents(uint32_t events);
   void OnError(int errcode, const char* errstr);
-
-  private:
-  class ReconnectTimer : public PeriodicTimerEvent
-  {
-    friend class RedisAsyncClient;
-    public:
-    ReconnectTimer(RedisAsyncClient* creator) : creator_(creator) { }
-    void OnTimer();
-
-    private:
-    RedisAsyncClient* creator_;
-  };
+  void OnReconnectTimer(PeriodicTimer* timer);
 
   private:
   IPAddress           server_addr_;
   redisAsyncContext*  redis_ctx_;
   bool                auto_reconnect_;
   //list<string>        tmp_sendbuf_list_;
-  ReconnectTimer      reconnect_timer_;
+  PeriodicTimer       reconnect_timer_;
 
   RedisCallbacksPtr   redis_cbs_;
 };

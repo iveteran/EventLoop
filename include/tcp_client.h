@@ -34,7 +34,7 @@ class TcpClient : public IOEvent
     void OnConnected(int fd, const IPAddress& local_addr);
     void OnConnectionClosed(TcpConnection* conn);
     void OnError(int errcode, const char* errstr);
-    void OnTimer(PeriodicTimer* timer);
+    void OnReconnectTimer(PeriodicTimer* timer);
 
     void SendTempBuffer();
 

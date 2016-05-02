@@ -6,7 +6,7 @@ namespace evt_loop {
 
 TcpClient::TcpClient(const char *host, uint16_t port, MessageType msg_type, bool auto_reconnect, TcpCallbacksPtr tcp_evt_cbs)
     : msg_type_(msg_type), auto_reconnect_(auto_reconnect), conn_(nullptr),
-    reconnect_timer_(std::bind(&TcpClient::OnTimer, this, std::placeholders::_1)),
+    reconnect_timer_(std::bind(&TcpClient::OnReconnectTimer, this, std::placeholders::_1)),
     tcp_evt_cbs_(tcp_evt_cbs)
 {
     server_addr_.port_ = port;
@@ -135,16 +135,17 @@ void TcpClient::SendTempBuffer()
     }
 }
 
-void TcpClient::OnTimer(PeriodicTimer* timer)
+void TcpClient::OnReconnectTimer(PeriodicTimer* timer)
 {
     if (!conn_) {  // if the connection is not created, then reconnect
         bool success = Connect_();
-        if (success)
-            reconnect_timer_.Stop();
-        else
-            printf("[TcpClient::ReconnectTimer::OnTimer] Reconnect failed, retry %u seconds later...\n", reconnect_timer_.GetInterval().Seconds());
+        if (success) {
+            timer->Stop();
+        } else {
+            printf("[TcpClient::ReconnectTimer::OnReconnectTimer] Reconnect failed, retry %u seconds later...\n", timer->GetInterval().Seconds());
+        }
     } else {
-        reconnect_timer_.Stop();
+        timer->Stop();
     }
 }
 

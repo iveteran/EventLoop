@@ -48,7 +48,9 @@ static void __RedisDisconnectCallback(const redisAsyncContext *ctx, int status)
 }
 
 RedisAsyncClient::RedisAsyncClient(const char* host, uint16_t port, bool auto_reconnect, RedisCallbacksPtr redis_cbs) :
-  redis_ctx_(NULL), auto_reconnect_(auto_reconnect), reconnect_timer_(this), redis_cbs_(redis_cbs)
+  redis_ctx_(NULL), auto_reconnect_(auto_reconnect),
+  reconnect_timer_(std::bind(&RedisAsyncClient::OnReconnectTimer, this, std::placeholders::_1)),
+  redis_cbs_(redis_cbs)
 {
   server_addr_.port_ = port;
   if (host[0] == '\0' || strcmp(host, "localhost") == 0) {
@@ -221,16 +223,16 @@ void RedisAsyncClient::OnError(int errcode, const char* errstr)
   if (redis_cbs_) redis_cbs_->on_error_cb(errcode, errstr);
 }
 
-void RedisAsyncClient::ReconnectTimer::OnTimer()
+void RedisAsyncClient::OnReconnectTimer(PeriodicTimer* timer)
 {
-  if (creator_->redis_ctx_ == NULL || creator_->redis_ctx_->err != REDIS_OK) {  // if the connection is not created, then reconnect
-    bool success = creator_->Connect_();
+  if (redis_ctx_ == NULL || redis_ctx_->err != REDIS_OK) {  // if the connection is not created, then reconnect
+    bool success = Connect_();
     if (success)
-      creator_->reconnect_timer_.Stop();
+      timer->Stop();
     else
-      printf("[RedisAsyncClient::ReconnectTimer::OnTimer] Reconnect failed, retry %u seconds later...\n", GetInterval().Seconds());
+      printf("[RedisAsyncClient::ReconnectTimer::OnTimer] Reconnect failed, retry %u seconds later...\n", timer->GetInterval().Seconds());
   } else {
-    creator_->reconnect_timer_.Stop();
+    timer->Stop();
   }
 }
 
