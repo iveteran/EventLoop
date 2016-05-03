@@ -110,10 +110,11 @@ size_t BinaryMessage::Payload(std::string& payload) const {
 
 size_t BinaryMessage::MoreSize() const {
   size_t more_size = 0;
-  if (data_.size() < sizeof(HDR)) {
-    more_size = sizeof(HDR) - data_.size();
+  size_t data_size = data_.size();
+  if (data_size < sizeof(HDR)) {
+    more_size = sizeof(HDR) - data_size;
   } else {
-    more_size = hdr_->length - data_.size();
+    more_size = hdr_->length - data_size;
   }
   return more_size;
 }

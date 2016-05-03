@@ -166,12 +166,12 @@ void BufferIOEvent::Send(const Message& msg) {
   SendInner(msg_ptr);
 }
 
-void BufferIOEvent::Send(const string& data) {
-  Send(data.data(), data.size());
+void BufferIOEvent::Send(const string& data, bool bmsg_has_hdr) {
+  Send(data.data(), data.size(), bmsg_has_hdr);
 }
 
-void BufferIOEvent::Send(const char *data, uint32_t len) {
-  MessagePtr msg_ptr = CreateMessage(msg_type_, data, len);
+void BufferIOEvent::Send(const char *data, uint32_t len, bool bmsg_has_hdr) {
+  MessagePtr msg_ptr = CreateMessage(msg_type_, data, len, bmsg_has_hdr);
   if (msg_type_ == MessageType::BINARY) {
     BinaryMessage* bmsg = static_cast<BinaryMessage*>(msg_ptr.get());
 #ifdef _BINARY_MSG_EXTEND_PACKAGING

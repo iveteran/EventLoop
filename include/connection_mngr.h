@@ -31,7 +31,7 @@ class ConnectionManager
     void CloseInactivityConnection();
     void OnConnectionInactivityCb(PeriodicTimer* timer)
     {
-        printf("Connection inactivity checking on timer.\n");
+        printf("Connection inactivity checking on timer, now: %lu.\n", Now());
         CloseInactivityConnection();
     }
 

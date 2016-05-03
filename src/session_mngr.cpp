@@ -59,7 +59,7 @@ void SessionManager::RemoveSession(SessionID sid)
 }
 void SessionManager::CheckSessionTimeoutCb(PeriodicTimer* timer)
 {
-    printf("Session timeout checking on timer.\n");
+    printf("Session timeout checking on timer, now: %lu.\n", Now());
     for (auto iter = m_sess_timeout_map.begin(); iter != m_sess_timeout_map.end();)
     {
         time_t create_time = iter->first;
@@ -72,6 +72,7 @@ void SessionManager::CheckSessionTimeoutCb(PeriodicTimer* timer)
             auto iter_rm = iter++;
             m_sess_timeout_map.erase(iter_rm);
             m_session_map.erase(sess_ptr->sid);
+            printf("[SessionManager::CheckSessionTimeoutCb] Session timeout in %d seconds, dissconnect by server", m_timeout);
         }
         else
         {

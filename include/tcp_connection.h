@@ -31,6 +31,7 @@ class TcpConnection : public BufferIOEvent
     const IPAddress& GetPeerAddr() const;
 
   protected:
+    void Destroy();
     void OnReceived(const Message* buffer);
     void OnSent(const Message* buffer);
     void OnClosed();

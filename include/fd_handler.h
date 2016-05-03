@@ -63,8 +63,8 @@ class BufferIOEvent : public IOEvent {
   void ClearBuff();
   bool TxBuffEmpty();
   void Send(const Message& msg);
-  void Send(const string& data);
-  void Send(const char *data, uint32_t len);
+  void Send(const string& data, bool bmsg_has_hdr = BinaryMessage::HAS_NO_HDR);
+  void Send(const char *data, uint32_t len, bool bmsg_has_hdr = BinaryMessage::HAS_NO_HDR);
 
  protected:
   virtual void OnReceived(const Message* msg) { };

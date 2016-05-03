@@ -15,7 +15,17 @@ TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddres
 
 TcpConnection::~TcpConnection()
 {
-    Disconnect();
+    Destroy();
+}
+
+void TcpConnection::Destroy()
+{
+    printf("[TcpConnection::Destroy] id: %d, fd: %d\n", id_, fd_);
+    if (fd_ >= 0) {
+        EV_Singleton->DeleteEvent(this);
+        close(fd_);
+        SetFD(-1);
+    }
 }
 
 void TcpConnection::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
@@ -25,10 +35,7 @@ void TcpConnection::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
 
 void TcpConnection::Disconnect()
 {
-    if (fd_ >= -1) {
-        close(fd_);
-        SetFD(-1);
-    }
+    OnClosed();
 }
 
 const IPAddress& TcpConnection::GetLocalAddr() const
