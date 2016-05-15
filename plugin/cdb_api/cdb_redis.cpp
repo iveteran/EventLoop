@@ -2,6 +2,9 @@
 
 namespace cdb_api {
 
+/*
+ * Implements of RedisAsyncClient
+ */
 static void __RedisEventloopAddReadEvent(void * adapter)
 {
   RedisAsyncClient* rac = static_cast<RedisAsyncClient *>(adapter);
@@ -50,9 +53,10 @@ static void __RedisDisconnectCallback(const redisAsyncContext *ctx, int status)
 
 bool RedisAsyncClient::Init(const char* host, uint16_t port, const CDBCallbacksPtr& cdb_cbs, bool auto_reconnect)
 {
-  CDBClient::Init(host, port, cdb_cbs, auto_reconnect);
+  CDBClient::Init(host, port, auto_reconnect);
+  cdb_cbs_ = cdb_cbs;
 
-  return SendCommand("ping");  // trigger callback OnRedisConnect
+  return SendCommand(NULL, "ping");  // trigger callback OnRedisConnect
 }
 
 bool RedisAsyncClient::IsReady()
@@ -69,8 +73,9 @@ void RedisAsyncClient::Disconnect()
   }
 }
 
-bool RedisAsyncClient::SendCommand(const char* format, ...)
+bool RedisAsyncClient::SendCommand(CDBMessage* msg, const char* format, ...)
 {
+  UNUSED(msg);
   OnReplyCallback default_on_reply_cb = std::bind(&RedisAsyncClient::DefaultOnReplyCb, this, std::placeholders::_1, std::placeholders::_2);
   reply_cb_queue_.push(default_on_reply_cb);
   va_list ap;
@@ -90,8 +95,9 @@ bool RedisAsyncClient::SendCommand(const OnReplyCallback& reply_cb, const char* 
   return status == REDIS_OK;
 }
 
-bool RedisAsyncClient::Connect_()
+bool RedisAsyncClient::Connect_(bool reconnect)
 {
+  UNUSED(reconnect);
   redisAsyncContext* ctx = redisAsyncConnect(server_addr_.ip_.c_str(), server_addr_.port_);
   if (ctx && ctx->err) {
     printf("[RedisAsyncClient::Connect_] Error: %s\n", ctx->errstr);
@@ -152,9 +158,14 @@ void RedisAsyncClient::OnRedisReply(const redisAsyncContext* ctx, redisReply* re
 void RedisAsyncClient::DefaultOnReplyCb(CDBClient* cdbc, const CDBMessage* cdb_msg)
 {
     const redisReply* reply = (const redisReply*)cdb_msg->GetReply();
-    printf("[DASMsgHandler::DefaultOnReplyCb] received reply, fd: %d\n"
-            " reply: { type: %d, integer: %lld, len: %d, str: %s, elements: %lu, element list: %p }\n",
-            cdbc->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
+    printf("[DASMsgHandler::DefaultOnReplyCb] received reply: \n"
+            "{ type: %d, integer: %lld, len: %d, str: %s, elements: %lu, element list: %p }\n",
+            reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
+}
+
+void RedisAsyncClient::SetCallbacks(const CDBCallbacksPtr& cdb_cbs)
+{
+  cdb_cbs_ = cdb_cbs;
 }
 
 void RedisAsyncClient::OnRedisConnect(const redisAsyncContext* ctx, int status)
@@ -179,5 +190,55 @@ void RedisAsyncClient::OnError(int errcode, const char* errstr)
   printf("[RedisAsyncClient::OnError] error code: %d, error string: %s\n", errcode, errstr);
   if (cdb_cbs_) cdb_cbs_->on_error_cb(errcode, errstr);
 }
+
+/*
+ * Implements of RedisClient
+ */
+bool RedisClient::IsReady()
+{
+  return redis_ctx_ && redis_ctx_->err == REDIS_OK;
+}
+
+void RedisClient::Disconnect()
+{
+  if (redis_ctx_) {
+    redisFree(redis_ctx_);
+    redis_ctx_ = NULL;
+  }
+}
+
+bool RedisClient::SendCommand(CDBMessage* msg, const char* format, ...)
+{
+  va_list ap;
+  va_start(ap, format);
+  void* reply = redisvCommand(redis_ctx_, format, ap);
+  va_end(ap);
+  if (msg && reply) msg->SetReply(reply);
+  return msg != NULL;
+}
+
+bool RedisClient::SendCommand(const OnReplyCallback& reply_cb, const char* format, ...)
+{
+  return false;
+}
+
+bool RedisClient::Connect_(bool reconnect)
+{
+  if (reconnect && redis_ctx_) {
+    int status = redisReconnect(redis_ctx_);
+    if (status != REDIS_OK) {
+      printf("[RedisClient::Connect_] Reconnect failed: %s\n", redis_ctx_->errstr);
+      return false;
+    }
+  } else {
+    redis_ctx_ = redisConnect(server_addr_.ip_.c_str(), server_addr_.port_);
+    if (redis_ctx_ && redis_ctx_->err) {
+      printf("[RedisClient::Connect_] Connect failed: %s\n", redis_ctx_->errstr);
+      return false;
+    }
+  }
+  return true;
+}
+
 
 }  // namespace db_api

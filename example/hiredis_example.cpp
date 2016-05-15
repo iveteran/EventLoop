@@ -9,6 +9,48 @@
 using namespace evt_loop;
 using namespace cdb_api;
 
+class RedisClient_Test {
+  public:
+  RedisClient_Test()
+  {
+    m_client.Init("localhost", 6379);
+    RedisMessage rmsg;
+    bool success = false;
+    const redisReply* reply = NULL;
+
+    success = m_client.SendCommand(&rmsg, "SET mykey1 %s", TEST_STRING);
+    assert(success);
+    reply = (const redisReply*)rmsg.GetReply();
+    printf("[RedisClient_Test] received reply: { type: %d, integer: %lld, len: %d, str: %s, elements: %lu, element list: %p }\n",
+        reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
+    assert(reply->type == REDIS_REPLY_STATUS);
+    assert(strcmp(reply->str, "OK") == 0);
+    rmsg.ReleaseReplyObject();
+
+    success = m_client.SendCommand(&rmsg, "HMSET myhash1 name yufangbin pwd 123456 status 0");
+    assert(success);
+    reply = (const redisReply*)rmsg.GetReply();
+    printf("[RedisClient_Test] received reply: { type: %d, integer: %lld, len: %d, str: %s, elements: %lu, element list: %p }\n",
+        reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
+    assert(reply->type == REDIS_REPLY_STATUS);
+    assert(strcmp(reply->str, "OK") == 0);
+    rmsg.ReleaseReplyObject();
+
+    success = m_client.SendCommand(&rmsg, "HGETALL myhash1");
+    assert(success);
+    reply = (const redisReply*)rmsg.GetReply();
+    printf("[RedisClient_Test] received reply: { type: %d, integer: %lld, len: %d, str: %s, elements: %lu, element list: %p }\n",
+        reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
+    assert(reply->type == REDIS_REPLY_ARRAY);
+    rmsg.ReleaseReplyObject();
+
+    printf("--- All RedisClient tests passed!\n\n");
+  }
+
+  private:
+  RedisClient m_client;
+};
+
 class RedisAsyncClient_Test {
     public:
     RedisAsyncClient_Test()
@@ -29,7 +71,7 @@ class RedisAsyncClient_Test {
         const redisReply* reply = (const redisReply*)rmsg->GetReply();
         printf("[RedisAsyncClient_Test::SetkeyReplyCb] received reply, fd: %d\n"
             " reply: { type: %d, integer: %lld, len: %d, str: %s, elements: %lu, element list: %p }\n",
-            client->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
+            ((RedisAsyncClient *)client)->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
 
         assert(reply->type == REDIS_REPLY_STATUS);
         assert(strcmp(reply->str, "OK") == 0);
@@ -39,7 +81,7 @@ class RedisAsyncClient_Test {
         const redisReply* reply = (const redisReply*)rmsg->GetReply();
         printf("[RedisAsyncClient_Test::GetkeyReplyCb] received reply, fd: %d\n"
             " reply: { type: %d, integer: %lld, len: %d, str: %s, elements: %lu, element list: %p }\n",
-            client->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
+            ((RedisAsyncClient *)client)->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
 
         assert(reply->type == REDIS_REPLY_STRING);
         assert(strcmp(reply->str, TEST_STRING) == 0);
@@ -49,7 +91,7 @@ class RedisAsyncClient_Test {
         const redisReply* reply = (const redisReply*)rmsg->GetReply();
         printf("[RedisAsyncClient_Test::LrangeReplyCb] received reply, fd: %d\n"
             " reply: { type: %d, integer: %lld, len: %d, str: %s, elements: %lu, element list: %p }\n",
-            client->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
+            ((RedisAsyncClient *)client)->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
 
         assert(reply->type == REDIS_REPLY_ARRAY);
     }
@@ -58,7 +100,7 @@ class RedisAsyncClient_Test {
         const redisReply* reply = (const redisReply*)rmsg->GetReply();
         printf("[RedisAsyncClient_Test::HgetallReplyCb] received reply, fd: %d\n"
             " reply: { type: %d, integer: %lld, len: %d, str: %s, elements: %lu, element list: %p }\n",
-            client->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
+            ((RedisAsyncClient *)client)->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
 
         assert(reply->type == REDIS_REPLY_ARRAY);
     }
@@ -67,21 +109,21 @@ class RedisAsyncClient_Test {
         const redisReply* reply = (const redisReply*)rmsg->GetReply();
         printf("[RedisAsyncClient_Test::ExistsReplyCb] received reply, fd: %d\n"
             " reply: { type: %d, integer: %lld, len: %d, str: %s, elements: %lu, element list: %p }\n",
-            client->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
+            ((RedisAsyncClient *)client)->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
 
         assert(reply->type == REDIS_REPLY_INTEGER);
         assert(reply->integer == 1);
-        printf("\nAll testcases passed!\n");
+        printf("--- All RedisAsyncClient tests passed!\n\n");
         EV_Singleton->StopLoop();
     }
     void OnConnectionCreated(CDBClient* client)
     {
-        printf("[RedisAsyncClient_Test::OnConnectionCreated] connection created, fd: %d\n", client->FD());
+        printf("[RedisAsyncClient_Test::OnConnectionCreated] connection created, fd: %d\n", ((RedisAsyncClient *)client)->FD());
 
         client->SendCommand(setkey_reply_cb_, "SET mykey %s", TEST_STRING);
-        client->SendCommand("SET mykey2 %s", TEST_STRING_2);
-        client->SendCommand("LPUSH mylist china guangdong shenzhen");
-        client->SendCommand("HMSET myhash username yufangbin password 123456 status 1");
+        client->SendCommand(NULL, "SET mykey2 %s", TEST_STRING_2);
+        client->SendCommand(NULL, "LPUSH mylist china guangdong shenzhen");
+        client->SendCommand(NULL, "HMSET myhash username yufangbin password 123456 status 1");
 
         client->SendCommand(getkey_reply_cb_, "GET mykey");
         client->SendCommand(lrange_reply_cb_, "LRANGE mylist 0 -1");
@@ -99,7 +141,8 @@ class RedisAsyncClient_Test {
 };
 
 int main(int argc, char **argv) {
-  RedisAsyncClient_Test hiredis_test;
+  RedisClient_Test hiredis_sync_test;
+  RedisAsyncClient_Test hiredis_async_test;
 
   EV_Singleton->StartLoop();
 

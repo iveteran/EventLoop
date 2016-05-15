@@ -3,10 +3,9 @@
 namespace cdb_api
 {
 
-bool CDBClient::Init(const char* host, uint16_t port, const CDBCallbacksPtr& cdb_cbs, bool auto_reconnect)
+bool CDBClient::Init(const char* host, uint16_t port, bool auto_reconnect)
 {
   auto_reconnect_ = auto_reconnect,
-  cdb_cbs_ = cdb_cbs;
   server_addr_.port_ = port;
 
   if (host[0] == '\0' || strcmp(host, "localhost") == 0) {
@@ -44,15 +43,10 @@ void CDBClient::Reconnect()
     reconnect_timer_.Start();
 }
 
-void CDBClient::SetCallbacks(const CDBCallbacksPtr& cdb_cbs)
-{
-  cdb_cbs_ = cdb_cbs;
-}
-
 void CDBClient::OnReconnectTimer(PeriodicTimer* timer)
 {
   if (!IsReady()) {  // if the connection is not created, then reconnect
-    bool success = Connect_();
+    bool success = Connect_(RECONNECT);
     if (success)
       timer->Stop();
     else
