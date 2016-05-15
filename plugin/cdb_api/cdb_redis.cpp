@@ -1,6 +1,6 @@
-#include "hiredis_adapter.h"
+#include "cdb_redis.h"
 
-namespace hiredis {
+namespace cdb_api {
 
 static void __RedisEventloopAddReadEvent(void * adapter)
 {
@@ -47,76 +47,32 @@ static void __RedisDisconnectCallback(const redisAsyncContext *ctx, int status)
   rac->OnRedisDisconnect(ctx, status);
 }
 
-RedisAsyncClient::RedisAsyncClient(const char* host, uint16_t port, bool auto_reconnect, RedisCallbacksPtr redis_cbs) :
-  redis_ctx_(NULL), auto_reconnect_(auto_reconnect),
-  reconnect_timer_(std::bind(&RedisAsyncClient::OnReconnectTimer, this, std::placeholders::_1)),
-  redis_cbs_(redis_cbs)
-{
-  server_addr_.port_ = port;
-  if (host[0] == '\0' || strcmp(host, "localhost") == 0) {
-    server_addr_.ip_ = "127.0.0.1";
-  } else if (!strcmp(host, "any")) {
-    server_addr_.ip_ = "0.0.0.0";
-  } else {
-    server_addr_.ip_ = host;
-  }
-  if (auto_reconnect_) {
-    timeval tv;
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
-    reconnect_timer_.SetInterval(tv);
-  }
 
-  Connect();
-  SendCommand("ping");  // trigger callback OnRedisConnect
+bool RedisAsyncClient::Init(const char* host, uint16_t port, const CDBCallbacksPtr& cdb_cbs, bool auto_reconnect)
+{
+  CDBClient::Init(host, port, cdb_cbs, auto_reconnect);
+
+  return SendCommand("ping");  // trigger callback OnRedisConnect
 }
 
-RedisAsyncClient::~RedisAsyncClient()
+bool RedisAsyncClient::IsReady()
 {
-  if (redis_ctx_ != 0) {
-    redis_ctx_->ev.data = NULL;
-  }
-  Disconnect();
-}
-
-bool RedisAsyncClient::Connect()
-{
-  bool success = Connect_();
-  if (!success && auto_reconnect_)
-    Reconnect();
-  return success;
+  return redis_ctx_ && redis_ctx_->err == REDIS_OK;
 }
 
 void RedisAsyncClient::Disconnect()
 {
   if (redis_ctx_) {
     //redisAsyncDisconnect(redis_ctx_);
+    redis_ctx_->ev.data = NULL;
     redis_ctx_ = NULL;
   }
 }
 
-void RedisAsyncClient::Reconnect()
-{
-  //Disconnect();
-  if (!reconnect_timer_.IsRunning())
-    reconnect_timer_.Start();
-}
-
-/*
-bool RedisAsyncClient::SendCommand(const string& msg)
-{
-  bool success = true;
-  if (redis_ctx_) {
-    redisAsyncCommand(redis_ctx_, __GetReplyCallback, this, msg.data());
-  } else {
-    tmp_sendbuf_list_.push_back(msg);
-  }
-  return success;
-}
-*/
-
 bool RedisAsyncClient::SendCommand(const char* format, ...)
 {
+  OnReplyCallback default_on_reply_cb = std::bind(&RedisAsyncClient::DefaultOnReplyCb, this, std::placeholders::_1, std::placeholders::_2);
+  reply_cb_queue_.push(default_on_reply_cb);
   va_list ap;
   va_start(ap, format);
   int status = redisvAsyncCommand(redis_ctx_, __GetReplyCallback, this, format, ap);
@@ -124,9 +80,14 @@ bool RedisAsyncClient::SendCommand(const char* format, ...)
   return status == REDIS_OK;
 }
 
-void RedisAsyncClient::SetRedisCallbacks(const RedisCallbacksPtr& redis_cbs)
+bool RedisAsyncClient::SendCommand(const OnReplyCallback& reply_cb, const char* format, ...)
 {
-  redis_cbs_ = redis_cbs;
+  reply_cb_queue_.push(reply_cb);
+  va_list ap;
+  va_start(ap, format);
+  int status = redisvAsyncCommand(redis_ctx_, __GetReplyCallback, this, format, ap);
+  va_end(ap);
+  return status == REDIS_OK;
 }
 
 bool RedisAsyncClient::Connect_()
@@ -162,19 +123,6 @@ int RedisAsyncClient::SetContext(redisAsyncContext * ctx)
   return REDIS_OK;
 }
 
-/*
-void RedisAsyncClient::SendTempBuffer()
-{
-  if (redis_ctx_ == NULL) return;
-
-  while (!tmp_sendbuf_list_.empty()) {
-    const string& sendbuf = tmp_sendbuf_list_.front();
-    SendCommand(sendbuf);
-    tmp_sendbuf_list_.pop_front();
-  }
-}
-*/
-
 void RedisAsyncClient::OnEvents(uint32_t events)
 {
   //printf("[RedisAsyncClient::OnEvents] events: %d\n", events);
@@ -197,14 +145,23 @@ void RedisAsyncClient::OnRedisReply(const redisAsyncContext* ctx, redisReply* re
       ctx->c.fd, reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
   */
   RedisMessage rmsg(reply);
-  if (redis_cbs_) redis_cbs_->on_reply_cb(this, &rmsg);
+  auto& reply_cb = reply_cb_queue_.front();
+  reply_cb(this, &rmsg);
+  reply_cb_queue_.pop();
 }
+void RedisAsyncClient::DefaultOnReplyCb(CDBClient* cdbc, const CDBMessage* cdb_msg)
+{
+    const redisReply* reply = (const redisReply*)cdb_msg->GetReply();
+    printf("[DASMsgHandler::DefaultOnReplyCb] received reply, fd: %d\n"
+            " reply: { type: %d, integer: %lld, len: %d, str: %s, elements: %lu, element list: %p }\n",
+            cdbc->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
+}
+
 void RedisAsyncClient::OnRedisConnect(const redisAsyncContext* ctx, int status)
 {
   printf("[RedisAsyncClient::OnRedisConnect] connection fd: %d, status: %d\n", ctx->c.fd, status);
   if (status == 0) {
-    //SendTempBuffer();
-    if (redis_cbs_) redis_cbs_->on_connected_cb(this);
+    if (cdb_cbs_) cdb_cbs_->on_connected_cb(this);
   } else {
     Reconnect();
   }
@@ -212,7 +169,7 @@ void RedisAsyncClient::OnRedisConnect(const redisAsyncContext* ctx, int status)
 void RedisAsyncClient::OnRedisDisconnect(const redisAsyncContext* ctx, int status)
 {
   printf("[RedisAsyncClient::OnRedisDisconnect] connection lost, fd: %d, status: %d\n", ctx->c.fd, status);
-  if (redis_cbs_) redis_cbs_->on_closed_cb(this);
+  if (cdb_cbs_) cdb_cbs_->on_closed_cb(this);
   if (auto_reconnect_) {
     Reconnect();
   }
@@ -220,20 +177,7 @@ void RedisAsyncClient::OnRedisDisconnect(const redisAsyncContext* ctx, int statu
 void RedisAsyncClient::OnError(int errcode, const char* errstr)
 {
   printf("[RedisAsyncClient::OnError] error code: %d, error string: %s\n", errcode, errstr);
-  if (redis_cbs_) redis_cbs_->on_error_cb(errcode, errstr);
+  if (cdb_cbs_) cdb_cbs_->on_error_cb(errcode, errstr);
 }
 
-void RedisAsyncClient::OnReconnectTimer(PeriodicTimer* timer)
-{
-  if (redis_ctx_ == NULL || redis_ctx_->err != REDIS_OK) {  // if the connection is not created, then reconnect
-    bool success = Connect_();
-    if (success)
-      timer->Stop();
-    else
-      printf("[RedisAsyncClient::ReconnectTimer::OnTimer] Reconnect failed, retry %u seconds later...\n", timer->GetInterval().Seconds());
-  } else {
-    timer->Stop();
-  }
-}
-
-}  // namespace hiredis
+}  // namespace db_api

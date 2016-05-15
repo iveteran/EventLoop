@@ -9,8 +9,8 @@ RM       = rm -f
 AR       = ar -r
 
 SRCDIRS  = .
-ifdef ENABLE_REDIS_API
-	SRCDIRS += ../plugin/redis
+ifdef ENABLE_CDB_API
+	SRCDIRS += ../plugin/cdb_api
 endif
 SRCEXTS  = .cpp
 SOURCES  = $(foreach d,$(SRCDIRS),$(wildcard $(addprefix $(d)/*,$(SRCEXTS))))
