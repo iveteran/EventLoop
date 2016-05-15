@@ -12,7 +12,8 @@ class BusinessTester {
         echo_client_cbs->on_new_client_cb = std::bind(&BusinessTester::OnConnectionCreated, this, std::placeholders::_1);
         echoclient_.SetTcpCallbacks(echo_client_cbs);
 
-        echoclient_.Send("ping");
+        echoclient_.Connect();
+        echoclient_.Send("hello world");
     }
 
     protected:

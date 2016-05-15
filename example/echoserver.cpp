@@ -30,6 +30,10 @@ class BusinessTester {
         echoserver_json_.SetTcpCallbacks(echo_svr_1_cbs);
         echoclient_json_.SetTcpCallbacks(echo_client_cbs);
 
+        echoclient_crlf_.Connect();
+        echoclient_binary_.Connect();
+        echoclient_json_.Connect();
+
         echoclient_binary_.Send("hello, binary message");
         echoclient_binary_.Send("hello china");
 

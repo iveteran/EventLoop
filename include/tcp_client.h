@@ -23,6 +23,7 @@ class TcpClient : public IOEvent
     void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
     TcpConnectionPtr& Connection() { return conn_; }
     int FD() const { return (conn_ ? conn_->FD() : -1); }  // Overrides interface of base class IOEvent
+    bool IsConnected() const { return conn_ != nullptr; }
     
     private:
     void OnEvents(uint32_t events) {}

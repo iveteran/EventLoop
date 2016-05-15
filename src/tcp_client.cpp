@@ -25,7 +25,7 @@ TcpClient::TcpClient(const char *host, uint16_t port, MessageType msg_type, bool
         reconnect_timer_.SetInterval(tv);
     }
 
-    Connect();
+    //Connect();
 }
 
 TcpClient::~TcpClient()
@@ -142,7 +142,7 @@ void TcpClient::OnReconnectTimer(PeriodicTimer* timer)
         if (success) {
             timer->Stop();
         } else {
-            printf("[TcpClient::ReconnectTimer::OnReconnectTimer] Reconnect failed, retry %u seconds later...\n", timer->GetInterval().Seconds());
+            printf("[TcpClient::OnReconnectTimer] Reconnect failed, retry %u seconds later...\n", timer->GetInterval().Seconds());
         }
     } else {
         timer->Stop();
