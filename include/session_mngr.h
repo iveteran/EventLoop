@@ -9,16 +9,21 @@ namespace evt_loop {
 
 typedef uint32_t    SessionID;
 
+class Session;
+typedef std::function<void (Session*)>  SessionFinishCallback;
+
 struct Session
 {
-    Session() : requester(NULL), request(NULL), response(NULL), create_time(0) {}
-    Session(TcpConnection* conn, Message* req) : requester(conn), request(req), create_time(Now()) { }
+    Session() : create_time(0), requester(NULL), request(NULL), response(NULL) {}
+    Session(TcpConnection* conn, Message* req) : create_time(Now()), requester(conn), request(req), response(NULL) { }
 
     SessionID sid;
+    time_t create_time;
+    SessionFinishCallback fin_action;
+
     TcpConnection* requester;
     Message* request;
     Message* response;
-    time_t create_time;
 };
 typedef std::shared_ptr<Session>  SessionPtr;
 

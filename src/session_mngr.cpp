@@ -51,7 +51,8 @@ void SessionManager::RemoveSession(SessionID sid)
     if (iter != m_session_map.end())
     {
         auto& sess_ptr = iter->second;
-        sess_ptr->requester->Send(*sess_ptr->response);  // send timeout response
+        if (sess_ptr->fin_action)
+            sess_ptr->fin_action(sess_ptr.get());
         m_sess_timeout_map.erase(sess_ptr->create_time);
 
         m_session_map.erase(iter);
@@ -67,7 +68,8 @@ void SessionManager::CheckSessionTimeoutCb(PeriodicTimer* timer)
         time_t now = Now();
         if (now - create_time >= m_timeout)
         {
-            sess_ptr->requester->Send(*sess_ptr->response);  // send timeout response
+            if (sess_ptr->fin_action)
+                sess_ptr->fin_action(sess_ptr.get());
 
             auto iter_rm = iter++;
             m_sess_timeout_map.erase(iter_rm);
