@@ -17,6 +17,7 @@ PeriodicTimerEvent::PeriodicTimerEvent(const TimeVal& inter) :
 }
 
 void PeriodicTimerEvent::OnEvents(uint32_t events) {
+  printf("[TimerManager::OnEvents] timeval: (%d.%d)\n", interval_.Seconds(), interval_.USeconds());
   OnTimer();
   if (running_) {
     el_->DeleteEvent(this);

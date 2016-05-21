@@ -101,7 +101,7 @@ int BufferIOEvent::ReceiveData() {
   char buffer[MAX_BYTES_RECEIVE];
   int read_bytes = std::min(rx_msg_mq_.NeedMore(), (size_t)sizeof(buffer));
   int len = read(fd_, buffer, read_bytes);
-  printf("[BufferIOEvent::ReceiveData] to read: %d, got: %d\n", read_bytes, len);
+  printf("[BufferIOEvent::ReceiveData] fd [%d] to read bytes: %d, got: %d\n", fd_, read_bytes, len);
   if (len < 0) {
     OnError(errno, strerror(errno));
   }
@@ -170,6 +170,10 @@ void BufferIOEvent::Send(const string& data, bool bmsg_has_hdr) {
   Send(data.data(), data.size(), bmsg_has_hdr);
 }
 
+void BufferIOEvent::SendMore(const string& data) {
+  SendMore(data.data(), data.size());
+}
+
 void BufferIOEvent::Send(const char *data, uint32_t len, bool bmsg_has_hdr) {
   MessagePtr msg_ptr = CreateMessage(msg_type_, data, len, bmsg_has_hdr);
   if (msg_type_ == MessageType::BINARY) {
@@ -179,6 +183,12 @@ void BufferIOEvent::Send(const char *data, uint32_t len, bool bmsg_has_hdr) {
 #endif
     printf("[BufferIOEvent::Send] HDR: %s\n", bmsg->Header()->ToString().c_str());
   }
+  printf("[BufferIOEvent::Send] message size: %ld\n", msg_ptr->Size());
+  SendInner(msg_ptr);
+}
+
+void BufferIOEvent::SendMore(const char *data, uint32_t len) {
+  MessagePtr msg_ptr = CreateMessage(msg_type_, data, len, BinaryMessage::HAS_HDR);
   printf("[BufferIOEvent::Send] message size: %ld\n", msg_ptr->Size());
   SendInner(msg_ptr);
 }

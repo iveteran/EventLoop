@@ -80,8 +80,8 @@ void ConnectionManager::CloseInactivityConnection()
         TcpConnection* conn = iter->second->conn;
         time_t now = Now();
         printf("[ConnectionManager::CloseInactivityConnection] cid: %u, now: %lu, activity time: %lu\n", conn->ID(), now, act_time);
-        uint32_t inactivity_time = now - act_time;
-        if (inactivity_time >= m_timeout)
+        uint32_t elapse = now - act_time;
+        if (elapse >= m_timeout)
         {
             auto iter_rm = iter++;
             m_activity_map.erase(iter_rm);
@@ -89,7 +89,7 @@ void ConnectionManager::CloseInactivityConnection()
 
             conn->Disconnect();
 
-            printf("[ConnectionManager::CloseInactivityConnection] Connection inactively in %u seconds, disconnected by server\n", inactivity_time);
+            printf("[ConnectionManager::CloseInactivityConnection] Connection inactively in %u seconds, disconnected by server\n", elapse);
         }
         else
         {

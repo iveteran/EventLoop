@@ -67,9 +67,9 @@ void TcpConnection::OnClosed()
 
 void TcpConnection::OnError(int errcode, const char* errstr)
 {
-    printf("[TcpConnection::OnError] error string: %s\n", errstr);
+    printf("[TcpConnection::OnError] fd: %d, error string: %s\n", fd_, errstr);
     if (tcp_evt_cbs_) tcp_evt_cbs_->on_error_cb(errcode, errstr);
-    //OnClosed();
+    //Disconnect();
 }
 
 }  // namespace evt_loop

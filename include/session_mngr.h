@@ -1,47 +1,47 @@
 #ifndef _SESSION_MNGR_H
 #define _SESSION_MNGR_H
 
-#include "eventloop.h"
-#include "tcp_connection.h"
+#include <memory>
 #include "timer_handler.h"
 
 namespace evt_loop {
 
 typedef uint32_t    SessionID;
 
-class Session;
-typedef std::function<void (Session*)>  SessionFinishCallback;
+class TimeoutSession;
+class TimeoutSessionManager;
+typedef std::function<void (TimeoutSession*, uint32_t elapse)>  SessionFinishAction;
 
-struct Session
+struct TimeoutSession
 {
-    Session() : create_time(0), requester(NULL), request(NULL), response(NULL) {}
-    Session(TcpConnection* conn, Message* req) : create_time(Now()), requester(conn), request(req), response(NULL) { }
+    friend TimeoutSessionManager;
 
-    SessionID sid;
-    time_t create_time;
-    SessionFinishCallback fin_action;
+    public:
+    TimeoutSession() : m_id(0), m_ctime(0) {}
 
-    TcpConnection* requester;
-    Message* request;
-    Message* response;
+    protected:
+    SessionID   m_id;
+    time_t      m_ctime;
+    SessionFinishAction m_finish_action;
+    SessionFinishAction m_timeout_action;
 };
-typedef std::shared_ptr<Session>  SessionPtr;
+typedef std::shared_ptr<TimeoutSession>  TimeoutSessionPtr;
 
-class SessionManager
+class TimeoutSessionManager
 {
     public:
-    SessionManager(uint32_t timeout = 0);
+    TimeoutSessionManager(uint32_t timeout = 0);
     void SetupTimeoutChecker(uint32_t timeout);
-    void AddSession(const SessionPtr& sess);
-    void AddSession(TcpConnection* conn, Message* req);
-    Session* GetSession(SessionID sid);
+    void AddSession(const TimeoutSessionPtr& sess);
+    TimeoutSession* GetSession(SessionID sid);
     void RemoveSession(SessionID cid);
-    void OnSessionTimeout(Session* sess);
+
+    protected:
     void CheckSessionTimeoutCb(PeriodicTimer* timer);
 
     private:
-    std::map<SessionID, SessionPtr>  m_session_map;
-    std::map<time_t, SessionPtr>  m_sess_timeout_map;
+    std::map<SessionID, TimeoutSessionPtr>  m_session_map;
+    std::map<time_t, TimeoutSessionPtr>  m_sess_timeout_map;
 
     uint32_t m_timeout;
     PeriodicTimer m_timeout_checker;

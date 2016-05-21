@@ -72,11 +72,13 @@ int EventLoop::ProcessEvents(int timeout) {
 
   for(i = 0; i < n; i++) {
     IEvent *e = (IEvent *)evs_[i].data.ptr;
-    uint32_t events = 0;
-    if (evs_[i].events & EPOLLIN) events |= IOEvent::READ;
-    if (evs_[i].events & EPOLLOUT) events |= IOEvent::WRITE;
-    if (evs_[i].events & (EPOLLHUP | EPOLLERR)) events |= IOEvent::ERROR;
-    e->OnEvents(events);
+    if (e) {
+      uint32_t events = 0;
+      if (evs_[i].events & EPOLLIN) events |= IOEvent::READ;
+      if (evs_[i].events & EPOLLOUT) events |= IOEvent::WRITE;
+      if (evs_[i].events & (EPOLLHUP | EPOLLERR)) events |= IOEvent::ERROR;
+      e->OnEvents(events);
+    }
   }
 
   return nt + n;
@@ -131,7 +133,7 @@ int EventLoop::UpdateEvent(IOEvent *e) {
 
 int EventLoop::DeleteEvent(IOEvent *e) {
   if (e->fd_ < 0) return -1;
-  epoll_event ev; // kernel before 2.6.9 requires
+  epoll_event ev = {0, {0}}; // kernel before 2.6.9 requires
   return epoll_ctl(epfd_, EPOLL_CTL_DEL, e->fd_, &ev);
 }
 

@@ -65,6 +65,8 @@ class BufferIOEvent : public IOEvent {
   void Send(const Message& msg);
   void Send(const string& data, bool bmsg_has_hdr = BinaryMessage::HAS_NO_HDR);
   void Send(const char *data, uint32_t len, bool bmsg_has_hdr = BinaryMessage::HAS_NO_HDR);
+  void SendMore(const string& data);
+  void SendMore(const char *data, uint32_t len);
 
  protected:
   virtual void OnReceived(const Message* msg) { };
