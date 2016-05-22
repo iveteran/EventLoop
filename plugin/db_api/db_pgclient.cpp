@@ -4,6 +4,7 @@
 namespace db_api {
 
 // Error Messages used inside PGClient class
+const   char*   INVALID_CONNECTION_STRING = "Invalid database connection string";
 const   char*   NOCONNECTION = "No database connection is made yet!";
 const   char*   CONNECTION_LOST = "Database connection is lost";
 const   char*   ERROREXEC = "Error occurred in executing";
@@ -22,34 +23,47 @@ PGClient::~PGClient() {
   Disconnect();
 }
 
-bool PGClient::Connect(const map<string,string>& connInfo) {
-  printf("PGClient::connect starts\n");
+bool PGClient::Connect(const char* conn_uri)
+{
+  if (strncmp(conn_uri, "postgresql://", 13) != 0 &&
+      strncmp(conn_uri, "postgres://", 11) != 0) {
+    SetLastError("ERROR", "00000", INVALID_CONNECTION_STRING);
+    return false;
+  }
+  return Connect_(conn_uri);
+}
+
+bool PGClient::Connect(const map<string,string>& conn_dict) {
+  string conn_str;
+  map<string, string>::const_iterator it;
+  for (it = conn_dict.begin(); it != conn_dict.end(); it++) {
+    conn_str.append(it->first);
+    conn_str.append("=");
+    conn_str.append(it->second);
+    conn_str.append(" ");
+  }
+  return Connect_(conn_str.c_str());
+}
+
+bool PGClient::Connect_(const char* conn_str) {
+  printf("PGClient::Connect_ starts\n");
   bool success = false;
 
   if (m_pgconn != NULL) {
     Disconnect();
   }
 
-  string connectionString;
-  map<string, string>::const_iterator it;
-  for (it = connInfo.begin(); it != connInfo.end(); it++) {
-    connectionString += it->first;
-    connectionString += "=";
-    connectionString += it->second;
-    connectionString += " ";
-  }
-
-  printf("connection string: %s\n", connectionString.c_str());
-  m_pgconn = PQconnectdb((const char*)connectionString.c_str());
+  printf("connection string: %s\n", conn_str);
+  m_pgconn = PQconnectdb(conn_str);
   if (PQstatus(m_pgconn) != CONNECTION_OK) {
     const char* errMessage = PQerrorMessage(m_pgconn);
     SetLastError("ERROR", "08006", errMessage);
-    printf("Connect to database(%s) failed: %s\n", connectionString.c_str(), SAFE_STRING(errMessage));
+    printf("Connect to database(%s) failed: %s\n", conn_str, SAFE_STRING(errMessage));
   } else {
     success = true;
     SetFD(PQsocket(m_pgconn));
   }
-  printf("PGClient::connect end: %d\n", success);
+  printf("PGClient::Connect_ end: %d\n", success);
   return  success;
 }
 
@@ -207,19 +221,19 @@ PGResult* PGClient::RunBlockingSQL(const char* sql, const vector<SQLParameter>& 
   success = false;
 
   if (m_pgconn != NULL) {
-    char**  paramsValue = (char**)NULL;
+    const char**  paramsValue = (const char**)NULL;
     int     paramsCount = params.size();
     int*    paramLengths = NULL;
     int*    paramFormats = NULL;
 
     if (paramsCount > 0) {
-      paramsValue = new char*[paramsCount];
+      paramsValue = new const char*[paramsCount];
       paramLengths = new int[paramsCount];
       paramFormats = new int[paramsCount];
       for (int i = 0; i < paramsCount; i++) {
-        paramsValue[i] = params[i].paramValue;
-        paramLengths[i] = params[i].paramLength;
-        paramFormats[i] = params[i].paramFormat;
+        paramsValue[i] = params[i].value_.data();
+        paramLengths[i] = params[i].value_.size();
+        paramFormats[i] = params[i].format_;
       }
     }
 
@@ -269,19 +283,19 @@ bool PGClient::SendNextQueryRequestInNonBlocking()
   if (m_queryQueue.size() > 0) {
     QueryItem qitem = m_queryQueue.front();
     const char* sql = qitem.sqlQuery.c_str();
-    char**  paramsValue = (char**)NULL;
+    const char**  paramsValue = (const char**)NULL;
     int*    paramLengths = (int*)NULL;
     int*    paramFormats = (int*)NULL;
     int     paramsCount = qitem.parameters.size();
 
     if (paramsCount > 0) {
-      paramsValue = new char*[paramsCount];
+      paramsValue = new const char*[paramsCount];
       paramLengths = new int[paramsCount];
       paramFormats = new int[paramsCount];
       for (int i = 0; i < paramsCount; i++) {
-        paramsValue[i] = qitem.parameters[i].paramValue;
-        paramLengths[i] = qitem.parameters[i].paramLength;
-        paramFormats[i] = qitem.parameters[i].paramFormat;
+        paramsValue[i] = qitem.parameters[i].value_.data();
+        paramLengths[i] = qitem.parameters[i].value_.size();
+        paramFormats[i] = qitem.parameters[i].format_;
       }
     }
 
@@ -585,7 +599,7 @@ bool PGClient::RemoveSubscribeChannel(const char*   channelName) {
 //
 // For each parameter, the maximum value length will be 20. (Hard coded)
 //
-const char* PGClient::ShowParamValues(int count, char* paramValues[]) {
+const char* PGClient::ShowParamValues(int count, const char* paramValues[]) {
   const   int     BUFFER_SIZE = 80000;
   static  char    szReturnBuffer[BUFFER_SIZE + 1] = {0,};
   int     leftBufferSize = BUFFER_SIZE;

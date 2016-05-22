@@ -1,3 +1,4 @@
+#include <sstream>
 #include "db_client.h"
 
 namespace db_api {
@@ -70,12 +71,25 @@ void DBError::SetHint(const char* hint) {
 }
 
 DBError& DBError::operator=(const DBError& right) {
+  SetError(right.GetError());
   SetSeverity(right.GetSeverity());
   SetSQLState(right.GetSQLState());
   SetMessage(right.GetMessage());
   SetDetail(right.GetDetail());
   SetHint(right.GetHint());
   return *this;
+}
+
+string DBError::ToString() const {
+  stringstream ss;
+  ss << "{ error: " << m_error
+    << ", Severity: " << m_severity
+    << ", SQLState: " << m_sqlstate
+    << ", Message: " << m_message
+    << ", Detail: " << m_detail
+    << ", Hint: " << m_hint
+    << " }";
+  return ss.str();
 }
 
 }  // namespace db_api

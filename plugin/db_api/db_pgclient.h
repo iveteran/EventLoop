@@ -49,7 +49,7 @@ class PGClient: public DBConnection, public IOEvent
     PGClient();
     ~PGClient();
 
-    // The following 3 APIs are always blocking
+    bool Connect(const char* conn_uri);
     bool Connect(const map<string,string>& connInfo);
     void Disconnect();
     bool RollbackTransaction();
@@ -76,6 +76,7 @@ class PGClient: public DBConnection, public IOEvent
     bool CancelCurrentQuery();
 
   private:
+    bool Connect_(const char* conn_str);
     void OnEvents(uint32_t events);  // implements IOEvent::OnEvents(uint32_t)
     void read();
     void write();
@@ -86,7 +87,7 @@ class PGClient: public DBConnection, public IOEvent
         const char* message = NULL, const char* detail = NULL, const char* hint = NULL);
     PGResult* PollResultSet(bool& success);
     bool HandleSubscription();
-    const char* ShowParamValues(int count, char* paramValues[]);
+    const char* ShowParamValues(int count, const char* paramValues[]);
 
   private:
     PGClient& operator=(const PGClient& rhs);

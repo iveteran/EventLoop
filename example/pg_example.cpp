@@ -24,13 +24,19 @@ class PGClient_Test {
   public:
   PGClient_Test()
   {
-    conn_info_["user"] = "postgres";
-    conn_info_["dbname"] = "postgres";
-    conn_info_["password"] = "postgres";
-
     bool success = false;
-
-    success = pg_client_.Connect(conn_info_);
+#if 0
+    map<string, string> conn_info;
+    conn_info["user"] = "postgres";
+    conn_info["dbname"] = "postgres";
+    conn_info["password"] = "postgres";
+    success = pg_client_.Connect(conn_info);
+#else
+    success = pg_client_.Connect("postgresql://postgres:postgres@localhost/postgres");
+#endif
+    if (!success) {
+      cout << "connect failed: " << pg_client_.GetLastError().ToString() << endl;
+    }
     assert(success);
 
     vector<SQLParameter> params;
@@ -46,9 +52,8 @@ class PGClient_Test {
     params.clear();
 
     DBResultCallback cb2 = std::bind(&PGClient_Test::on_select_result, this, _1, _2, _3);
-    success = pg_client_.AddNonBlockingSQL("select * from test", params, cb2, (void*)"test select");
+    success = pg_client_.AddNonBlockingSQL("select * from test", cb2, (void*)"test select");
     assert(success);
-    params.clear();
 
     params.push_back(p1);
     DBResultCallback cb3 = std::bind(&PGClient_Test::on_delete_result, this, _1, _2, _3);
@@ -64,7 +69,7 @@ class PGClient_Test {
       printf("[%s] insert %d rows\n", (char*)ctx, result->AffectedRows());
       assert(result->AffectedRows() == 1);
     } else {
-      cout << "[on_insert_result] error: " << error.GetMessage() << endl;
+      cout << "[on_insert_result] error: " << error.ToString() << endl;
     }
     assert(success);
   }
@@ -77,7 +82,7 @@ class PGClient_Test {
       printf("[%s] select %d rows\n", (char*)ctx, result->AffectedRows());
       PrintResultset(result);
     } else {
-      cout << "[on_select_result] error: " << error.GetMessage() << endl;
+      cout << "[on_select_result] error: " << error.ToString() << endl;
     }
     assert(success);
   }
@@ -88,7 +93,7 @@ class PGClient_Test {
       printf("[%s] delete %d rows\n", (char*)ctx, result->AffectedRows());
       //assert(result->ColCount() == 2);
     } else {
-      cout << "[on_delete_result] error: " << error.GetMessage() << endl;
+      cout << "[on_delete_result] error: " << error.ToString() << endl;
     }
     assert(success);
 
@@ -97,7 +102,6 @@ class PGClient_Test {
 
 
   private:
-  map<string, string> conn_info_;
   PGClient pg_client_;
 };
 

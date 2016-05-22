@@ -35,6 +35,7 @@ class DBError
   void SetDetail(const char* detail);
   void SetHint(const char* hint);
   DBError& operator=(const DBError&);
+  string ToString() const;
 
   private:
   bool m_error;
@@ -47,68 +48,48 @@ class DBError
 
 struct SQLParameter
 {
-  SQLParameter(const char* value = NULL, int length = 0, int format = 0) :
-    paramValue((char*)value), paramLength(length), paramFormat(format) {
-      Initialize(value, length, format);
+  enum Format { STRING, BINARY };
+
+  SQLParameter(const char* value = NULL, int length = 0, Format format = STRING) {
+    if (value != NULL) {
+      if (length == 0 && format == STRING) {
+        length = strlen(value);
+      }
+      value_.assign(value, length);
+    }
+    format_ = format;
   }
-  SQLParameter(int value) {
-    Initialize(std::to_string(value).c_str(), 0, 0);
-  }
+  SQLParameter(const string& value, Format format = STRING) : value_(value), format_(format) { }
+  SQLParameter(int value) : value_(std::to_string(value)), format_(STRING) { }
   SQLParameter(const SQLParameter& right) {
-    Initialize(right.paramValue, right.paramLength, right.paramFormat);
-  }
-  ~SQLParameter() {
-    if (paramValue) delete[] paramValue;
+    value_ = right.value_;
+    format_ = right.format_;
   }
 
   bool operator==(const SQLParameter& right) const {
-    if (paramLength == right.paramLength) {
-      if (paramLength > 0) {
-        return memcmp(paramValue, right.paramValue, paramLength) == 0;
-      } else {
-        return true;
-      }
-    } else {
-      return  false;
-    }
+    return value_ == right.value_ && format_ == right.format_;
   }
   bool operator!=(const SQLParameter& right) const {
     return !(*this == right);
   }
-
   SQLParameter& operator=(const SQLParameter& right) {
     if (*this != right) {
-      if (paramValue) delete[] paramValue;
-      Initialize(right.paramValue, right.paramLength, right.paramFormat);
+      *this = right;
     } 
     return *this;
   }
 
-  void Initialize(const char* value, int length, int format) {
-    if (value != NULL) {
-      if (length == 0 && format == 0) {
-        length = strlen(value);
-      }
-      paramValue = new char[length + 1];
-      memcpy(paramValue, value, length);
-      paramValue[length] = '\0';
-    } else {
-      paramValue = NULL;
-    }
-    paramLength = length;
-    paramFormat = format;
-  }
+  //string ToString() const;
 
-  char* paramValue;
-  int paramLength;
-  int paramFormat;
+  string value_;
+  Format format_;
 };
 
 class DBResult
 {
   public:
   virtual ~DBResult() {}
-  //virtual bool is_ok() const = 0;
+  //virtual bool IsOk() const = 0;
   virtual int AffectedRows() const = 0;
   virtual int RowCount() const = 0;
   virtual int ColCount() const = 0;
@@ -131,12 +112,13 @@ class DBConnection
 {
   public:
   virtual ~DBConnection() {}
-  virtual bool Connect(const map<string, string>& connInfo) = 0;
+  virtual bool Connect(const char* conn_uri) = 0;
+  virtual bool Connect(const map<string, string>& conn_dict) = 0;
   virtual void Disconnect () = 0;
   virtual bool IsConnected() = 0;
   virtual int GetWaitingSQLCount() = 0;
   virtual bool CancelCurrentQuery() = 0;
-  virtual void CancelQueue(bool invokeCallbackFunction) = 0;
+  virtual void CancelQueue(bool invokeCallback) = 0;
   virtual bool IsInTransactionBlock() = 0;
   virtual bool BeginTransaction(const DBResultCallback& cb, void *ctx) = 0;
   virtual bool CommitTransaction(const DBResultCallback& cb, void* ctx) = 0;
