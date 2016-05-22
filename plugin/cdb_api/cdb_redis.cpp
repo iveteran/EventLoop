@@ -66,6 +66,7 @@ bool RedisAsyncClient::IsReady()
 
 void RedisAsyncClient::Disconnect()
 {
+  SetFD(-1);
   if (redis_ctx_) {
     //redisAsyncDisconnect(redis_ctx_);
     redis_ctx_->ev.data = NULL;

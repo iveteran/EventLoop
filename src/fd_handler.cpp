@@ -29,6 +29,7 @@ void IOEvent::SetFD(int fd) {
       EV_Singleton->DeleteEvent(this);
       fd_ = fd;
     } else {
+      // for update fd
       if (ValidFD(fd_)) {
         EV_Singleton->DeleteEvent(this);
       }
