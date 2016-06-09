@@ -47,17 +47,17 @@ class PGClient_Test {
 
     using namespace std::placeholders;
     DBResultCallback cb = std::bind(&PGClient_Test::on_insert_result, this, _1, _2, _3);
-    success = pg_client_.AddNonBlockingSQL("insert into test values ($1, $2)", params, cb, (void*)"test insert");
+    success = pg_client_.ExecuteSQLAsync("insert into test values ($1, $2)", params, cb, (void*)"test insert");
     assert(success);
     params.clear();
 
     DBResultCallback cb2 = std::bind(&PGClient_Test::on_select_result, this, _1, _2, _3);
-    success = pg_client_.AddNonBlockingSQL("select * from test", cb2, (void*)"test select");
+    success = pg_client_.ExecuteSQLAsync("select * from test", cb2, (void*)"test select");
     assert(success);
 
     params.push_back(p1);
     DBResultCallback cb3 = std::bind(&PGClient_Test::on_delete_result, this, _1, _2, _3);
-    success = pg_client_.AddNonBlockingSQL("delete from test where id=$1", params, cb3, (void*)"test delete");
+    success = pg_client_.ExecuteSQLAsync("delete from test where id=$1", params, cb3, (void*)"test delete");
     assert(success);
     params.clear();
   }
