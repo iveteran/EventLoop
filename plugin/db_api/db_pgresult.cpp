@@ -7,43 +7,39 @@ PGResult::PGResult(PGClient* connection, PGresult* result) :
   m_connection(connection), m_result(result) {
 }
 
-PGResult::~PGResult() {
+PGResult::~PGResult()
+{
   if (m_result != 0) {
     PQclear(m_result);
     m_result = 0;
   }
 }
 
-int PGResult::AffectedRows() const {
+int PGResult::AffectedRows() const
+{
   int result = 0;
-
   if (m_result != 0) {
-    char*   tmpResult = PQcmdTuples(m_result);
+    char* tmpResult = PQcmdTuples(m_result);
     if (tmpResult != NULL) {
       result = atoi(tmpResult);
     }
   }
-
   return result;
 }
 
-int PGResult::RowCount() const {
-  if (m_result != 0) {
-    return PQntuples(m_result);
-  }
-  return 0;
+int PGResult::RowCount() const
+{
+  return m_result != 0 ? PQntuples(m_result) : 0;
 }
 
-int PGResult::ColCount() const {
-  if (m_result != 0) {
-    return PQnfields(m_result);
-  }
-  return 0;
+int PGResult::ColCount() const
+{
+  return m_result != 0 ? PQnfields(m_result) : 0;
 }
 
-bool PGResult::IsNull(int row, int column) const {
-  bool    result = true;
-
+bool PGResult::IsNull(int row, int column) const
+{
+  bool result = true;
   if (m_result != 0) {
     if (column < PQnfields(m_result)) {
       result = PQgetisnull(m_result, row, column);
@@ -52,11 +48,8 @@ bool PGResult::IsNull(int row, int column) const {
   return result;
 }
 
-//
-// get_value returns a string value for given element (row, column).
-// Note that row and column start from 0
-//
-const char* PGResult::GetValue(int row, int column) const {
+const char* PGResult::GetValue(int row, int column) const
+{
   const char* value = "";
   if (m_result != 0) {
     if (column < PQnfields(m_result)) {
@@ -66,27 +59,26 @@ const char* PGResult::GetValue(int row, int column) const {
   return value;
 }
 
-// The caller must execute delete[] to avoid memory leak
-const unsigned char* PGResult::GetUnescapeValue(int row, int column, size_t* length) const {
-  unsigned char* value = NULL;
-
+string PGResult::GetBytesValue(int row, int column) const
+{
+  string value;
   if (m_result != 0) {
     if (column < PQnfields(m_result)) {
-      unsigned char* tmpValue = PQunescapeBytea((const unsigned char*)PQgetvalue(m_result, row, column), length);
-      value = new unsigned char[*length + 1];
-      memcpy(value, tmpValue, *length);
-      value[*length] = '\0';
+      size_t length = 0;
+      unsigned char* tmpValue = PQunescapeBytea((const unsigned char*)PQgetvalue(m_result, row, column), &length);
+      value.assign((char*)tmpValue, length);
       PQfreemem(tmpValue);
     }
   }
-  return  (const unsigned char*)value;
+  return value;
 }
 
-int PGResult::GetIntValue(int row, int column) const {
+int PGResult::GetIntValue(int row, int column) const
+{
   if (m_result != 0) {
     if (column < PQnfields(m_result)) {
-      if (0 == PQfformat(m_result, column)) {
-        return (int)strtol(PQgetvalue(m_result,row,column), (char **)NULL, 0);
+      if (SQLParameter::STRING == PQfformat(m_result, column)) {
+        return atoi(PQgetvalue(m_result,row, column));
       } else {
         if (PQgetlength(m_result, row, column) >= (int)sizeof(int)) {
           int *pval = (int*)PQgetvalue(m_result, row, column);
@@ -97,22 +89,23 @@ int PGResult::GetIntValue(int row, int column) const {
       }
     }
   }
-
   return -1;
 }
 
-double PGResult::GetDoubleValue(int row, int column) const {
+double PGResult::GetDoubleValue(int row, int column) const
+{
   if (m_result != 0) {
     if (column < PQnfields(m_result)) {
-      if (0 == PQfformat(m_result, column)) {
-        return strtod(PQgetvalue(m_result, row, column), (char**)NULL);
+      if (SQLParameter::STRING == PQfformat(m_result, column)) {
+        return strtod(PQgetvalue(m_result, row, column), NULL);
       }
     }
   }
   return 0;
 }
 
-bool PGResult::GetBoolValue(int row, int column) const {
+bool PGResult::GetBoolValue(int row, int column) const
+{
   if (m_result != 0) {
     if (column < PQnfields(m_result)) {
       const char* val = PQgetvalue(m_result, row, column);
@@ -122,7 +115,8 @@ bool PGResult::GetBoolValue(int row, int column) const {
   return false;
 }
 
-int PGResult::GetColumnIndex(const char* column_name) const {
+int PGResult::GetColumnIndex(const char* column_name) const
+{
   int col_index = -1;
   if (m_result != 0 && column_name != NULL) {
     col_index = PQfnumber(m_result, column_name);
@@ -130,7 +124,8 @@ int PGResult::GetColumnIndex(const char* column_name) const {
   return col_index;
 }
 
-const char* PGResult::GetFieldname(int column) const {
+const char* PGResult::GetFieldname(int column) const
+{
   const char* field_name = "";
   if (m_result != 0) {
     if (column < PQnfields(m_result)) {
@@ -140,16 +135,19 @@ const char* PGResult::GetFieldname(int column) const {
   return field_name;
 }
 
-PGResult*  PGResult::Clone() const {
-  PGResult*  result = NULL;
+PGResult* PGResult::Clone() const
+{
+  PGResult* result = NULL;
   if (m_result != 0) {
-    PGresult*   tmp = PQcopyResult(m_result, PG_COPYRES_TUPLES);
+    PGresult* tmp = PQcopyResult(m_result, PG_COPYRES_TUPLES);
     result = new PGResult(m_connection, tmp);
   }
-  return  result;
+  return result;
 }
 
-DBConnection*  PGResult::GetDBConnection() const {
+DBConnection*  PGResult::GetDBConnection() const
+{
   return m_connection;
 }
+
 }  // namespace db_api

@@ -15,16 +15,15 @@ class PGClient;;
 
 class PGResult: public DBResult
 {
-  friend class    PGClient;
+  friend class PGClient;
   public:
     ~PGResult();
-    //bool IsOk() const;
     int AffectedRows() const;
     int RowCount() const;
     int ColCount() const;
     bool IsNull(int row, int column) const;
     const char* GetValue(int row, int column) const;
-    const unsigned char* GetUnescapeValue(int row, int column, size_t* length) const;
+    string GetBytesValue(int row, int col) const;
     int GetIntValue(int row, int column) const;
     bool GetBoolValue(int row, int column) const;
     double GetDoubleValue(int row, int column) const;
@@ -46,11 +45,11 @@ class PGResult: public DBResult
 class PGClient: public DBConnection, public IOEvent
 {
   public:
-    PGClient();
+    PGClient(bool auto_connect = true);
     ~PGClient();
 
     bool Connect(const char* conn_uri);
-    bool Connect(const map<string,string>& connInfo);
+    bool Connect(const str2strmap& connInfo);
     void Disconnect();
     bool RollbackTransaction();
 
@@ -58,36 +57,38 @@ class PGClient: public DBConnection, public IOEvent
     int  GetWaitingSQLCount();
     bool BeginTransaction(const DBResultCallback& cb, void* ctx);
     bool CommitTransaction(const DBResultCallback& cb, void* ctx);
-    //bool RollbackTransaction(const DBResultCallback& cb, void* ctx);
 
-    PGResult* RunBlockingSQL(const char* sql, bool& success);
-    PGResult* RunBlockingSQL(const char* sql, const vector<SQLParameter>& params, bool& success);
+    PGResult* ExecuteSQL(const char* sql, bool& success);
+    PGResult* ExecuteSQL(const char* sql, const vector<SQLParameter>& params, bool& success);
 
-    bool AddNonBlockingSQL(const char* sql, const DBResultCallback& cb, void* ctx);
-    bool AddNonBlockingSQL(const char* sql, const vector<SQLParameter>& params, const DBResultCallback& cb, void* ctx);
+    bool ExecuteSQLAsync(const char* sql, const DBResultCallback& cb, void* ctx);
+    bool ExecuteSQLAsync(const char* sql, const vector<SQLParameter>& params, const DBResultCallback& cb, void* ctx);
 
     bool AddSubscribeChannel(const char* channelName, const SubscribeCallback& cb);
     bool RemoveSubscribeChannel(const char* channelName);
 
     const DBError& GetLastError() { return m_dberror; }
 
-    void CancelQueue(bool invokeCallbackFunction);
+    void CancelQueue(bool invokeCallback);
     bool IsInTransactionBlock();
     bool CancelCurrentQuery();
 
   private:
-    bool Connect_(const char* conn_str);
-    void OnEvents(uint32_t events);  // implements IOEvent::OnEvents(uint32_t)
-    void read();
-    void write();
+    bool Connect_();
+    void Reconnect();
 
-    void DummyRollbackCb(const DBError& err, DBResult* result, void* ctx);
-    bool SendNextQueryRequestInNonBlocking();
-    void SetLastError(const char* severity, const char* sqlstate,
-        const char* message = NULL, const char* detail = NULL, const char* hint = NULL);
+    bool SendNextQueryAsync();
     PGResult* PollResultSet(bool& success);
     bool HandleSubscription();
-    const char* ShowParamValues(int count, const char* paramValues[]);
+
+    void SetLastError(const char* severity, const char* sqlstate,
+        const char* message = NULL, const char* detail = NULL, const char* hint = NULL);
+
+    void ReadBytes();
+    void WriteBytes();
+    void OnEvents(uint32_t events);  // implements IOEvent::OnEvents(uint32_t)
+
+    void OnReconnectTimer(PeriodicTimer* timer);
 
   private:
     PGClient& operator=(const PGClient& rhs);
@@ -108,6 +109,8 @@ class PGClient: public DBConnection, public IOEvent
       QueryItem(const char* sqlStmt, const vector<SQLParameter>& params, const DBResultCallback& c, void* cx) :
         sqlQuery(sqlStmt), parameters(params), cb(c), ctx(cx)
       { }
+      string ToString() const;
+
       string sqlQuery;
       vector<SQLParameter> parameters;
       DBResultCallback cb;
@@ -119,9 +122,12 @@ class PGClient: public DBConnection, public IOEvent
 
   private:
     SQLCommand  m_last_cmd;
+    string      m_conn_str;
     PGconn*     m_pgconn;
     bool        m_transactionStarted;
     DBError     m_dberror;
+    bool        m_auto_reconnect;
+    PeriodicTimer m_reconnect_timer;
 };
 
 } // namespace db_api

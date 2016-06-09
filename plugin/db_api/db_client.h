@@ -78,8 +78,9 @@ struct SQLParameter
     } 
     return *this;
   }
-
-  //string ToString() const;
+  string ToString() const {
+    return format_ == STRING ? value_ : "<<binary>>";
+  }
 
   string value_;
   Format format_;
@@ -89,13 +90,12 @@ class DBResult
 {
   public:
   virtual ~DBResult() {}
-  //virtual bool IsOk() const = 0;
   virtual int AffectedRows() const = 0;
   virtual int RowCount() const = 0;
   virtual int ColCount() const = 0;
   virtual bool IsNull(int row, int col) const = 0;
   virtual const char* GetValue(int row, int col) const = 0;
-  virtual const unsigned char* GetUnescapeValue(int row, int col, size_t* length) const = 0;
+  virtual string GetBytesValue(int row, int col) const = 0;
   virtual int GetIntValue(int row, int col) const = 0;
   virtual bool GetBoolValue(int row, int col) const = 0;
   virtual double GetDoubleValue(int row, int col) const = 0;
@@ -105,15 +105,18 @@ class DBResult
   virtual DBConnection *GetDBConnection() const = 0;
 };
 
+typedef std::function<void (DBConnection*)> OnDBConnectionCallback;;
 typedef std::function<void (const DBError&, DBResult*, void*)> DBResultCallback;
 typedef std::function<void (const DBError&, const string&, const string&)>  SubscribeCallback;
+
+typedef map<string, string> str2strmap; 
 
 class DBConnection
 {
   public:
   virtual ~DBConnection() {}
   virtual bool Connect(const char* conn_uri) = 0;
-  virtual bool Connect(const map<string, string>& conn_dict) = 0;
+  virtual bool Connect(const str2strmap& conn_dict) = 0;
   virtual void Disconnect () = 0;
   virtual bool IsConnected() = 0;
   virtual int GetWaitingSQLCount() = 0;
@@ -123,10 +126,10 @@ class DBConnection
   virtual bool BeginTransaction(const DBResultCallback& cb, void *ctx) = 0;
   virtual bool CommitTransaction(const DBResultCallback& cb, void* ctx) = 0;
   virtual bool RollbackTransaction() = 0;
-  virtual DBResult* RunBlockingSQL(const char* sql, bool& success) = 0;
-  virtual DBResult* RunBlockingSQL(const char* sql, const vector<SQLParameter>& params, bool& success) = 0;
-  virtual bool AddNonBlockingSQL(const char* sql, const DBResultCallback& cb, void* ctx) = 0;
-  virtual bool AddNonBlockingSQL(const char* sql, const vector<SQLParameter>& params, const DBResultCallback& cb, void* ctx) = 0;
+  virtual DBResult* ExecuteSQL(const char* sql, bool& success) = 0;
+  virtual DBResult* ExecuteSQL(const char* sql, const vector<SQLParameter>& params, bool& success) = 0;
+  virtual bool ExecuteSQLAsync(const char* sql, const DBResultCallback& cb, void* ctx) = 0;
+  virtual bool ExecuteSQLAsync(const char* sql, const vector<SQLParameter>& params, const DBResultCallback& cb, void* ctx) = 0;
   virtual bool AddSubscribeChannel(const char* channelName, const SubscribeCallback& cb) = 0;
   virtual bool RemoveSubscribeChannel(const char* channelName) = 0;
 

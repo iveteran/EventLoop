@@ -14,10 +14,19 @@ const   char*   ALREADY_NONBLOCKINGCALL_REQUESTED   = "There is already another 
 const   char*   INVALID_TRANSACTION = "There is an already running transaction";
 const   char*   CANCELLED_REQUEST = "The request is cancelled due to rollback";
 
-PGClient::PGClient()
+PGClient::PGClient(bool auto_reconnect)
   : m_pgconn(NULL), 
-  m_transactionStarted(false)
-{ }
+  m_transactionStarted(false),
+  m_auto_reconnect(auto_reconnect),
+  m_reconnect_timer(std::bind(&PGClient::OnReconnectTimer, this, std::placeholders::_1))
+{
+  if (m_auto_reconnect) {
+    timeval tv;
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+    m_reconnect_timer.SetInterval(tv);
+  }
+}
 
 PGClient::~PGClient() {
   Disconnect();
@@ -30,22 +39,22 @@ bool PGClient::Connect(const char* conn_uri)
     SetLastError("ERROR", "00000", INVALID_CONNECTION_STRING);
     return false;
   }
-  return Connect_(conn_uri);
+  m_conn_str = conn_uri;
+  return Connect_();
 }
 
-bool PGClient::Connect(const map<string,string>& conn_dict) {
-  string conn_str;
-  map<string, string>::const_iterator it;
+bool PGClient::Connect(const str2strmap& conn_dict) {
+  str2strmap::const_iterator it;
   for (it = conn_dict.begin(); it != conn_dict.end(); it++) {
-    conn_str.append(it->first);
-    conn_str.append("=");
-    conn_str.append(it->second);
-    conn_str.append(" ");
+    m_conn_str.append(it->first);
+    m_conn_str.append("=");
+    m_conn_str.append(it->second);
+    m_conn_str.append(" ");
   }
-  return Connect_(conn_str.c_str());
+  return Connect_();
 }
 
-bool PGClient::Connect_(const char* conn_str) {
+bool PGClient::Connect_() {
   printf("PGClient::Connect_ starts\n");
   bool success = false;
 
@@ -53,18 +62,23 @@ bool PGClient::Connect_(const char* conn_str) {
     Disconnect();
   }
 
-  printf("connection string: %s\n", conn_str);
-  m_pgconn = PQconnectdb(conn_str);
+  printf("connection string: %s\n", m_conn_str.c_str());
+  m_pgconn = PQconnectdb(m_conn_str.c_str());
   if (PQstatus(m_pgconn) != CONNECTION_OK) {
     const char* errMessage = PQerrorMessage(m_pgconn);
     SetLastError("ERROR", "08006", errMessage);
-    printf("Connect to database(%s) failed: %s\n", conn_str, SAFE_STRING(errMessage));
+    printf("Connect to database(%s) failed: %s\n", m_conn_str.c_str(), SAFE_STRING(errMessage));
   } else {
     success = true;
-    SetFD(PQsocket(m_pgconn));
+    SetFD(PQsocket(m_pgconn));  // add fd to event loop
   }
   printf("PGClient::Connect_ end: %d\n", success);
   return  success;
+}
+
+void PGClient::Reconnect() {
+  if (!m_reconnect_timer.IsRunning())
+    m_reconnect_timer.Start();
 }
 
 void PGClient::Disconnect() {
@@ -89,20 +103,7 @@ void PGClient::Disconnect() {
 }
 
 bool PGClient::IsConnected() {
-  bool success = false;
-  if (m_pgconn != NULL) {
-    const char* sqlstate = m_dberror.GetSQLState();
-
-    success = strcmp(sqlstate, "08006") &&   // connection_failure
-      strcmp(sqlstate, "57000") &&   // operator_intervention
-      strcmp(sqlstate, "57P01") &&   // admin_shutdown
-      strcmp(sqlstate, "57P02") &&   // crash_shutdown
-      strcmp(sqlstate, "57P03") &&   // cannot_connect_now
-      strcmp(sqlstate, "57P03") &&   // cannot_connect_now
-      strcmp(sqlstate, "53300") &&   // too_many_connections
-      (PQstatus(m_pgconn) == CONNECTION_OK);
-  }
-  return success;
+  return m_pgconn && PQstatus(m_pgconn) == CONNECTION_OK;;
 }
 
 int PGClient::GetWaitingSQLCount() {
@@ -123,7 +124,6 @@ void PGClient::SetLastError( const char* severity, const char* sqlstate,
   }
 }
 
-// beginTransaction is a nonblocking call
 bool PGClient::BeginTransaction(const DBResultCallback& cb, void* ctx) {
   printf("PGClient::beginTransaction start\n");
   bool    success = false;
@@ -131,7 +131,7 @@ bool PGClient::BeginTransaction(const DBResultCallback& cb, void* ctx) {
     if (!m_transactionStarted) {
       m_last_cmd = BEGINTRANSACTION;
       vector<SQLParameter>  params;
-      success = AddNonBlockingSQL("begin transaction", params, cb, ctx);
+      success = ExecuteSQLAsync("begin transaction", params, cb, ctx);
       if (success) {
         m_transactionStarted = success;
       } else {
@@ -149,14 +149,13 @@ bool PGClient::BeginTransaction(const DBResultCallback& cb, void* ctx) {
   return  success;
 }
 
-// commitTransaction is a nonblocking call
 bool PGClient::CommitTransaction(const DBResultCallback& cb, void* ctx) {
   printf("PGClient::commitTransaction start\n");
   bool    success = false;
   if (m_pgconn != NULL) {
     m_last_cmd = COMMITTRANSACTION;
     vector<SQLParameter>  params;
-    success = AddNonBlockingSQL("commit transaction", params, cb, ctx);
+    success = ExecuteSQLAsync("commit transaction", params, cb, ctx);
   } else {
     //m_last_error = NOCONNECTION;
     SetLastError("ERROR", "08006", NOCONNECTION);
@@ -166,13 +165,29 @@ bool PGClient::CommitTransaction(const DBResultCallback& cb, void* ctx) {
   return  success;
 }
 
+// This function will be invoked when it runs into an error in the middle of transaction
+void PGClient::CancelQueue(bool invokeCallbackFunction) {
+  if (invokeCallbackFunction) {
+    while (!m_queryQueue.empty()) {
+      DBResultCallback& cb = m_queryQueue.front().cb;
+      void* callerContext = m_queryQueue.front().ctx;
+      m_queryQueue.pop();
+      cb(m_dberror, NULL, callerContext);
+    }
+  } else {
+    while (!m_queryQueue.empty()) {
+      m_queryQueue.pop();
+    }
+  }
+}
+
 bool PGClient::CancelCurrentQuery() {
   printf("PGClient::cancelCurrentQuery start\n");
   bool success = false;
   if (m_pgconn != NULL) {
-    char    errbuf[256];
-    PGcancel*   cancel = PQgetCancel(m_pgconn);
-    int     tmpResult = PQcancel(cancel, errbuf, sizeof(errbuf));
+    char errbuf[256];
+    PGcancel* cancel = PQgetCancel(m_pgconn);
+    int tmpResult = PQcancel(cancel, errbuf, sizeof(errbuf));
     if (tmpResult == 1) {
       success = true;
     }
@@ -191,7 +206,7 @@ bool PGClient::RollbackTransaction() {
     }
 
     vector<SQLParameter>  params;
-    DBResult*  rst = RunBlockingSQL("rollback transaction", params, success);
+    DBResult*  rst = ExecuteSQL("rollback transaction", params, success);
     if (rst != NULL) {
       success = true;
       delete rst;
@@ -210,13 +225,13 @@ bool PGClient::RollbackTransaction() {
   return  success;
 }
 
-PGResult* PGClient::RunBlockingSQL(const char* sql, bool& success) {
+PGResult* PGClient::ExecuteSQL(const char* sql, bool& success) {
   vector<SQLParameter> params;
-  return RunBlockingSQL(sql, params, success);
+  return ExecuteSQL(sql, params, success);
 }
 
-PGResult* PGClient::RunBlockingSQL(const char* sql, const vector<SQLParameter>& params, bool& success) {
-  printf("PGClient::RunBlockingSQL start %s\n", SAFE_STRING(sql));
+PGResult* PGClient::ExecuteSQL(const char* sql, const vector<SQLParameter>& params, bool& success) {
+  printf("PGClient::ExecuteSQL start %s\n", SAFE_STRING(sql));
   PGResult*  result = 0;
   success = false;
 
@@ -256,29 +271,29 @@ PGResult* PGClient::RunBlockingSQL(const char* sql, const vector<SQLParameter>& 
             PQresultErrorField(res, PG_DIAG_MESSAGE_PRIMARY),
             PQresultErrorField(res, PG_DIAG_MESSAGE_DETAIL),
             PQresultErrorField(res, PG_DIAG_MESSAGE_HINT));
-        printf("PGClient::RunBlockingSQL [%s].\n", SAFE_STRING(PQresultErrorMessage(res)));
+        printf("PGClient::ExecuteSQL [%s].\n", SAFE_STRING(PQresultErrorMessage(res)));
       }
     } else {
       const char* errMessage = PQerrorMessage(m_pgconn);
       SetLastError("ERROR", "00000", errMessage);
-      printf("PGClient::RunBlockingSQL [%s].\n", SAFE_STRING(errMessage));
+      printf("PGClient::ExecuteSQL [%s].\n", SAFE_STRING(errMessage));
     }
     if (paramFormats != NULL) delete[] paramFormats;
     if (paramLengths != NULL) delete[] paramLengths;
     if (paramsValue != NULL) delete[] paramsValue;
   } else {
     SetLastError("ERROR", "08006", NOCONNECTION);
-    printf("PGClient::RunBlockingSQL there was no connection made yet.\n");
+    printf("PGClient::ExecuteSQL there was no connection made yet.\n");
   }
 
-  printf("PGClient::RunBlockingSQL end %d\n", success);
+  printf("PGClient::ExecuteSQL end %d\n", success);
   return  result;
 }
 
-bool PGClient::SendNextQueryRequestInNonBlocking()
+bool PGClient::SendNextQueryAsync()
 {
-  printf("PGClient::sendNextQueryRequestInNonBlocking start\n");
-  bool    success = false;
+  printf("PGClient::SendNextQueryAsync start\n");
+  bool success = false;
 
   if (m_queryQueue.size() > 0) {
     QueryItem qitem = m_queryQueue.front();
@@ -298,9 +313,8 @@ bool PGClient::SendNextQueryRequestInNonBlocking()
         paramFormats[i] = qitem.parameters[i].format_;
       }
     }
+    printf("[PGClient::SendNextQueryAsync] Execute: %s\n", qitem.ToString().c_str());
 
-    printf("PGClient::sendNextQueryRequestInNonBlocking execute sql:%s, params:[%s]\n",
-        SAFE_STRING(sql), ShowParamValues(paramsCount, paramsValue));
     int nResult = PQsendQueryParams(m_pgconn,
         sql,
         paramsCount,
@@ -323,12 +337,12 @@ bool PGClient::SendNextQueryRequestInNonBlocking()
       } else if (flushResult == -1) {
         const char* errMessage = PQerrorMessage(m_pgconn);
         SetLastError("ERROR", "08006", errMessage);
-        printf("PGClient::sendNextQueryRequestInNonBlocking error1:%s\n", SAFE_STRING(errMessage));
+        printf("PGClient::SendNextQueryAsync error1:%s\n", SAFE_STRING(errMessage));
       }
     } else {
       const char* errMessage = PQerrorMessage(m_pgconn);
       SetLastError("ERROR", "08006", errMessage);
-      printf("PGClient::sendNextQueryRequestInNonBlocking error2:%s\n", SAFE_STRING(errMessage));
+      printf("PGClient::SendNextQueryAsync error2:%s\n", SAFE_STRING(errMessage));
     }
     if (paramFormats != NULL) delete[] paramFormats;
     if (paramLengths != NULL) delete[] paramLengths;
@@ -338,75 +352,28 @@ bool PGClient::SendNextQueryRequestInNonBlocking()
     success = true;
   }
 
-  printf("PGClient::sendNextQueryRequestInNonBlocking end %d\n", success);
+  printf("PGClient::SendNextQueryAsync end %d\n", success);
   return  success;
 }
 
-bool PGClient::AddNonBlockingSQL(const char* sql, const DBResultCallback& cb, void* ctx) {
+bool PGClient::ExecuteSQLAsync(const char* sql, const DBResultCallback& cb, void* ctx) {
   vector<SQLParameter> dummy;
-  return AddNonBlockingSQL(sql, dummy, cb, ctx);
+  return ExecuteSQLAsync(sql, dummy, cb, ctx);
 }
 
-bool PGClient::AddNonBlockingSQL(const char* sql, const vector<SQLParameter>& params, const DBResultCallback& cb, void* ctx) {
+bool PGClient::ExecuteSQLAsync(const char* sql, const vector<SQLParameter>& params, const DBResultCallback& cb, void* ctx) {
   bool success = true;
   m_queryQueue.push(QueryItem(sql, params, cb, ctx));
   if (m_queryQueue.size() == 1) {
-    success = SendNextQueryRequestInNonBlocking();
+    success = SendNextQueryAsync();
     if (!success) {
       m_queryQueue.pop();
       cb(m_dberror, NULL, ctx);
     }
   }
 
-  // printf("PGClient::AddNonBlockingSQL end %d\n", success);
+  // printf("PGClient::ExecuteSQLAsync end %d\n", success);
   return  success;
-}
-
-void PGClient::OnEvents(uint32_t events)
-{
-  //printf("[PGClient::OnEvents] events: %d\n", events);
-  if (events & IOEvent::WRITE) {
-    write();
-  }
-  if (events & IOEvent::READ) {
-    read();
-  }
-  if (events & IOEvent::ERROR) {
-    OnError(errno, strerror(errno));
-  }
-}
-
-void PGClient::write() {
-  // printf("PGClient::write callback function start\n");
-  int flushResult = PQflush(m_pgconn);
-  if (flushResult == 0) {
-    // There is no data left in send queue
-    DeleteWriteEvent();
-  } else if (flushResult == 1) {
-    // There is some data left in send queue
-    AddWriteEvent();
-  } else if (flushResult == -1) {
-    const char* errMessage = PQerrorMessage(m_pgconn);
-    SetLastError("ERROR", "08006", errMessage);
-    printf("PGClient::write callback function error in PQflush: %s\n", SAFE_STRING(errMessage));
-  }
-  // printf("PGClient::write callback function end\n");
-}
-
-// This function will be invoked when it runs into an error in the middle of transaction
-void PGClient::CancelQueue(bool invokeCallbackFunction) {
-  if (invokeCallbackFunction) {
-    while (!m_queryQueue.empty()) {
-      DBResultCallback& cb = m_queryQueue.front().cb;
-      void* callerContext = m_queryQueue.front().ctx;
-      m_queryQueue.pop();
-      cb(m_dberror, NULL, callerContext);
-    }
-  } else {
-    while (!m_queryQueue.empty()) {
-      m_queryQueue.pop();
-    }
-  }
 }
 
 bool PGClient::IsInTransactionBlock() {
@@ -420,74 +387,6 @@ bool PGClient::IsInTransactionBlock() {
   return success;
 }
 
-void PGClient::DummyRollbackCb(const DBError& err, DBResult* rst, void* ctx) {
-  (void)err;
-  (void)rst;
-  (void)ctx;
-}
-
-void PGClient::read() {
-  bool success = false;
-  PGResult* rst = NULL;
-
-  switch (m_last_cmd) {
-    case CONNECT:
-      break;
-    case SUBSCRIBE:
-    case UNSUBSCRIBE:
-      break;
-    case BEGINTRANSACTION:
-    case COMMITTRANSACTION:
-    case ROLLBACKTRANSACTION:
-    case QUERY:
-      rst = PollResultSet(success);
-      break;
-    default:
-      break;
-  }
-
-  if (m_subscribeMap.size() > 0) {
-    HandleSubscription();
-  }
-
-  if (success) {
-    if (!m_queryQueue.empty()) {
-      QueryItem qitem = m_queryQueue.front();
-      const char* sql = qitem.sqlQuery.c_str();
-      DBResultCallback& cb = qitem.cb;
-      void* callerContext = qitem.ctx;
-      m_queryQueue.pop();
-
-      if (!m_dberror.GetError()) {
-        if (strcmp("begin transaction", sql) == 0) {
-          this->m_transactionStarted = true;
-        } else if (strcmp("commit transaction", sql) == 0) {
-          this->m_transactionStarted = false;
-        }
-      }
-
-      cb(m_dberror, rst, callerContext);
-
-      if (!m_queryQueue.empty()) {
-        success = SendNextQueryRequestInNonBlocking();
-        if (!success) {
-          CancelQueue(true);
-        }
-      }
-    } else {
-      printf("[ERROR] There is no request item in the query queue for this reply.\n");
-      printf("SQLState: %s, Message: %s, Detail: %s, Hint: %s\n",
-          SAFE_STRING(m_dberror.GetSQLState()), SAFE_STRING(m_dberror.GetMessage()),
-          SAFE_STRING(m_dberror.GetDetail()), SAFE_STRING(m_dberror.GetHint()));
-    }
-  } else {
-    if (!IsConnected()) {
-      CancelQueue(true);
-    }
-  }
-  delete rst;
-}
-
 bool PGClient::HandleSubscription() {
   if (PQconsumeInput(m_pgconn) == 1) {
     PGnotify*   tmpNotify = NULL;
@@ -495,7 +394,7 @@ bool PGClient::HandleSubscription() {
     while ((tmpNotify = PQnotifies(m_pgconn)) != NULL) {
       string  x = tmpNotify->relname;
       string  message = tmpNotify->extra;
-      printf("PGClient::read invokes registered subscription callback function with [%s]\n", message.c_str());
+      printf("[PGClient::HandleSubscription] Invokes registered subscription callback function with [%s]\n", message.c_str());
       m_subscribeMap[x](noerror, x, message);
       PQfreemem(tmpNotify);
     }
@@ -562,7 +461,7 @@ bool PGClient::AddSubscribeChannel(const char*  channelName, const SubscribeCall
   ss << "LISTEN " << channelName;
   string tmpSQL = ss.str();
 
-  PGResult* tmpResult = RunBlockingSQL(tmpSQL.c_str(), success);
+  PGResult* tmpResult = ExecuteSQL(tmpSQL.c_str(), success);
   if (tmpResult != NULL) {
     m_last_cmd = SUBSCRIBE;
     delete tmpResult;
@@ -583,7 +482,7 @@ bool PGClient::RemoveSubscribeChannel(const char*   channelName) {
   ss << "UNLISTEN " << channelName;
   string  tmpSQL = ss.str();
   // Refer to addSubscribeChannel function for calling either blocking call or nonblocking call.
-  PGResult*  tmpResult = RunBlockingSQL(tmpSQL.c_str(), success);
+  PGResult*  tmpResult = ExecuteSQL(tmpSQL.c_str(), success);
   if (tmpResult != NULL) {
     m_last_cmd = UNSUBSCRIBE;
     delete tmpResult;
@@ -596,55 +495,125 @@ bool PGClient::RemoveSubscribeChannel(const char*   channelName) {
   return  success;
 }
 
-//
-// For each parameter, the maximum value length will be 20. (Hard coded)
-//
-const char* PGClient::ShowParamValues(int count, const char* paramValues[]) {
-  const   int     BUFFER_SIZE = 80000;
-  static  char    szReturnBuffer[BUFFER_SIZE + 1] = {0,};
-  int     leftBufferSize = BUFFER_SIZE;
-  int     tmpStrLen = 0;
+void PGClient::ReadBytes() {
+  bool success = false;
+  PGResult* rst = NULL;
 
-  if (count > 0) {
-    if (paramValues[0] != NULL) {
-      if (leftBufferSize > (tmpStrLen = strlen(paramValues[0])+2)) {
-        sprintf(szReturnBuffer, "'%s'", paramValues[0]);
-        leftBufferSize -= tmpStrLen;
-      } else {
-        sprintf(szReturnBuffer, "'%.*s'", leftBufferSize-2, paramValues[0]);
-        leftBufferSize = 0;
-      }
-    } else {
-      strcpy(szReturnBuffer, "null");
-      leftBufferSize -= 4;
-    }
-
-    for (int i = 1; i < count && leftBufferSize > 0; ++i) {
-      if (paramValues[i] != NULL) {
-        if (leftBufferSize > (tmpStrLen = strlen(paramValues[i])+3)) {
-          sprintf(szReturnBuffer + strlen(szReturnBuffer), ",'%s'", paramValues[i]);
-          leftBufferSize -= tmpStrLen;
-        } else {
-          sprintf(szReturnBuffer + strlen(szReturnBuffer), ",'%.*s'", leftBufferSize-3, paramValues[i]);
-          szReturnBuffer[BUFFER_SIZE] = '\0';
-          leftBufferSize = 0;
-        }
-      } else {
-        if (leftBufferSize >= 5) {
-          strcat(szReturnBuffer,",null");
-          leftBufferSize -= 5;
-        } else {
-          sprintf(szReturnBuffer + strlen(szReturnBuffer), ",%.*s", leftBufferSize-1, "null");
-          szReturnBuffer[BUFFER_SIZE] = '\0';
-          leftBufferSize = 0;
-        }
-      }
-    }
-  } else {
-    szReturnBuffer[0] = '\0';
+  switch (m_last_cmd) {
+    case CONNECT:
+      break;
+    case SUBSCRIBE:
+    case UNSUBSCRIBE:
+      break;
+    case BEGINTRANSACTION:
+    case COMMITTRANSACTION:
+    case ROLLBACKTRANSACTION:
+    case QUERY:
+      rst = PollResultSet(success);
+      break;
+    default:
+      break;
   }
 
-  return szReturnBuffer;
+  if (m_subscribeMap.size() > 0) {
+    HandleSubscription();
+  }
+
+  if (success) {
+    if (!m_queryQueue.empty()) {
+      QueryItem qitem = m_queryQueue.front();
+      const char* sql = qitem.sqlQuery.c_str();
+      DBResultCallback& cb = qitem.cb;
+      void* callerContext = qitem.ctx;
+      m_queryQueue.pop();
+
+      if (!m_dberror.GetError()) {
+        if (strcmp("begin transaction", sql) == 0) {
+          this->m_transactionStarted = true;
+        } else if (strcmp("commit transaction", sql) == 0) {
+          this->m_transactionStarted = false;
+        }
+      }
+
+      cb(m_dberror, rst, callerContext);
+
+      if (!m_queryQueue.empty()) {
+        success = SendNextQueryAsync();
+        if (!success) {
+          CancelQueue(true);
+        }
+      }
+    } else {
+      printf("[ERROR] There is no request item in the query queue for this reply.\n");
+      printf("SQLState: %s, Message: %s, Detail: %s, Hint: %s\n",
+          SAFE_STRING(m_dberror.GetSQLState()), SAFE_STRING(m_dberror.GetMessage()),
+          SAFE_STRING(m_dberror.GetDetail()), SAFE_STRING(m_dberror.GetHint()));
+    }
+  } else {
+    if (!IsConnected()) {
+      CancelQueue(true);
+    }
+  }
+  delete rst;
+}
+
+void PGClient::WriteBytes() {
+  // printf("PGClient::WriteBytes callback function start\n");
+  int flushResult = PQflush(m_pgconn);
+  if (flushResult == 0) {
+    // There is no data left in send queue
+    DeleteWriteEvent();
+  } else if (flushResult == 1) {
+    // There is some data left in send queue
+    AddWriteEvent();
+  } else if (flushResult == -1) {
+    const char* errMessage = PQerrorMessage(m_pgconn);
+    SetLastError("ERROR", "08006", errMessage);
+    printf("[PGClient::WriteBytes] callback function error in PQflush: %s\n", SAFE_STRING(errMessage));
+  }
+  // printf("PGClient::WriteBytes callback function end\n");
+}
+
+void PGClient::OnEvents(uint32_t events)
+{
+  //printf("[PGClient::OnEvents] events: %d\n", events);
+  if (events & IOEvent::WRITE) {
+    WriteBytes();
+  }
+  if (events & IOEvent::READ) {
+    ReadBytes();
+  }
+  if (events & IOEvent::ERROR) {
+    OnError(errno, strerror(errno));
+  }
+}
+
+void PGClient::OnReconnectTimer(PeriodicTimer* timer)
+{
+  if (!IsConnected()) {  // if the connection is not created, then reconnect
+    bool success = Connect_();
+    if (success) {
+      timer->Stop();
+    } else {
+      printf("[PGClient::OnReconnectTimer] Reconnect failed, retry %u seconds later...\n", timer->GetInterval().Seconds());
+    }
+  } else {
+    timer->Stop();
+  }
+}
+
+string PGClient::QueryItem::ToString() const
+{
+  stringstream ss;
+  ss << "{ sql: " << sqlQuery << ", parameters: [";
+  size_t params_size = parameters.size();
+  for (size_t i=0; i<params_size; i++) {
+    ss << "'" << parameters[i].ToString() << "'";
+    if (i != params_size - 1)
+      ss << ", ";
+  }
+  ss << "] }";
+  return ss.str();
 }
 
 }  // namespace db_api
