@@ -11,11 +11,16 @@ namespace cdb_api {
 
 static const bool RECONNECT = true;
 
-class CDBMessage
+class CDBReply
 {
     public:
     virtual const void* GetReply() const = 0;
     virtual void SetReply(const void* reply) = 0;
+};
+struct CDBCommand
+{
+    char* format_str;
+    std::vector<string> param_list;
 };
 
 class CDBClient
@@ -24,14 +29,17 @@ class CDBClient
     CDBClient() : auto_reconnect_(true), reconnect_timer_(std::bind(&CDBClient::OnReconnectTimer, this, std::placeholders::_1)) { }
     virtual ~CDBClient();
 
-    virtual bool Init(const char* host, uint16_t port, bool auto_reconnect = true);
+    virtual bool Init(const char* host, uint16_t port, const CDBCallbacksPtr& cdb_cbs = nullptr, bool auto_reconnect = true);
 
     bool Connect();
-    virtual bool IsReady() = 0;
+    virtual bool IsReady() const = 0;
     virtual void Disconnect() { };
 
-    virtual bool SendCommand(CDBMessage* reply_msg, const char* format, ...) = 0;
+    virtual bool SendCommand(CDBReply* reply_msg, const char* format, ...) = 0;
     virtual bool SendCommand(const OnReplyCallback& reply_cb, const char* format, ...) = 0;
+
+    virtual bool HasError() const = 0;
+    virtual const char* GetLastError() const = 0;
 
     protected:
     virtual bool Connect_(bool reconnect = false) = 0;
@@ -42,6 +50,7 @@ class CDBClient
     IPAddress           server_addr_;
     bool                auto_reconnect_;
     PeriodicTimer       reconnect_timer_;
+    CDBCallbacksPtr     cdb_cbs_;
 };
 
 }  // namespace cdb_api

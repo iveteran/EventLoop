@@ -7,11 +7,11 @@
 
 namespace cdb_api {
 
-class RedisMessage : public CDBMessage {
+class RedisReply : public CDBReply {
   public:
-  RedisMessage(const redisReply* reply = NULL) : redis_reply_(reply) { }
-  //~RedisMessage() { ReleaseReplyObject(); }
-  RedisMessage& operator=(const redisReply* reply) {
+  RedisReply(const redisReply* reply = NULL) : redis_reply_(reply) { }
+  //~RedisReply() { ReleaseReplyObject(); }
+  RedisReply& operator=(const redisReply* reply) {
     ReleaseReplyObject();
     redis_reply_ = reply;
     return *this;
@@ -34,35 +34,44 @@ class RedisMessage : public CDBMessage {
 
 class RedisAsyncClient : public CDBClient, public IOEvent {
   public:
-  RedisAsyncClient() : redis_ctx_(NULL) { }
+  RedisAsyncClient() : redis_ctx_(NULL), connected_(false) { }
+  ~RedisAsyncClient();
   bool Init(const char* host, uint16_t port, const CDBCallbacksPtr& cdb_cbs = nullptr, bool auto_reconnect = true);
 
-  bool IsReady();
+  bool IsReady() const;
+  bool Connected() const;
   bool Connect();
   void Disconnect();
+  void HandleConnect();
+  void HandleDisconnect();
 
   void SetCallbacks(const CDBCallbacksPtr& cdb_cbs);
   redisAsyncContext* RedisContext() { return redis_ctx_; }
 
-  bool SendCommand(CDBMessage* reply_msg, const char* format, ...);
+  bool SendCommand(CDBReply* reply_msg, const char* format, ...);
   bool SendCommand(const OnReplyCallback& reply_cb, const char* format, ...);
 
   void OnRedisReply(const redisAsyncContext* ctx, redisReply* reply);
   void OnRedisConnect(const redisAsyncContext* ctx, int status);
   void OnRedisDisconnect(const redisAsyncContext* ctx, int status);
 
+  bool HasError() const;
+  const char* GetLastError() const;
+
   private:
-  int SetContext(redisAsyncContext * ctx);
+  bool SetRedisCallbacks();
   bool Connect_(bool reconnect = false);
 
   void OnEvents(uint32_t events);
   void OnError(int errcode, const char* errstr);
-  void DefaultOnReplyCb(CDBClient* cdbc, const CDBMessage* cdb_msg);
+  void DefaultOnReplyCb(CDBClient* cdbc, const CDBReply* cdb_msg);
 
   private:
   redisAsyncContext*  redis_ctx_;
-  CDBCallbacksPtr     cdb_cbs_;
+  bool connected_;
+  //CDBCallbacksPtr     cdb_cbs_;
   CDBReplyCallbackQueue   reply_cb_queue_;
+  char m_errstr[256];
 };
 
 class RedisClient : public CDBClient {
@@ -70,18 +79,22 @@ class RedisClient : public CDBClient {
   RedisClient() : redis_ctx_(NULL) { }
   ~RedisClient() { Disconnect(); }
 
-  bool IsReady();
+  bool IsReady() const;
   bool Connect();
   void Disconnect();
 
-  bool SendCommand(CDBMessage* reply_msg, const char* format, ...);
+  bool SendCommand(CDBReply* reply_msg, const char* format, ...);
   bool SendCommand(const OnReplyCallback& reply_cb, const char* format, ...);
+
+  bool HasError() const;
+  const char* GetLastError() const;
 
   private:
   bool Connect_(bool reconnect = false);
 
   private:
   redisContext*   redis_ctx_;
+  char m_errstr[256];
 };
 
 }  // namespace cdb_api

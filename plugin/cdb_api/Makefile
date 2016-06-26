@@ -1,6 +1,6 @@
 TARGET = libcdb_api.a
 
-REDIS_SDK_PATH = $(HOME)/sdks/hiredis-master
+REDIS_SDK_PATH = $(HOME)/projects/hiredis-ext
 
 CPPFLAGS = -Wall -std=c++0x
 CXXFLAGS = -I../../include \

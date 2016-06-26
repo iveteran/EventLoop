@@ -8,10 +8,11 @@
 namespace cdb_api {
 
 class CDBClient;
-class CDBMessage;
+class CDBReply;
+class CDBCommand;
 
-typedef std::function<void (CDBClient*, const CDBMessage*) >       OnReplyCallback;
-typedef std::function<void (CDBClient*, const CDBMessage*) >       OnCmdSentCallback;
+typedef std::function<void (CDBClient*, const CDBReply*) >         OnReplyCallback;
+typedef std::function<void (CDBClient*, const CDBCommand*) >       OnCmdSentCallback;
 typedef std::function<void (CDBClient*) >                          OnConnectedCallback;
 typedef std::function<void (CDBClient*) >                          OnClosedCallback;
 typedef std::function<void (int, const char*) >                    OnErrorCallback;
@@ -34,8 +35,8 @@ struct CDBCallbacks {
     OnErrorCallback     on_error_cb;
 
     private:
-    void EmptyReplyCb(CDBClient*, const CDBMessage*)           { printf("Empty CDBClient Reply Callback\n"); }
-    void EmptyCmdSentCb(CDBClient*, const CDBMessage*)         { printf("Empty CDBClient Command Sent Callback\n"); }
+    void EmptyReplyCb(CDBClient*, const CDBReply*)             { printf("Empty CDBClient Reply Callback\n"); }
+    void EmptyCmdSentCb(CDBClient*, const CDBCommand*)         { printf("Empty CDBClient Command Sent Callback\n"); }
     void EmptyConnectedCb(CDBClient*)                          { printf("Empty Connected Callback\n"); }
     void EmptyClosedCb(CDBClient*)                             { printf("Empty Connection Closed Callback\n"); }
     void EmptyErrorCb(int, const char*)                        { printf("Empty Connection Error Callback\n"); }

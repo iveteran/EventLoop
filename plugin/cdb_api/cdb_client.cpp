@@ -3,10 +3,11 @@
 namespace cdb_api
 {
 
-bool CDBClient::Init(const char* host, uint16_t port, bool auto_reconnect)
+bool CDBClient::Init(const char* host, uint16_t port, const CDBCallbacksPtr& cdb_cbs, bool auto_reconnect)
 {
   auto_reconnect_ = auto_reconnect,
   server_addr_.port_ = port;
+  cdb_cbs_ = cdb_cbs;
 
   if (host[0] == '\0' || strcmp(host, "localhost") == 0) {
     server_addr_.ip_ = "127.0.0.1";
@@ -45,6 +46,7 @@ void CDBClient::Reconnect()
 
 void CDBClient::OnReconnectTimer(PeriodicTimer* timer)
 {
+  //printf("[CDBClient::ReconnectTimer::OnTimer begin] is ready: %d\n", IsReady());
   if (!IsReady()) {  // if the connection is not created, then reconnect
     bool success = Connect_(RECONNECT);
     if (success)
