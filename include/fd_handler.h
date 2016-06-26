@@ -49,7 +49,7 @@ class IOEvent : public IEvent {
 class BufferIOEvent : public IOEvent {
  public:
   BufferIOEvent(int fd, uint32_t events = IOEvent::READ | IOEvent::ERROR)
-    : IOEvent(fd, events), sent_(0), msg_seq_(0) {
+    : IOEvent(fd, events), sent_(0), msg_seq_(0), close_wait_(false) {
   }
 
  public:
@@ -67,6 +67,7 @@ class BufferIOEvent : public IOEvent {
   void Send(const char *data, uint32_t len, bool bmsg_has_hdr = BinaryMessage::HAS_NO_HDR);
   void SendMore(const string& data);
   void SendMore(const char *data, uint32_t len);
+  void SetCloseWait() { close_wait_ = true; }
 
  protected:
   virtual void OnReceived(const Message* msg) { };
@@ -74,8 +75,8 @@ class BufferIOEvent : public IOEvent {
 
  private:
   void OnEvents(uint32_t events);
-  int ReceiveData();
-  int SendData();
+  int ReceiveData(uint32_t& events);
+  int SendData(uint32_t& events);
   void SendInner(const MessagePtr& msg);
 
  private:
@@ -84,6 +85,7 @@ class BufferIOEvent : public IOEvent {
   MessageMQ     tx_msg_mq_;
   uint32_t      sent_;
   uint32_t      msg_seq_;
+  bool          close_wait_;
 
 };
 

@@ -6,7 +6,7 @@
 
 namespace evt_loop {
 
-typedef uint32_t    SessionID;
+typedef uint64_t    SessionID;
 
 class TimeoutSession;
 class TimeoutSessionManager;
@@ -18,6 +18,9 @@ struct TimeoutSession
 
     public:
     TimeoutSession() : m_id(0), m_ctime(0) {}
+
+    void SetID(SessionID id) { m_id = id; }
+    SessionID GetID() const { return m_id; }
 
     protected:
     SessionID   m_id;

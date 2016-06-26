@@ -98,16 +98,16 @@ bool BufferIOEvent::TxBuffEmpty() {
   return tx_msg_mq_.Empty();
 }
 
-int BufferIOEvent::ReceiveData() {
+int BufferIOEvent::ReceiveData(uint32_t& events) {
   char buffer[MAX_BYTES_RECEIVE];
   int read_bytes = std::min(rx_msg_mq_.NeedMore(), (size_t)sizeof(buffer));
   int len = read(fd_, buffer, read_bytes);
   printf("[BufferIOEvent::ReceiveData] fd [%d] to read bytes: %d, got: %d\n", fd_, read_bytes, len);
   if (len < 0) {
-    OnError(errno, strerror(errno));
+    events |= IOEvent::ERROR;
   }
   else if (len == 0 ) {
-    OnClosed();
+    events |= IOEvent::CLOSED;
   } else {
     rx_msg_mq_.AppendData(buffer, len);
     MessageMQ::MessageDispatcher processing_msg_cb = std::bind(&BufferIOEvent::OnReceived, this, std::placeholders::_1);
@@ -116,14 +116,15 @@ int BufferIOEvent::ReceiveData() {
   return len;
 }
 
-int BufferIOEvent::SendData() {
+int BufferIOEvent::SendData(uint32_t& events) {
   uint32_t cur_sent = 0;
   while (!tx_msg_mq_.Empty()) {
     const MessagePtr& tx_msg = tx_msg_mq_.First();
     uint32_t tosend = tx_msg->Size();
     int len = write(fd_, tx_msg->Data().data() + sent_, tosend - sent_);
+    printf("[BufferIOEvent::SendData] fd [%d] to send bytes: %d, sent: %d\n", fd_, tosend - sent_, len);
     if (len < 0) {
-      OnError(errno, strerror(errno));
+      events |= IOEvent::ERROR;
       break;
     }
     sent_ += len;
@@ -139,6 +140,8 @@ int BufferIOEvent::SendData() {
   }
   if (tx_msg_mq_.Empty()) {
     DeleteWriteEvent();  // All data in the output buffer has been sent, then remove writing event from epoll
+    if (close_wait_)
+      events |= IOEvent::CLOSED;
   }
   return cur_sent;
 }
@@ -146,12 +149,15 @@ int BufferIOEvent::SendData() {
 void BufferIOEvent::OnEvents(uint32_t events) {
   /// The WRITE events should deal with before the READ events
   if (events & IOEvent::WRITE) {
-    SendData();
+    SendData(events);
   }
   if (events & IOEvent::READ) {
-    ReceiveData();
+    ReceiveData(events);
   }
-  if (events & IOEvent::ERROR) {
+
+  if (events & IOEvent::CLOSED) {
+    OnClosed();
+  } else if ((events & IOEvent::ERROR)) {
     OnError(errno, strerror(errno));
   }
 }

@@ -22,7 +22,6 @@ void TcpConnection::Destroy()
 {
     printf("[TcpConnection::Destroy] id: %d, fd: %d\n", id_, fd_);
     if (fd_ >= 0) {
-        EV_Singleton->DeleteEvent(this);
         close(fd_);
         SetFD(-1);
     }
@@ -35,7 +34,10 @@ void TcpConnection::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
 
 void TcpConnection::Disconnect()
 {
-    OnClosed();
+    if (TxBuffEmpty())
+        OnClosed();
+    else
+        SetCloseWait();
 }
 
 const IPAddress& TcpConnection::GetLocalAddr() const
@@ -67,7 +69,7 @@ void TcpConnection::OnClosed()
 
 void TcpConnection::OnError(int errcode, const char* errstr)
 {
-    printf("[TcpConnection::OnError] fd: %d, error string: %s\n", fd_, errstr);
+    printf("[TcpConnection::OnError] fd: %d, errcode: %d, errstr: %s\n", fd_, errcode, errstr);
     if (tcp_evt_cbs_) tcp_evt_cbs_->on_error_cb(errcode, errstr);
     //Disconnect();
 }
