@@ -77,7 +77,7 @@ int EventLoop::ProcessEvents(int timeout) {
       uint32_t events = 0;
       if (evs_[i].events & EPOLLIN) events |= IOEvent::READ;
       if (evs_[i].events & EPOLLOUT) events |= IOEvent::WRITE;
-      if (evs_[i].events & (EPOLLHUP | EPOLLERR)) events |= IOEvent::ERROR;
+      if (evs_[i].events & (EPOLLHUP | EPOLLRDHUP | EPOLLERR)) events |= IOEvent::ERROR;
       e->OnEvents(events);
     }
   }

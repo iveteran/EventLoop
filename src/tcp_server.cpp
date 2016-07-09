@@ -41,6 +41,16 @@ void TcpServer::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
     }
 }
 
+void TcpServer::SetNewClientCallback(const OnNewClientCallback& new_client_cb)
+{
+    new_client_cb_ = new_client_cb;
+}
+
+void TcpServer::SetErrorCallback(const OnServerErrorCallback& error_cb)
+{
+    error_cb_ = error_cb;
+}
+
 TcpConnectionPtr TcpServer::GetConnectionByFD(int fd)
 {
     FdTcpConnMap::iterator iter = conn_map_.find(fd);
@@ -110,7 +120,7 @@ void TcpServer::OnNewClient(int fd, const IPAddress& peer_addr)
           std::bind(&TcpServer::OnConnectionClosed, this, std::placeholders::_1), tcp_evt_cbs_);
     conn->SetMessageType(msg_type_);
     conn_map_.insert(std::make_pair(fd, conn));
-    if (tcp_evt_cbs_) tcp_evt_cbs_->on_new_client_cb(conn.get());
+    if (new_client_cb_) new_client_cb_(conn.get());
     printf("[TcpServer::OnNewClient] new connection, fd: %d\n", fd);
 }
 
@@ -127,7 +137,7 @@ void TcpServer::OnConnectionClosed(TcpConnection* conn)
 void TcpServer::OnError(int errcode, const char* errstr)
 {
     printf("[TcpServer::OnError] error code: %d, error string: %s\n", errcode, errstr);
-    if (tcp_evt_cbs_) tcp_evt_cbs_->on_error_cb(errcode, errstr);
+    if (error_cb_) error_cb_(this, errcode, errstr);
 }
 
 }  // namespace evt_loop

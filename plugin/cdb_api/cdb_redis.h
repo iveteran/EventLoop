@@ -63,7 +63,7 @@ class RedisAsyncClient : public CDBClient, public IOEvent {
   bool Connect_(bool reconnect = false);
 
   void OnEvents(uint32_t events);
-  void OnError(int errcode, const char* errstr);
+  void OnError(CDBClient* cdbclient, int errcode, const char* errstr);
   void DefaultOnReplyCb(CDBClient* cdbc, const CDBReply* cdb_msg);
 
   private:

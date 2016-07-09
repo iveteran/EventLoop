@@ -137,7 +137,7 @@ bool RedisAsyncClient::Connect_(bool reconnect)
     printf("[RedisAsyncClient::Connect_] redis.err: %d, redis.errstr: %s, errno: %d, errstr: %s\n",
             redis_ctx_->err, redis_ctx_->errstr, errno, strerror(errno));
     connected_ = false;
-    OnError(redis_ctx_->err, redis_ctx_->errstr);
+    OnError(this, redis_ctx_->err, redis_ctx_->errstr);
   }
 
   return connected_;
@@ -173,13 +173,13 @@ void RedisAsyncClient::OnEvents(uint32_t events)
   if (HasError()) {
     if (redis_ctx_->err == REDIS_ERR_EOF) {
       HandleDisconnect();
-      OnError(redis_ctx_->err, redis_ctx_->errstr);
+      OnError(this, redis_ctx_->err, redis_ctx_->errstr);
     } else if (redis_ctx_->err == REDIS_ERR_IO) {
-      OnError(errno, strerror(errno));
+      OnError(this, errno, strerror(errno));
     }
   }
   if (events & IOEvent::ERROR) {
-    OnError(errno, strerror(errno));
+    OnError(this, errno, strerror(errno));
   }
 }
 
@@ -216,7 +216,7 @@ void RedisAsyncClient::OnRedisConnect(const redisAsyncContext* ctx, int status)
     printf("[RedisAsyncClient::OnRedisConnect] fd: %d, status: %d, redis.errcode: %d, redis.errstr: %s\n",
             ctx->c.fd, status, ctx->err, ctx->errstr);
     connected_ = false;
-    OnError(ctx->err, ctx->errstr);
+    OnError(this, ctx->err, ctx->errstr);
     Reconnect();
   }
 }
@@ -229,11 +229,11 @@ void RedisAsyncClient::OnRedisDisconnect(const redisAsyncContext* ctx, int statu
     Reconnect();
   }
 }
-void RedisAsyncClient::OnError(int errcode, const char* errstr)
+void RedisAsyncClient::OnError(CDBClient* cdbclient, int errcode, const char* errstr)
 {
   printf("[RedisAsyncClient::OnError] error code: %d, error string: %s\n", errcode, errstr);
   snprintf(m_errstr, sizeof(m_errstr), "RedisAsyncClient(%d): %s", errcode, errstr);
-  if (cdb_cbs_) cdb_cbs_->on_error_cb(errcode, errstr);
+  if (cdb_cbs_) cdb_cbs_->on_error_cb(cdbclient, errcode, errstr);
 }
 bool RedisAsyncClient::HasError() const
 {

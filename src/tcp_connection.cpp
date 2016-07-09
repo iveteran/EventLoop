@@ -70,7 +70,7 @@ void TcpConnection::OnClosed()
 void TcpConnection::OnError(int errcode, const char* errstr)
 {
     printf("[TcpConnection::OnError] fd: %d, errcode: %d, errstr: %s\n", fd_, errcode, errstr);
-    if (tcp_evt_cbs_) tcp_evt_cbs_->on_error_cb(errcode, errstr);
+    if (tcp_evt_cbs_) tcp_evt_cbs_->on_error_cb(this, errcode, errstr);
     //Disconnect();
 }
 

@@ -72,13 +72,23 @@ void TcpClient::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
     if (conn_) conn_->SetTcpCallbacks(tcp_evt_cbs_);
 }
 
+void TcpClient::SetNewClientCallback(const OnNewClientCallback& new_client_cb)
+{
+    new_client_cb_ = new_client_cb;
+}
+
+void TcpClient::SetErrorCallback(const OnClientErrorCallback& error_cb)
+{
+    error_cb_ = error_cb;
+}
+
 void TcpClient::OnConnected(int fd, const IPAddress& local_addr)
 {
     conn_ = std::make_shared<TcpConnection>(fd, local_addr, server_addr_,
         std::bind(&TcpClient::OnConnectionClosed, this, std::placeholders::_1), tcp_evt_cbs_);
     conn_->SetMessageType(msg_type_);
     SendTempBuffer();
-    if (tcp_evt_cbs_) tcp_evt_cbs_->on_new_client_cb(conn_.get());
+    if (new_client_cb_) new_client_cb_(conn_.get());
 }
 
 void TcpClient::OnConnectionClosed(TcpConnection* conn)
@@ -121,7 +131,7 @@ bool TcpClient::Connect_()
 void TcpClient::OnError(int errcode, const char* errstr)
 {
     printf("[TcpClient::OnError] error code: %d, error string: %s\n", errcode, errstr);
-    if (tcp_evt_cbs_) tcp_evt_cbs_->on_error_cb(errcode, errstr);
+    if (error_cb_) error_cb_(this, errcode, errstr);
 }
 
 void TcpClient::SendTempBuffer()

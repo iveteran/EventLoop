@@ -10,8 +10,12 @@ class TcpServer: public IOEvent
     public:
     TcpServer(const char *host, uint16_t port, MessageType msg_type = MessageType::BINARY, TcpCallbacksPtr tcp_evt_cbs = nullptr);
     ~TcpServer();
-    void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
+
     TcpConnectionPtr GetConnectionByFD(int fd);
+
+    void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
+    void SetNewClientCallback(const OnNewClientCallback& new_client_cb);
+    void SetErrorCallback(const OnServerErrorCallback& error_cb);
 
     protected:
     void OnError(int errcode, const char* errstr);
@@ -28,7 +32,10 @@ class TcpServer: public IOEvent
     IPAddress       server_addr_;
     MessageType     msg_type_;
     FdTcpConnMap    conn_map_;
-    TcpCallbacksPtr tcp_evt_cbs_;
+
+    OnNewClientCallback     new_client_cb_;
+    OnServerErrorCallback   error_cb_;
+    TcpCallbacksPtr         tcp_evt_cbs_;
 };
 
 }  // namespace evt_loop

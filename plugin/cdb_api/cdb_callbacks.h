@@ -15,7 +15,7 @@ typedef std::function<void (CDBClient*, const CDBReply*) >         OnReplyCallba
 typedef std::function<void (CDBClient*, const CDBCommand*) >       OnCmdSentCallback;
 typedef std::function<void (CDBClient*) >                          OnConnectedCallback;
 typedef std::function<void (CDBClient*) >                          OnClosedCallback;
-typedef std::function<void (int, const char*) >                    OnErrorCallback;
+typedef std::function<void (CDBClient*, int, const char*) >        OnErrorCallback;
 
 struct CDBCallbacks {
     public:
@@ -24,7 +24,7 @@ struct CDBCallbacks {
         on_cmd_sent_cb(std::bind(&CDBCallbacks::EmptyCmdSentCb, this, std::placeholders::_1, std::placeholders::_2)),
         on_connected_cb(std::bind(&CDBCallbacks::EmptyConnectedCb, this, std::placeholders::_1)),
         on_closed_cb(std::bind(&CDBCallbacks::EmptyClosedCb, this, std::placeholders::_1)),
-        on_error_cb(std::bind(&CDBCallbacks::EmptyErrorCb, this, std::placeholders::_1, std::placeholders::_2))
+        on_error_cb(std::bind(&CDBCallbacks::EmptyErrorCb, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
     { }
 
     public:
@@ -39,7 +39,7 @@ struct CDBCallbacks {
     void EmptyCmdSentCb(CDBClient*, const CDBCommand*)         { printf("Empty CDBClient Command Sent Callback\n"); }
     void EmptyConnectedCb(CDBClient*)                          { printf("Empty Connected Callback\n"); }
     void EmptyClosedCb(CDBClient*)                             { printf("Empty Connection Closed Callback\n"); }
-    void EmptyErrorCb(int, const char*)                        { printf("Empty Connection Error Callback\n"); }
+    void EmptyErrorCb(CDBClient*, int, const char*)            { printf("Empty Connection Error Callback\n"); }
 };
 
 typedef std::shared_ptr<CDBCallbacks>       CDBCallbacksPtr;

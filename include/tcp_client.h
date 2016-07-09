@@ -17,13 +17,19 @@ class TcpClient : public IOEvent
       TcpClient(const char *host, uint16_t port, MessageType msg_type = MessageType::BINARY,
           bool auto_reconnect = true, TcpCallbacksPtr tcp_evt_cbs = nullptr);
     ~TcpClient();
+
     bool Connect();
     void Disconnect();
-    bool Send(const string& msg);
+
     void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
+    void SetNewClientCallback(const OnNewClientCallback& new_client_cb);
+    void SetErrorCallback(const OnClientErrorCallback& error_cb);
+
     TcpConnectionPtr& Connection() { return conn_; }
     int FD() const { return (conn_ ? conn_->FD() : -1); }  // Overrides interface of base class IOEvent
     bool IsConnected() const { return conn_ != nullptr; }
+
+    bool Send(const string& msg);
     
     private:
     void OnEvents(uint32_t events) {}
@@ -47,7 +53,9 @@ class TcpClient : public IOEvent
     list<string>        tmp_sendbuf_list_;
     PeriodicTimer       reconnect_timer_;
 
-    TcpCallbacksPtr     tcp_evt_cbs_;
+    OnNewClientCallback     new_client_cb_;
+    OnClientErrorCallback   error_cb_;
+    TcpCallbacksPtr         tcp_evt_cbs_;
 };
 
 }  // namespace evt_loop
