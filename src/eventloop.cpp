@@ -31,7 +31,7 @@ EventLoop::EventLoop() {
   epfd_ = epoll_create(256);
   timermanager_ = std::make_shared<TimerManager>();
   now_.SetNow();
-  stop_ = true;
+  running_ = false;
 }
 
 EventLoop::~EventLoop() {
@@ -86,12 +86,17 @@ int EventLoop::ProcessEvents(int timeout) {
 }
 
 void EventLoop::StopLoop() {
-  stop_ = true;
+  running_ = false;
 }
 
 void EventLoop::StartLoop() {
-  stop_ = false;
-  while (!stop_) {
+  if (running_) {
+    printf("Error: EventLoop already running\n");
+    return;
+  }
+
+  running_ = true;
+  while (running_) {
     int timeout = 100;
     now_.SetNow();
 

@@ -56,7 +56,7 @@ class EventLoop {
   epoll_event evs_[256];
 
   TimeVal   now_;
-  bool      stop_;
+  bool      running_;
 
   std::shared_ptr<TimerManager> timermanager_;
 };
