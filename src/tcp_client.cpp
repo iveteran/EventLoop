@@ -1,11 +1,37 @@
 #include "tcp_client.h"
 #include "eventloop.h"
 #include <unistd.h>
+#include <linux/tcp.h>
 
 namespace evt_loop {
 
+bool SetTcpKeepAlive(int fd, bool enable, int idle, int interval, int count)
+{
+    int keepAlive = enable;         // 设定KeepAlive
+    int keepIdle = idle;            // 开始首次KeepAlive探测前的TCP空闭时间
+    int keepInterval = interval;    // 两次KeepAlive探测间的时间间隔
+    int keepCount = count;          // 判定断开前的KeepAlive探测次数
+    if (setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, (void*)&keepAlive, sizeof(keepAlive)) == -1)
+    {
+        return false;
+    }
+    if (setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, (void *)&keepIdle, sizeof(keepIdle)) == -1)
+    {
+        return false;
+    }
+    if (setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, (void *)&keepInterval, sizeof(keepInterval)) == -1)
+    {
+        return false;
+    }
+    if (setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, (void *)&keepCount, sizeof(keepCount)) == -1)
+    {
+        return false;
+    }
+    return true;
+}
+
 TcpClient::TcpClient(const char *host, uint16_t port, MessageType msg_type, bool auto_reconnect, TcpCallbacksPtr tcp_evt_cbs)
-    : msg_type_(msg_type), auto_reconnect_(auto_reconnect), conn_(nullptr),
+    : msg_type_(msg_type), keepalive_(false), auto_reconnect_(auto_reconnect), conn_(nullptr),
     reconnect_timer_(std::bind(&TcpClient::OnReconnectTimer, this, std::placeholders::_1)),
     tcp_evt_cbs_(tcp_evt_cbs)
 {
@@ -66,6 +92,11 @@ bool TcpClient::Send(const string& msg)
     return success;
 }
 
+void TcpClient::EnableKeepAlive(bool enable)
+{
+    keepalive_ = enable;
+}
+
 void TcpClient::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
 {
     tcp_evt_cbs_ = tcp_evt_cbs;
@@ -114,6 +145,15 @@ bool TcpClient::Connect_()
         OnError(errno, strerror(errno));
         close(fd);
         return false;
+    }
+
+    if (keepalive_) {
+        bool success = SetTcpKeepAlive(fd, true, 60, 5, 3);
+        if (!success) {
+            OnError(errno, strerror(errno));
+            close(fd);
+            return false;
+        }
     }
 
     if (connect(fd, (sockaddr*)&sock_addr, sizeof(sockaddr_in)) == -1) {

@@ -21,6 +21,8 @@ class TcpClient : public IOEvent
     bool Connect();
     void Disconnect();
 
+    void EnableKeepAlive(bool enable);
+
     void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
     void SetNewClientCallback(const OnNewClientCallback& new_client_cb);
     void SetErrorCallback(const OnClientErrorCallback& error_cb);
@@ -48,6 +50,7 @@ class TcpClient : public IOEvent
   private:
     IPAddress           server_addr_;
     MessageType         msg_type_;
+    bool                keepalive_;
     bool                auto_reconnect_;
     TcpConnectionPtr    conn_;
     list<string>        tmp_sendbuf_list_;
