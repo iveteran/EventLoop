@@ -3,7 +3,7 @@ TARGET_2 = echoclient
 TARGET_3 = hiredis_example
 TARGET_4 = pg_example
 
-REDIS_SDK_PATH = $(HOME)/sdks/hiredis-master
+REDIS_SDK_PATH = $(HOME)/projects/hiredis-ext
 
 CPPFLAGS = -g -Wall -std=c++0x
 CXXFLAGS = -I../include \
