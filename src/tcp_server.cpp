@@ -84,7 +84,7 @@ bool TcpServer::Start()
         return false;
     }
 
-    if (bind(fd, (sockaddr*)&sock_addr, sizeof(sockaddr_in)) == -1 || listen(fd, 10) == -1) {
+    if (bind(fd, (sockaddr*)&sock_addr, sizeof(sockaddr_in)) == -1 || listen(fd, 4096) == -1) {
         OnError(errno, strerror(errno));
         return false;
     }
