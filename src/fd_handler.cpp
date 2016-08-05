@@ -102,7 +102,7 @@ int BufferIOEvent::ReceiveData(uint32_t& events) {
   char buffer[MAX_BYTES_RECEIVE];
   int read_bytes = std::min(rx_msg_mq_.NeedMore(), (size_t)sizeof(buffer));
   int len = read(fd_, buffer, read_bytes);
-  printf("[BufferIOEvent::ReceiveData] fd [%d] to read bytes: %d, got: %d\n", fd_, read_bytes, len);
+  printf("[BufferIOEvent::ReceiveData] ts: %ld, fd [%d] to read bytes: %d, got: %d\n", Now(), fd_, read_bytes, len);
   if (len < 0) {
     events |= IOEvent::ERROR;
   }
@@ -122,7 +122,7 @@ int BufferIOEvent::SendData(uint32_t& events) {
     const MessagePtr& tx_msg = tx_msg_mq_.First();
     uint32_t tosend = tx_msg->Size();
     int len = write(fd_, tx_msg->Data().data() + sent_, tosend - sent_);
-    printf("[BufferIOEvent::SendData] fd [%d] to send bytes: %d, sent: %d\n", fd_, tosend - sent_, len);
+    printf("[BufferIOEvent::SendData] ts: %ld, fd [%d] to send bytes: %d, sent: %d\n", Now(), fd_, tosend - sent_, len);
     if (len < 0) {
       events |= IOEvent::ERROR;
       break;

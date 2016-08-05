@@ -26,6 +26,10 @@ void ConnectionManager::SetupInactivityChecker(uint32_t timeout)
     }
   }
 }
+bool ConnectionManager::ConnectionExists(ClientID cid)
+{
+    return m_client_map.find(cid) != m_client_map.end();
+}
 void ConnectionManager::AddConnection(TcpConnection* conn)
 {
     printf("[ConnectionManager::AddConnection] cid: %u\n", conn->ID());

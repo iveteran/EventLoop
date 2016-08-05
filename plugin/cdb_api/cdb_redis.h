@@ -40,7 +40,6 @@ class RedisAsyncClient : public CDBClient, public IOEvent {
 
   bool IsReady() const;
   bool Connected() const;
-  bool Connect();
   void Disconnect();
   void HandleConnect();
   void HandleDisconnect();
@@ -80,7 +79,6 @@ class RedisClient : public CDBClient {
   ~RedisClient() { Disconnect(); }
 
   bool IsReady() const;
-  bool Connect();
   void Disconnect();
 
   bool SendCommand(CDBReply* reply_msg, const char* format, ...);

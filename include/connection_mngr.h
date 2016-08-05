@@ -24,6 +24,7 @@ class ConnectionManager
     public:
     ConnectionManager(uint32_t timeout = 0);
     void SetupInactivityChecker(uint32_t timeout);
+    bool ConnectionExists(ClientID cid);
     void AddConnection(TcpConnection* conn);
     TcpConnection* GetConnection(ClientID cid);
     void RemoveConnection(ClientID cid);

@@ -45,7 +45,13 @@ struct IPAddress
   IPAddress(string ip = "", uint16_t port = 0) : ip_(ip), port_(port) {}
   string ToString() const
   {
-      char buffer[256] = {0};
+      char buffer[64] = {0};
+      snprintf(buffer, sizeof(buffer), "%s:%d", ip_.c_str(), port_);
+      return buffer;
+  }
+  string ToJSON() const
+  {
+      char buffer[64] = {0};
       snprintf(buffer, sizeof(buffer), "{ ip: %s, port: %d }", ip_.c_str(), port_);
       return buffer;
   }

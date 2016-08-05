@@ -100,6 +100,7 @@ void RedisAsyncClient::Disconnect()
 bool RedisAsyncClient::SendCommand(CDBReply* msg, const char* format, ...)
 {
   UNUSED(msg);
+  printf("[RedisAsyncClient::SendCommand] cmd: %s\n", format);
   if (!IsReady()) { return false; }
 
   OnReplyCallback default_on_reply_cb = std::bind(&RedisAsyncClient::DefaultOnReplyCb, this, std::placeholders::_1, std::placeholders::_2);
@@ -113,6 +114,7 @@ bool RedisAsyncClient::SendCommand(CDBReply* msg, const char* format, ...)
 
 bool RedisAsyncClient::SendCommand(const OnReplyCallback& reply_cb, const char* format, ...)
 {
+  printf("[RedisAsyncClient::SendCommand] cmd: %s\n", format);
   if (!IsReady()) { return false; }
 
   reply_cb_queue_.push(reply_cb);
@@ -185,11 +187,9 @@ void RedisAsyncClient::OnEvents(uint32_t events)
 
 void RedisAsyncClient::OnRedisReply(const redisAsyncContext* ctx, redisReply* reply)
 {
-  /*
   printf("[RedisAsyncClient::OnRedisReply] received reply, fd: %d\n"
       " reply: { type: %d, integer: %lld, len: %ld, str: %s, elements: %lu, element list: %p }\n",
       ctx->c.fd, reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
-  */
   RedisReply rmsg(reply);
   auto& reply_cb = reply_cb_queue_.front();
   reply_cb(this, &rmsg);
