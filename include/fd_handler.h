@@ -26,6 +26,8 @@ class IOEvent : public IEvent {
  public:
   void SetFD(int fd);
   int FD() const { return fd_; }
+  void WatchEvents(int fd, uint32_t events = IOEvent::READ | IOEvent::ERROR);
+  void UpdateEvents(uint32_t events);
 
   void AddReadEvent();
   void DeleteReadEvent();

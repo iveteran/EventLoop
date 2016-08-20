@@ -38,6 +38,22 @@ void IOEvent::SetFD(int fd) {
     }
   }
 }
+void IOEvent::WatchEvents(int fd, uint32_t events)
+{
+  SetEvents(events);
+  SetFD(fd);
+}
+void IOEvent::UpdateEvents(uint32_t events)
+{
+  if (ValidFD(fd_)) {
+    SetEvents(events);
+    if (el_) {
+      el_->UpdateEvent(this);
+    } else {
+      EV_Singleton->AddEvent(this);
+    }
+  }
+}
 void IOEvent::AddReadEvent() {
   if (el_ && !(events_ & IOEvent::READ))
   {
@@ -85,7 +101,7 @@ void IOEvent::DeleteErrorEvent() {
 void IOEvent::ClearAllEvents() {
   if (el_) {
     SetEvents(0);
-    el_->UpdateEvent(this);
+    el_->DeleteEvent(this);
   }
 }
 

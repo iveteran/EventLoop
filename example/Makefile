@@ -12,11 +12,19 @@ CXXFLAGS = -I../include \
            -I../plugin/db_api
 LDFLAGS = 
 
-DEP_LIBS = \
+DEP_LIBS += \
+           ../src/libel.a
+
+ifeq ($(ENABLE_CDB_API),1)
+DEP_LIBS += \
+			$(REDIS_SDK_PATH)/libhiredis.a 
+endif
+
+ifeq ($(ENABLE_DB_API),1)
+DEP_LIBS += \
            ../plugin/db_api/libdb_api.a \
-           ../src/libel.a \
-           $(REDIS_SDK_PATH)/libhiredis.a \
            -lpq
+endif
 
 CXX      = g++
 RM       = rm -f
@@ -30,12 +38,6 @@ TARGET_4_OBJS = pg_example.o
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $<
 
 .PHONY : all clean cleanall rebuild
-
-ifdef ENABLE_CDB_API
-all : $(TARGET_1) $(TARGET_2) $(TARGET_3) $(TARGET_4)
-else
-all : $(TARGET_1) $(TARGET_2)
-endif
 
 $(TARGET_1) : $(TARGET_1_OBJS) $(DEP_LIBS)
 	$(CXX) -o $(TARGET_1) $(TARGET_1_OBJS) $(DEP_LIBS) $(LDFLAGS)
