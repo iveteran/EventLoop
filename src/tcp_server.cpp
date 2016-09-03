@@ -21,10 +21,10 @@ TcpServer::TcpServer(const char *host, uint16_t port, MessageType msg_type, TcpC
 
 TcpServer::~TcpServer()
 {
-    Destory();
+    Destroy();
 }
 
-void TcpServer::Destory()
+void TcpServer::Destroy()
 {
     conn_map_.clear();
     close(fd_);

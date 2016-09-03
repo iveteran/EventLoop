@@ -22,7 +22,7 @@ class TcpServer: public IOEvent
 
     private:
     bool Start();
-    void Destory();
+    void Destroy();
 
     void OnEvents(uint32_t events);
     void OnNewClient(int fd, const IPAddress& peer_addr);

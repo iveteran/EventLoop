@@ -8,6 +8,11 @@
 namespace evt_loop {
 
 typedef uint32_t    ClientID;
+enum CM_ENUM {
+    CONNECTION_NOT_EXISTS,
+    CONNECTION_EXISTS_SAME,
+    CONNECTION_EXISTS_ANOTHER,
+};
 
 struct ConnectionContext
 {
@@ -24,10 +29,10 @@ class ConnectionManager
     public:
     ConnectionManager(uint32_t timeout = 0);
     void SetupInactivityChecker(uint32_t timeout);
-    bool ConnectionExists(ClientID cid);
+    CM_ENUM CheckConnectionExists(ClientID cid, TcpConnection* conn);
     void AddConnection(TcpConnection* conn);
     TcpConnection* GetConnection(ClientID cid);
-    void RemoveConnection(ClientID cid);
+    void RemoveConnection(ClientID cid, bool close_connection = false);
     void UpdateConnectionctivityTime(ClientID cid);
     void CloseInactivityConnection();
     void OnConnectionInactivityCb(PeriodicTimer* timer)

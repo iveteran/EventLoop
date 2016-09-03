@@ -41,6 +41,7 @@ class TcpConnection : public BufferIOEvent
     uint32_t        id_;
     IPAddress       local_addr_;
     IPAddress       peer_addr_;
+    bool            active_closing_;
 
     OnClosedCallback  creator_notification_cb_;
     TcpCallbacksPtr   tcp_evt_cbs_;

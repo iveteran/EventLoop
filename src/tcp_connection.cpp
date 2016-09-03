@@ -6,7 +6,7 @@ namespace evt_loop {
 
 TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr,
     const OnClosedCallback& close_cb, TcpCallbacksPtr tcp_evt_cbs) :
-  BufferIOEvent(fd), id_(0), local_addr_(local_addr), peer_addr_(peer_addr),
+  BufferIOEvent(fd), id_(0), local_addr_(local_addr), peer_addr_(peer_addr), active_closing_(false),
   creator_notification_cb_(close_cb), tcp_evt_cbs_(tcp_evt_cbs)
 {
     printf("[TcpConnection::TcpConnection] local_addr: %s, peer_addr: %s\n",
@@ -34,6 +34,7 @@ void TcpConnection::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
 
 void TcpConnection::Disconnect()
 {
+    active_closing_ = true;
     if (TxBuffEmpty())
         OnClosed();
     else
@@ -63,8 +64,13 @@ void TcpConnection::OnSent(const Message* msg)
 void TcpConnection::OnClosed()
 {
     printf("[TcpConnection::OnClosed] client leave, fd: %d\n", fd_);
-    if (tcp_evt_cbs_) tcp_evt_cbs_->on_closed_cb(this);
-    creator_notification_cb_(this);
+    if (active_closing_) {
+        creator_notification_cb_(this);  // NOTE: MUST run this line before Destroy()
+        Destroy();
+    } else {
+        if (tcp_evt_cbs_) tcp_evt_cbs_->on_closed_cb(this);
+        creator_notification_cb_(this);  // NOTE: MUST run this line after close callback
+    }
 }
 
 void TcpConnection::OnError(int errcode, const char* errstr)

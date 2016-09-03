@@ -26,9 +26,18 @@ void ConnectionManager::SetupInactivityChecker(uint32_t timeout)
     }
   }
 }
-bool ConnectionManager::ConnectionExists(ClientID cid)
+CM_ENUM ConnectionManager::CheckConnectionExists(ClientID cid, TcpConnection* conn)
 {
-    return m_client_map.find(cid) != m_client_map.end();
+    auto iter = m_client_map.find(cid);
+    if (iter != m_client_map.end())
+    {
+        if (iter->second->conn == conn)
+            return CONNECTION_EXISTS_SAME;
+        else
+            return CONNECTION_EXISTS_ANOTHER;
+    }
+    else
+        return CONNECTION_NOT_EXISTS;
 }
 void ConnectionManager::AddConnection(TcpConnection* conn)
 {
@@ -51,13 +60,15 @@ TcpConnection* ConnectionManager::GetConnection(ClientID cid)
     }
     return NULL;
 }
-void ConnectionManager::RemoveConnection(ClientID cid)
+void ConnectionManager::RemoveConnection(ClientID cid, bool close_connection)
 {
     printf("[ConnectionManager::RemoveConnection] cid: %u\n", cid);
     auto iter = m_client_map.find(cid);
     if (iter != m_client_map.end())
     {
         auto& conn_ctx = iter->second;
+        if (close_connection)
+            conn_ctx->conn->Disconnect();
         m_activity_map.erase(conn_ctx->act_time);
 
         m_client_map.erase(iter);
