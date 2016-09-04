@@ -1,7 +1,12 @@
-TARGET = libdb_api.a
+TARGET = pg_example
 
 CPPFLAGS = -g -Wall -std=c++0x
-CXXFLAGS = -I../../include
+CXXFLAGS = -I../../../include \
+		   -I..
+
+CXXLDFLAGS = -L../ -ldb_api \
+			 -L../../../src -lel \
+			 -lpq \
 
 CXX      = g++
 RM       = rm -f
@@ -13,10 +18,10 @@ SOURCES  = $(foreach d,$(SRCDIRS),$(wildcard $(addprefix $(d)/*,$(SRCEXTS))))
 OBJS     = $(foreach x,$(SRCEXTS), $(patsubst %$(x),%.o,$(filter %$(x),$(SOURCES))))
 DEPS     = $(patsubst %.o,%.d,$(OBJS))
 
-.PHONY : all clean cleanall rebuild examples
+.PHONY : all clean cleanall rebuild
 
 $(TARGET) : $(OBJS)
-	$(AR) $(TARGET) $(OBJS)
+	$(CXX) -o $(TARGET) $(OBJS) $(CXXLDFLAGS)
 
 %.d : %.cpp
 	@$(CXX) -MM -MD $(CXXFLAGS) $<
@@ -32,11 +37,6 @@ rebuild: clean all
 
 clean:
 	@$(RM) *.o *.d
-	make -C examples clean
 
 cleanall: clean
-	@$(RM) *.a
-	make -C examples cleanall
-
-examples:
-	make -C examples
+	@$(RM) $(TARGET)

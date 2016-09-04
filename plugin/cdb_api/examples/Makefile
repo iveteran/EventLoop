@@ -1,7 +1,16 @@
-TARGET = libdb_api.a
+TARGET = hiredis_example
+
+HIREDIS_LIB = ../../../../hiredis-ext
 
 CPPFLAGS = -g -Wall -std=c++0x
-CXXFLAGS = -I../../include
+CXXFLAGS = -I../../../include \
+					 -I $(HIREDIS_LIB) \
+					 -I..
+
+CXXLDFLAGS = -L../ -lcdb_api \
+			 -L../../../src -lel \
+			 $(HIREDIS_LIB)/libhiredis.a
+			 #-L $(HIREDIS_LIB) -lhiredis
 
 CXX      = g++
 RM       = rm -f
@@ -13,10 +22,10 @@ SOURCES  = $(foreach d,$(SRCDIRS),$(wildcard $(addprefix $(d)/*,$(SRCEXTS))))
 OBJS     = $(foreach x,$(SRCEXTS), $(patsubst %$(x),%.o,$(filter %$(x),$(SOURCES))))
 DEPS     = $(patsubst %.o,%.d,$(OBJS))
 
-.PHONY : all clean cleanall rebuild examples
+.PHONY : all clean cleanall rebuild
 
 $(TARGET) : $(OBJS)
-	$(AR) $(TARGET) $(OBJS)
+	$(CXX) -o $(TARGET) $(OBJS) $(CXXLDFLAGS)
 
 %.d : %.cpp
 	@$(CXX) -MM -MD $(CXXFLAGS) $<
@@ -32,11 +41,6 @@ rebuild: clean all
 
 clean:
 	@$(RM) *.o *.d
-	make -C examples clean
 
 cleanall: clean
-	@$(RM) *.a
-	make -C examples cleanall
-
-examples:
-	make -C examples
+	@$(RM) $(TARGET)
