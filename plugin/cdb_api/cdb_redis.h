@@ -34,7 +34,7 @@ class RedisReply : public CDBReply {
 
 class RedisAsyncClient : public CDBClient, public IOEvent {
   public:
-  RedisAsyncClient() : redis_ctx_(NULL), connected_(false) { }
+  RedisAsyncClient(bool auto_reconnect = true) : CDBClient(auto_reconnect), redis_ctx_(NULL), connected_(false) { }
   ~RedisAsyncClient();
   bool Init(const char* host, uint16_t port, const CDBCallbacksPtr& cdb_cbs = nullptr, bool auto_reconnect = true);
 
@@ -75,7 +75,7 @@ class RedisAsyncClient : public CDBClient, public IOEvent {
 
 class RedisClient : public CDBClient {
   public:
-  RedisClient() : redis_ctx_(NULL) { }
+  RedisClient(bool auto_reconnect = true) : CDBClient(auto_reconnect), redis_ctx_(NULL) { }
   ~RedisClient() { Disconnect(); }
 
   bool IsReady() const;

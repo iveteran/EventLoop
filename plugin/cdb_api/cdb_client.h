@@ -26,7 +26,10 @@ struct CDBCommand
 class CDBClient
 {
     public:
-    CDBClient() : auto_reconnect_(true), reconnect_timer_(std::bind(&CDBClient::OnReconnectTimer, this, std::placeholders::_1)) { }
+    CDBClient(bool auto_reconnect = true) :
+        auto_reconnect_(auto_reconnect),
+        reconnect_timer_(std::bind(&CDBClient::OnReconnectTimer, this, std::placeholders::_1))
+    { }
     virtual ~CDBClient();
 
     virtual bool Init(const char* host, uint16_t port, const CDBCallbacksPtr& cdb_cbs = nullptr, bool auto_reconnect = true);
