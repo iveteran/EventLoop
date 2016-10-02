@@ -39,27 +39,24 @@ class PGClient_Test {
     }
     assert(success);
 
-    vector<SQLParameter> params;
-    SQLParameter p1("100");
+    uint8_t array[16] = {0, 1, 2, 0xff, 0xa};
+
+    SQLParameter p1(2147483647);
     SQLParameter p2("hello");
-    params.push_back(p1);
-    params.push_back(p2);
+    SQLParameter p3((char*)array, sizeof(array), SQLParameter::BINARY);
 
     using namespace std::placeholders;
     DBResultCallback cb = std::bind(&PGClient_Test::on_insert_result, this, _1, _2, _3);
-    success = pg_client_.ExecuteSQLAsync("insert into test values ($1, $2)", params, cb, (void*)"test insert");
+    success = pg_client_.ExecuteSQLAsync("insert into test values ($1, $2, $3)", cb, (void*)"test insert", 3, &p1, &p2, &p3);
     assert(success);
-    params.clear();
 
     DBResultCallback cb2 = std::bind(&PGClient_Test::on_select_result, this, _1, _2, _3);
     success = pg_client_.ExecuteSQLAsync("select * from test", cb2, (void*)"test select");
     assert(success);
 
-    params.push_back(p1);
     DBResultCallback cb3 = std::bind(&PGClient_Test::on_delete_result, this, _1, _2, _3);
-    success = pg_client_.ExecuteSQLAsync("delete from test where id=$1", params, cb3, (void*)"test delete");
+    success = pg_client_.ExecuteSQLAsync("delete from test where id=$1", cb3, (void*)"test delete", 1, &p1);
     assert(success);
-    params.clear();
   }
 
   protected:
@@ -77,8 +74,7 @@ class PGClient_Test {
   void on_select_result(const DBError& error, DBResult* result, void* ctx) {
     bool success = !error.GetError();
     if (success) {
-      cout << (char*)ctx << endl;
-      assert(result->ColCount() == 2);
+      assert(result->ColCount() == 3);
       printf("[%s] select %d rows\n", (char*)ctx, result->AffectedRows());
       PrintResultset(result);
     } else {
@@ -91,7 +87,6 @@ class PGClient_Test {
     bool success = !error.GetError();
     if (success) {
       printf("[%s] delete %d rows\n", (char*)ctx, result->AffectedRows());
-      //assert(result->ColCount() == 2);
     } else {
       cout << "[on_delete_result] error: " << error.ToString() << endl;
     }

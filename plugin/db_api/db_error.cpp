@@ -22,6 +22,10 @@ DBError::DBError(const DBError& right) {
   *this = right;
 }
 
+void DBError::Clear() {
+  m_error = false;
+}
+
 bool DBError::GetError() const {
   return m_error;
 }

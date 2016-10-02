@@ -2,11 +2,12 @@ TARGET = pg_example
 
 CPPFLAGS = -g -Wall -std=c++0x
 CXXFLAGS = -I../../../include \
+		   -I/usr/pgsql-9.5/include \
 		   -I..
 
 CXXLDFLAGS = -L../ -ldb_api \
 			 -L../../../src -lel \
-			 -lpq \
+			 -L/usr/pgsql-9.5/lib/ -lpq \
 
 CXX      = g++
 RM       = rm -f

@@ -58,11 +58,8 @@ class PGClient: public DBConnection, public IOEvent
     bool BeginTransaction(const DBResultCallback& cb, void* ctx);
     bool CommitTransaction(const DBResultCallback& cb, void* ctx);
 
-    PGResult* ExecuteSQL(const char* sql, bool& success);
-    PGResult* ExecuteSQL(const char* sql, const vector<SQLParameter>& params, bool& success);
-
-    bool ExecuteSQLAsync(const char* sql, const DBResultCallback& cb, void* ctx);
-    bool ExecuteSQLAsync(const char* sql, const vector<SQLParameter>& params, const DBResultCallback& cb, void* ctx);
+    DBResult* ExecuteSQL(const char* sql, int pcount = 0, ...);
+    bool ExecuteSQLAsync(const char* sql, const DBResultCallback& cb, void* ctx, int pcount = 0, ...);
 
     bool AddSubscribeChannel(const char* channelName, const SubscribeCallback& cb);
     bool RemoveSubscribeChannel(const char* channelName);
@@ -106,13 +103,15 @@ class PGClient: public DBConnection, public IOEvent
     };
 
     struct QueryItem {
-      QueryItem(const char* sqlStmt, const vector<SQLParameter>& params, const DBResultCallback& c, void* cx) :
-        sqlQuery(sqlStmt), parameters(params), cb(c), ctx(cx)
-      { }
+      QueryItem(const char* sql, const DBResultCallback& c, void* cx, const vector<SQLParameter>* p = NULL) :
+        sqlQuery(sql), cb(c), ctx(cx)
+      {
+        if (p) params = *p;
+      }
       string ToString() const;
 
       string sqlQuery;
-      vector<SQLParameter> parameters;
+      vector<SQLParameter> params;
       DBResultCallback cb;
       void* ctx;
     };

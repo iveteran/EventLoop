@@ -22,6 +22,7 @@ class DBError
   DBError(bool error = false, const char* severity = NULL, const char* sqlstate = NULL,
       const char* message = NULL, const char* detail = NULL, const char* hint = NULL);
   DBError(const DBError&);
+  void Clear();
   bool GetError() const;
   const char* GetSeverity() const;
   const char* GetSQLState() const;
@@ -50,6 +51,9 @@ struct SQLParameter
 {
   enum Format { STRING, BINARY };
 
+  template<typename T>
+  SQLParameter(T value) : value_(std::to_string(value)), format_(STRING) { }
+
   SQLParameter(const char* value = NULL, int length = 0, Format format = STRING) {
     if (value != NULL) {
       if (length == 0 && format == STRING) {
@@ -60,7 +64,6 @@ struct SQLParameter
     format_ = format;
   }
   SQLParameter(const string& value, Format format = STRING) : value_(value), format_(format) { }
-  SQLParameter(int value) : value_(std::to_string(value)), format_(STRING) { }
   SQLParameter(const SQLParameter& right) {
     value_ = right.value_;
     format_ = right.format_;
@@ -126,10 +129,8 @@ class DBConnection
   virtual bool BeginTransaction(const DBResultCallback& cb, void *ctx) = 0;
   virtual bool CommitTransaction(const DBResultCallback& cb, void* ctx) = 0;
   virtual bool RollbackTransaction() = 0;
-  virtual DBResult* ExecuteSQL(const char* sql, bool& success) = 0;
-  virtual DBResult* ExecuteSQL(const char* sql, const vector<SQLParameter>& params, bool& success) = 0;
-  virtual bool ExecuteSQLAsync(const char* sql, const DBResultCallback& cb, void* ctx) = 0;
-  virtual bool ExecuteSQLAsync(const char* sql, const vector<SQLParameter>& params, const DBResultCallback& cb, void* ctx) = 0;
+  virtual DBResult* ExecuteSQL(const char* sql, int pcount = 0, ...) = 0;
+  virtual bool ExecuteSQLAsync(const char* sql, const DBResultCallback& cb, void* ctx, int pcount = 0, ...) = 0;
   virtual bool AddSubscribeChannel(const char* channelName, const SubscribeCallback& cb) = 0;
   virtual bool RemoveSubscribeChannel(const char* channelName) = 0;
 

@@ -1,18 +1,19 @@
 #include <sstream>
+#include <stdarg.h>
 #include "db_pgclient.h"
 
 namespace db_api {
 
 // Error Messages used inside PGClient class
-const   char*   INVALID_CONNECTION_STRING = "Invalid database connection string";
-const   char*   NOCONNECTION = "No database connection is made yet!";
-const   char*   CONNECTION_LOST = "Database connection is lost";
-const   char*   ERROREXEC = "Error occurred in executing";
-const   char*   CONNECTION_FAILED = "Connection to the database failed";
-const   char*   NO_NONBLOCKINGCALL_REQUESTED   = "There is no non-blocking sql query requested";
-const   char*   ALREADY_NONBLOCKINGCALL_REQUESTED   = "There is already another non-blocking sql query requested";
-const   char*   INVALID_TRANSACTION = "There is an already running transaction";
-const   char*   CANCELLED_REQUEST = "The request is cancelled due to rollback";
+const char* INVALID_CONNECTION_STRING = "Invalid database connection string";
+const char* NOCONNECTION = "No database connection is made yet!";
+const char* CONNECTION_LOST = "Database connection is lost";
+const char* ERROREXEC = "Error occurred in executing";
+const char* CONNECTION_FAILED = "Connection to the database failed";
+const char* NO_NONBLOCKINGCALL_REQUESTED   = "There is no non-blocking sql query requested";
+const char* ALREADY_NONBLOCKINGCALL_REQUESTED   = "There is already another non-blocking sql query requested";
+const char* INVALID_TRANSACTION = "There is an already running transaction";
+const char* CANCELLED_REQUEST = "The request is cancelled due to rollback";
 
 PGClient::PGClient(bool auto_reconnect)
   : m_pgconn(NULL), 
@@ -126,12 +127,11 @@ void PGClient::SetLastError( const char* severity, const char* sqlstate,
 
 bool PGClient::BeginTransaction(const DBResultCallback& cb, void* ctx) {
   printf("PGClient::beginTransaction start\n");
-  bool    success = false;
+  bool success = false;
   if (m_pgconn != NULL) {
     if (!m_transactionStarted) {
       m_last_cmd = BEGINTRANSACTION;
-      vector<SQLParameter>  params;
-      success = ExecuteSQLAsync("begin transaction", params, cb, ctx);
+      success = ExecuteSQLAsync("begin transaction", cb, ctx);
       if (success) {
         m_transactionStarted = success;
       } else {
@@ -151,11 +151,10 @@ bool PGClient::BeginTransaction(const DBResultCallback& cb, void* ctx) {
 
 bool PGClient::CommitTransaction(const DBResultCallback& cb, void* ctx) {
   printf("PGClient::commitTransaction start\n");
-  bool    success = false;
+  bool success = false;
   if (m_pgconn != NULL) {
     m_last_cmd = COMMITTRANSACTION;
-    vector<SQLParameter>  params;
-    success = ExecuteSQLAsync("commit transaction", params, cb, ctx);
+    success = ExecuteSQLAsync("commit transaction", cb, ctx);
   } else {
     //m_last_error = NOCONNECTION;
     SetLastError("ERROR", "08006", NOCONNECTION);
@@ -205,11 +204,10 @@ bool PGClient::RollbackTransaction() {
       CancelCurrentQuery();
     }
 
-    vector<SQLParameter>  params;
-    DBResult*  rst = ExecuteSQL("rollback transaction", params, success);
-    if (rst != NULL) {
+    DBResult* result = ExecuteSQL("rollback transaction");
+    if (result != NULL) {
       success = true;
-      delete rst;
+      delete result;
     }
 
     if (GetWaitingSQLCount() > 0) {
@@ -225,19 +223,15 @@ bool PGClient::RollbackTransaction() {
   return  success;
 }
 
-PGResult* PGClient::ExecuteSQL(const char* sql, bool& success) {
-  vector<SQLParameter> params;
-  return ExecuteSQL(sql, params, success);
-}
-
-PGResult* PGClient::ExecuteSQL(const char* sql, const vector<SQLParameter>& params, bool& success) {
+DBResult* PGClient::ExecuteSQL(const char* sql, int pcount, ...) {
   printf("PGClient::ExecuteSQL start %s\n", SAFE_STRING(sql));
-  PGResult*  result = 0;
-  success = false;
+  bool success = false;
+  PGResult* result = NULL;
+  m_dberror.Clear();
 
   if (m_pgconn != NULL) {
     const char**  paramsValue = (const char**)NULL;
-    int     paramsCount = params.size();
+    int     paramsCount = pcount;
     int*    paramLengths = NULL;
     int*    paramFormats = NULL;
 
@@ -245,11 +239,15 @@ PGResult* PGClient::ExecuteSQL(const char* sql, const vector<SQLParameter>& para
       paramsValue = new const char*[paramsCount];
       paramLengths = new int[paramsCount];
       paramFormats = new int[paramsCount];
+      va_list vl;
+      va_start(vl, pcount);
       for (int i = 0; i < paramsCount; i++) {
-        paramsValue[i] = params[i].value_.data();
-        paramLengths[i] = params[i].value_.size();
-        paramFormats[i] = params[i].format_;
+        SQLParameter* param = va_arg(vl, SQLParameter*);
+        paramsValue[i] = param->value_.data();
+        paramLengths[i] = param->value_.size();
+        paramFormats[i] = param->format_;
       }
+      va_end(vl);
     }
 
     PGresult* res = PQexecParams(m_pgconn,
@@ -287,7 +285,7 @@ PGResult* PGClient::ExecuteSQL(const char* sql, const vector<SQLParameter>& para
   }
 
   printf("PGClient::ExecuteSQL end %d\n", success);
-  return  result;
+  return result;
 }
 
 bool PGClient::SendNextQueryAsync()
@@ -301,16 +299,16 @@ bool PGClient::SendNextQueryAsync()
     const char**  paramsValue = (const char**)NULL;
     int*    paramLengths = (int*)NULL;
     int*    paramFormats = (int*)NULL;
-    int     paramsCount = qitem.parameters.size();
+    int     paramsCount = qitem.params.size();
 
     if (paramsCount > 0) {
       paramsValue = new const char*[paramsCount];
       paramLengths = new int[paramsCount];
       paramFormats = new int[paramsCount];
       for (int i = 0; i < paramsCount; i++) {
-        paramsValue[i] = qitem.parameters[i].value_.data();
-        paramLengths[i] = qitem.parameters[i].value_.size();
-        paramFormats[i] = qitem.parameters[i].format_;
+        paramsValue[i] = qitem.params[i].value_.data();
+        paramLengths[i] = qitem.params[i].value_.size();
+        paramFormats[i] = qitem.params[i].format_;
       }
     }
     printf("[PGClient::SendNextQueryAsync] Execute: %s\n", qitem.ToString().c_str());
@@ -356,14 +354,18 @@ bool PGClient::SendNextQueryAsync()
   return  success;
 }
 
-bool PGClient::ExecuteSQLAsync(const char* sql, const DBResultCallback& cb, void* ctx) {
-  vector<SQLParameter> dummy;
-  return ExecuteSQLAsync(sql, dummy, cb, ctx);
-}
-
-bool PGClient::ExecuteSQLAsync(const char* sql, const vector<SQLParameter>& params, const DBResultCallback& cb, void* ctx) {
+bool PGClient::ExecuteSQLAsync(const char* sql, const DBResultCallback& cb, void* ctx, int pcount, ...) {
   bool success = true;
-  m_queryQueue.push(QueryItem(sql, params, cb, ctx));
+  m_dberror.Clear();
+  QueryItem qry_item(sql, cb, ctx);
+  va_list vl;
+  va_start(vl, pcount);
+  for (int i=0; i<pcount; i++) {
+    SQLParameter* val = va_arg(vl, SQLParameter*);
+    qry_item.params.push_back(*val);
+  }
+  va_end(vl);
+  m_queryQueue.push(qry_item);
   if (m_queryQueue.size() == 1) {
     success = SendNextQueryAsync();
     if (!success) {
@@ -372,7 +374,6 @@ bool PGClient::ExecuteSQLAsync(const char* sql, const vector<SQLParameter>& para
     }
   }
 
-  // printf("PGClient::ExecuteSQLAsync end %d\n", success);
   return  success;
 }
 
@@ -454,42 +455,40 @@ PGResult* PGClient::PollResultSet(bool& success) {
   return  rst;
 }
 
-bool PGClient::AddSubscribeChannel(const char*  channelName, const SubscribeCallback& cb) {
-  printf("PGClient::addSubscribeChannel start: channelName [%s]\n", SAFE_STRING(channelName));
+bool PGClient::AddSubscribeChannel(const char* channelName, const SubscribeCallback& cb) {
+  printf("PGClient::AddSubscribeChannel start: channelName [%s]\n", SAFE_STRING(channelName));
+  if (channelName == NULL) return false;
   bool success = false;
   stringstream ss;
   ss << "LISTEN " << channelName;
-  string tmpSQL = ss.str();
-
-  PGResult* tmpResult = ExecuteSQL(tmpSQL.c_str(), success);
-  if (tmpResult != NULL) {
+  string sql = ss.str();
+  // Refer to addSubscribeChannel function for calling either blocking call or nonblocking call.
+  DBResult* result = ExecuteSQL(sql.c_str());
+  if (result != NULL) {
     m_last_cmd = SUBSCRIBE;
-    delete tmpResult;
+    delete result;
 
-    // Now add new subscibe callback function
-    tmpSQL = channelName;
-    m_subscribeMap[tmpSQL] = cb;
+    m_subscribeMap[channelName] = cb;
+    success = true;
   }
   printf("PGClient::addSubscribeChannel end: %d\n", success);
   return  success;
 }
 
-bool PGClient::RemoveSubscribeChannel(const char*   channelName) {
-  printf("PGClient::removeSubscribeChannel start: channelName [%s]\n", channelName);
-  bool    success = false;
-
+bool PGClient::RemoveSubscribeChannel(const char* channelName) {
+  printf("PGClient::RemoveSubscribeChannel start: channelName [%s]\n", SAFE_STRING(channelName));
+  if (channelName == NULL) return false;
+  bool success = false;
   stringstream ss;
   ss << "UNLISTEN " << channelName;
-  string  tmpSQL = ss.str();
-  // Refer to addSubscribeChannel function for calling either blocking call or nonblocking call.
-  PGResult*  tmpResult = ExecuteSQL(tmpSQL.c_str(), success);
-  if (tmpResult != NULL) {
+  string sql = ss.str();
+  DBResult* result = ExecuteSQL(sql.c_str());
+  if (result != NULL) {
     m_last_cmd = UNSUBSCRIBE;
-    delete tmpResult;
+    delete result;
 
-    // Now remove subscibe callback function regardless of success or failure
-    tmpSQL = channelName;
-    m_subscribeMap.erase(tmpSQL);
+    m_subscribeMap.erase(channelName);
+    success = true;
   }
   printf("PGClient::removeSubscribeChannel end: %d\n", success);
   return  success;
@@ -605,10 +604,10 @@ void PGClient::OnReconnectTimer(PeriodicTimer* timer)
 string PGClient::QueryItem::ToString() const
 {
   stringstream ss;
-  ss << "{ sql: " << sqlQuery << ", parameters: [";
-  size_t params_size = parameters.size();
+  ss << "{ sql: " << sqlQuery << ", params: [";
+  size_t params_size = params.size();
   for (size_t i=0; i<params_size; i++) {
-    ss << "'" << parameters[i].ToString() << "'";
+    ss << "'" << params[i].ToString() << "'";
     if (i != params_size - 1)
       ss << ", ";
   }
