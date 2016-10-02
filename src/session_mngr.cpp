@@ -51,7 +51,17 @@ void TimeoutSessionManager::RemoveSession(SessionID sid)
             uint32_t elapse = time(NULL) - sess_ptr->m_ctime;
             sess_ptr->m_finish_action(sess_ptr.get(), elapse);
         }
-        m_sess_timeout_map.erase(sess_ptr->m_ctime);
+
+        auto found_range = m_sess_timeout_map.equal_range(sess_ptr->m_ctime);
+        for (auto iter = found_range.first; iter != found_range.second; ++iter)
+        {
+            auto& sess_ptr = iter->second;
+            if (sess_ptr->m_id == sid)
+            {
+                m_sess_timeout_map.erase(iter);
+                break;
+            }
+        }
 
         m_session_map.erase(iter);
     }

@@ -137,7 +137,7 @@ int BufferIOEvent::SendData(uint32_t& events) {
   while (!tx_msg_mq_.Empty()) {
     const MessagePtr& tx_msg = tx_msg_mq_.First();
     uint32_t tosend = tx_msg->Size();
-    int len = write(fd_, tx_msg->Data().data() + sent_, tosend - sent_);
+    int len = send(fd_, tx_msg->Data().data() + sent_, tosend - sent_, MSG_NOSIGNAL);
     printf("[BufferIOEvent::SendData] ts: %ld, fd [%d] to send bytes: %d, sent: %d\n", Now(), fd_, tosend - sent_, len);
     if (len < 0) {
       events |= IOEvent::ERROR;
@@ -180,13 +180,17 @@ void BufferIOEvent::OnEvents(uint32_t events) {
 
 void BufferIOEvent::Send(const Message& msg) {
   MessagePtr msg_ptr = CreateMessage(msg);
+  if (msg_ptr) {
 #ifdef _BINARY_MSG_EXTEND_PACKAGING
-  if (msg_type_ == MessageType::BINARY) {
-    BinaryMessage* bmsg = static_cast<BinaryMessage*>(msg_ptr.get());
-    bmsg->Header()->msg_id = ++msg_seq_;
-  }
+    if (msg_type_ == MessageType::BINARY) {
+      BinaryMessage* bmsg = static_cast<BinaryMessage*>(msg_ptr.get());
+      bmsg->Header()->msg_id = ++msg_seq_;
+    }
 #endif
-  SendInner(msg_ptr);
+    SendInner(msg_ptr);
+  } else {
+    printf("[BufferIOEvent::Send] Create message failed");
+  }
 }
 
 void BufferIOEvent::Send(const string& data, bool bmsg_has_hdr) {
@@ -199,21 +203,29 @@ void BufferIOEvent::SendMore(const string& data) {
 
 void BufferIOEvent::Send(const char *data, uint32_t len, bool bmsg_has_hdr) {
   MessagePtr msg_ptr = CreateMessage(msg_type_, data, len, bmsg_has_hdr);
-  if (msg_type_ == MessageType::BINARY) {
-    BinaryMessage* bmsg = static_cast<BinaryMessage*>(msg_ptr.get());
+  if (msg_ptr) {
+    if (msg_type_ == MessageType::BINARY) {
+      BinaryMessage* bmsg = static_cast<BinaryMessage*>(msg_ptr.get());
 #ifdef _BINARY_MSG_EXTEND_PACKAGING
-    bmsg->Header()->msg_id = ++msg_seq_;
+      bmsg->Header()->msg_id = ++msg_seq_;
 #endif
-    printf("[BufferIOEvent::Send] HDR: %s\n", bmsg->Header()->ToString().c_str());
+      printf("[BufferIOEvent::Send] HDR: %s\n", bmsg->Header()->ToString().c_str());
+    }
+    printf("[BufferIOEvent::Send] message size: %ld\n", msg_ptr->Size());
+    SendInner(msg_ptr);
+  } else {
+    printf("[BufferIOEvent::Send] Create message failed");
   }
-  printf("[BufferIOEvent::Send] message size: %ld\n", msg_ptr->Size());
-  SendInner(msg_ptr);
 }
 
 void BufferIOEvent::SendMore(const char *data, uint32_t len) {
   MessagePtr msg_ptr = CreateMessage(msg_type_, data, len, BinaryMessage::HAS_HDR);
-  printf("[BufferIOEvent::Send] message size: %ld\n", msg_ptr->Size());
-  SendInner(msg_ptr);
+  if (msg_ptr) {
+    printf("[BufferIOEvent::SendMore] message size: %ld\n", msg_ptr->Size());
+    SendInner(msg_ptr);
+  } else {
+    printf("[BufferIOEvent::SendMore] Create message failed");
+  }
 }
 
 void BufferIOEvent::SendInner(const MessagePtr& msg) {

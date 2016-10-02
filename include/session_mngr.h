@@ -2,6 +2,7 @@
 #define _SESSION_MNGR_H
 
 #include <memory>
+#include "eventloop.h"
 #include "timer_handler.h"
 
 namespace evt_loop {
@@ -17,7 +18,7 @@ struct TimeoutSession
     friend TimeoutSessionManager;
 
     public:
-    TimeoutSession() : m_id(0), m_ctime(0) {}
+    TimeoutSession() : m_id(0), m_ctime(Now()) {}
 
     void SetID(SessionID id) { m_id = id; }
     SessionID GetID() const { return m_id; }
@@ -38,13 +39,14 @@ class TimeoutSessionManager
     void AddSession(const TimeoutSessionPtr& sess);
     TimeoutSession* GetSession(SessionID sid);
     void RemoveSession(SessionID cid);
+    uint32_t GetSessionNumber() const { return m_session_map.size(); }
 
     protected:
     void CheckSessionTimeoutCb(PeriodicTimer* timer);
 
     private:
-    std::map<SessionID, TimeoutSessionPtr>  m_session_map;
-    std::map<time_t, TimeoutSessionPtr>  m_sess_timeout_map;
+    std::map<SessionID, TimeoutSessionPtr>      m_session_map;
+    std::multimap<time_t, TimeoutSessionPtr>    m_sess_timeout_map;
 
     uint32_t m_timeout;
     PeriodicTimer m_timeout_checker;

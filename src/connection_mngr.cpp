@@ -41,7 +41,7 @@ CM_ENUM ConnectionManager::CheckConnectionExists(ClientID cid, TcpConnection* co
 }
 void ConnectionManager::AddConnection(TcpConnection* conn)
 {
-    printf("[ConnectionManager::AddConnection] cid: %u\n", conn->ID());
+    printf("[ConnectionManager::AddConnection] cid: %u, fd: %d\n", conn->ID(), conn->FD());
     if (m_client_map.find(conn->ID()) != m_client_map.end())
     {
         printf("[ConnectionManager::AddConnection] client (cid: %u) is exists, dosn't add again!\n", conn->ID());
