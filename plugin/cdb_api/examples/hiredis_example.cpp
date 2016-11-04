@@ -56,6 +56,25 @@ class RedisClient_Test {
     assert(reply->type == REDIS_REPLY_ARRAY);
     rmsg.ReleaseReplyObject();
 
+    /// test for binary data
+    char my_binary_data[] = {'x', 'y', 'z', 0x11, 0x00, 'a', 'b', 'c'};
+    success = m_client.SendCommand(&rmsg, "set my_binary_data %b", &my_binary_data, sizeof(my_binary_data));
+    assert(success);
+    reply = (const redisReply*)rmsg.GetReply();
+    printf("[RedisClient_Test] received reply: { type: %d, integer: %lld, len: %ld, str: %s, elements: %lu, element list: %p }\n",
+        reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
+    assert(reply->type == REDIS_REPLY_STATUS);
+    rmsg.ReleaseReplyObject();
+
+    success = m_client.SendCommand(&rmsg, "get my_binary_data");
+    assert(success);
+    reply = (const redisReply*)rmsg.GetReply();
+    printf("[RedisClient_Test] received reply: { type: %d, integer: %lld, len: %ld, str: %p, elements: %lu, element list: %p }\n",
+        reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
+    assert(reply->type == REDIS_REPLY_STRING);
+    rmsg.ReleaseReplyObject();
+    // end test for binary data
+
     printf("--- All RedisClient tests passed!\n\n");
   }
 
@@ -138,14 +157,20 @@ class RedisAsyncClient_Test {
         assert(success);
         success = client->SendCommand(NULL, "SET mykey2 %s", TEST_STRING_2);
         assert(success);
-        success = client->SendCommand(NULL, "LPUSH mylist china guangdong shenzhen");
+        const char* str_1 = "china";
+        const char* str_2 = "guangdong";
+        const char* str_3 = "shenzhen";
+        success = client->SendCommand(NULL, "LPUSH mylist %s %s %s", str_1, str_2, str_3);
         assert(success);
-        success = client->SendCommand(NULL, "HMSET myhash username yufangbin password 123456 status 1");
+        const char* username = "yufangbin";
+        const char* password = "abc123";
+        int status = 1;
+        success = client->SendCommand(NULL, "HMSET myhash username %s password %s status %d", username, password, status);
         assert(success);
 
         success = client->SendCommand(getkey_reply_cb_, "GET mykey");
         assert(success);
-        success = client->SendCommand(lrange_reply_cb_, "LRANGE mylist 0 -1");
+        success = client->SendCommand(lrange_reply_cb_, "LRANGE mylist %d %d", 0, -1);
         assert(success);
         success = client->SendCommand(hgetall_reply_cb_, "HGETALL myhash");
         assert(success);
