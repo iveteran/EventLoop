@@ -1,5 +1,14 @@
 #include "cdb_redis.h"
 
+#define PRINT_COMMAND(prefix_str, format, ap) { \
+  printf("[%s] ", prefix_str);                  \
+  va_list ap;                                   \
+  va_start(ap, format);                         \
+  vprintf(format, ap);                          \
+  printf("\n");                                 \
+  va_end(ap);                                   \
+  }
+
 namespace cdb_api {
 
 const char* ERR_CONNECTION_NOT_READY = "RedisClient: client is not connected";
@@ -100,7 +109,7 @@ void RedisAsyncClient::Disconnect()
 bool RedisAsyncClient::SendCommand(CDBReply* msg, const char* format, ...)
 {
   UNUSED(msg);
-  printf("[RedisAsyncClient::SendCommand] cmd: %s\n", format);
+  PRINT_COMMAND("RedisAsyncClient::SendCommand", format, _ap);
   if (!IsReady()) { return false; }
 
   OnReplyCallback default_on_reply_cb = std::bind(&RedisAsyncClient::DefaultOnReplyCb, this, std::placeholders::_1, std::placeholders::_2);
@@ -114,7 +123,7 @@ bool RedisAsyncClient::SendCommand(CDBReply* msg, const char* format, ...)
 
 bool RedisAsyncClient::SendCommand(const OnReplyCallback& reply_cb, const char* format, ...)
 {
-  printf("[RedisAsyncClient::SendCommand] cmd: %s\n", format);
+  PRINT_COMMAND("RedisAsyncClient::SendCommand", format, _ap);
   if (!IsReady()) { return false; }
 
   reply_cb_queue_.push(reply_cb);
@@ -263,8 +272,11 @@ void RedisClient::Disconnect()
   }
 }
 
+
 bool RedisClient::SendCommand(CDBReply* msg, const char* format, ...)
 {
+  PRINT_COMMAND("RedisClient::SendCommand", format, _ap);
+
   if (!IsReady()) { return false; }
 
   va_list ap;
@@ -277,7 +289,7 @@ bool RedisClient::SendCommand(CDBReply* msg, const char* format, ...)
 
 bool RedisClient::SendCommand(const OnReplyCallback& reply_cb, const char* format, ...)
 {
-  snprintf(m_errstr, sizeof(m_errstr), "RedisClient: api not implemented");
+  snprintf(m_errstr, sizeof(m_errstr), "[RedisClient::SendCommand]: api not implemented");
   return false;
 }
 
