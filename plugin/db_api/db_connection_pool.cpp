@@ -6,10 +6,11 @@ namespace db_api {
 
 DBConnectionPool* DBConnectionPool::m_instance = NULL;
 
-DBConnectionPool* DBConnectionPool::Create(const str2strmap& conn_info, size_t size, DBFactory::DBType type)
+DBConnectionPool* DBConnectionPool::Create(const str2strmap& conn_info, const DBCallbacksPtr& db_cbs,
+    size_t size, DBFactory::DBType type)
 {
   if(!m_instance) {
-    m_instance = new DBConnectionPool(conn_info, size, type);
+    m_instance = new DBConnectionPool(conn_info, db_cbs, size, type);
   }
   return m_instance;
 }
@@ -25,7 +26,7 @@ size_t DBConnectionPool::Resize(int delta)
       conn= DBFactory::CreateDBConnection(m_type);
 
       if(i < SZ_DFLT)
-        conn->Connect(m_conn_info);
+        conn->Connect();
       m_pool.push_back(conn);
       m_shadow_pool.insert(conn);
       m_size++;
@@ -59,16 +60,17 @@ bool DBConnectionPool::Reset(size_t newSize)
   return true;
 }
 
-DBConnectionPool::DBConnectionPool(const str2strmap& conn_info, size_t size, DBFactory::DBType type):
-  m_conn_info(conn_info), m_size(0), m_type(type)
+DBConnectionPool::DBConnectionPool(const str2strmap& conn_info, const DBCallbacksPtr& db_cbs,
+    size_t size, DBFactory::DBType type) :
+  m_conn_info(conn_info), m_db_cbs(db_cbs), m_size(0), m_type(type)
 {
   DBConnection* conn = 0;
-  for(size_t i = 0; i < size; ++i) {
-    if(m_size >= SZ_MAX)
+  for (size_t i = 0; i < size; ++i) {
+    if (m_size >= SZ_MAX)
       break;
     conn = DBFactory::CreateDBConnection(m_type);
-    if(i < SZ_DFLT)
-      conn->Connect(m_conn_info);
+    if (i < SZ_DFLT)
+      conn->Init(m_conn_info, m_db_cbs);
     m_pool.push_back(conn);
     m_shadow_pool.insert(conn);
     m_size++;
@@ -119,7 +121,7 @@ DBConnection* DBConnectionPool::GetExclusive()
   if(!m_pool.empty()) {
     conn = m_pool.front();
     if(!conn->IsConnected()) {
-      conn->Connect(m_conn_info);
+      conn->Init(m_conn_info, m_db_cbs);
     }
     m_pool.pop_front();
   }
@@ -138,7 +140,7 @@ DBConnection* DBConnectionPool::GetShared()
         DBConnectionPool::LeastShared);
     conn = *it;
     if (!conn->IsConnected()) {
-      conn->Connect(m_conn_info);
+      conn->Init(m_conn_info, m_db_cbs);
     }
   }
 

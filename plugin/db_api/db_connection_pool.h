@@ -20,14 +20,14 @@ class DBConnectionPool
   public:
     enum t_access { EXL, SHR };
 
-    static DBConnectionPool* Create(const str2strmap& conn_info,
+    static DBConnectionPool* Create(const str2strmap& conn_info, const DBCallbacksPtr& db_cbs,
         size_t size = DBConnectionPool::SZ_DFLT,
         DBFactory::DBType type = DBFactory::POSTGRESQL);
     static void Destroy();
 
     size_t Resize(int delta);
     bool Reset(size_t newSize);
-    DBConnection* GetConnection(t_access access = EXL);	    
+    DBConnection* GetConnection(t_access access = EXL);
     DBConnection* LookupConnection(DBConnection* conn );
     void ReleaseConnection(DBConnection* conn);
     int TotalSlotsCount() const { return m_size; }
@@ -42,18 +42,20 @@ class DBConnectionPool
 
     static DBConnectionPool* m_instance;
 
-    DBConnectionPool(const str2strmap& conn_info, size_t size, DBFactory::DBType type);	
+    DBConnectionPool(const str2strmap& conn_info, const DBCallbacksPtr& db_cbs,
+            size_t size, DBFactory::DBType type);
     DBConnectionPool(const DBConnectionPool&);
-    DBConnectionPool& operator=(const DBConnectionPool&);	
+    DBConnectionPool& operator=(const DBConnectionPool&);
     ~DBConnectionPool();
 
-    DBConnection* GetExclusive();	    
-    DBConnection* GetShared();	    
+    DBConnection* GetExclusive();
+    DBConnection* GetShared();
 
     list<DBConnection*>   m_pool;
     set<DBConnection*>    m_shadow_pool;
     list<DBConnection*>   m_shared_pool;
     const str2strmap      m_conn_info;
+    const DBCallbacksPtr  m_db_cbs;
     size_t                m_size;
     DBFactory::DBType     m_type;
 };

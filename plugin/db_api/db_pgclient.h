@@ -48,8 +48,12 @@ class PGClient: public DBConnection, public IOEvent
     PGClient(bool auto_connect = true);
     ~PGClient();
 
-    bool Connect(const char* conn_uri);
-    bool Connect(const str2strmap& connInfo);
+    void Cleanup();
+    void SetCallbacks(const DBCallbacksPtr& db_cbs);
+
+    bool Init(const char* conn_uri, const DBCallbacksPtr& db_cbs, bool with_connect = true);
+    bool Init(const str2strmap& conn_dict, const DBCallbacksPtr& db_cbs, bool with_connect = true);
+    bool Connect();
     void Disconnect();
     bool RollbackTransaction();
 
@@ -70,6 +74,8 @@ class PGClient: public DBConnection, public IOEvent
     bool IsInTransactionBlock();
     bool CancelCurrentQuery();
 
+    const string& GetConnectionStr() const { return m_conn_str; }
+
   private:
     bool Connect_();
     void Reconnect();
@@ -84,8 +90,12 @@ class PGClient: public DBConnection, public IOEvent
     void ReadBytes();
     void WriteBytes();
     void OnEvents(uint32_t events);  // implements IOEvent::OnEvents(uint32_t)
+    void RemoveFDHandler();
 
     void OnReconnectTimer(PeriodicTimer* timer);
+    void OnConnected();
+    void OnClosed();
+    void OnError(int errcode, const char* errstr);
 
   private:
     PGClient& operator=(const PGClient& rhs);
@@ -93,6 +103,7 @@ class PGClient: public DBConnection, public IOEvent
 
   private:
     enum SQLCommand {
+      UNKNOWN,
       CONNECT,
       BEGINTRANSACTION,
       COMMITTRANSACTION,

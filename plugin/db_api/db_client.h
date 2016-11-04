@@ -7,6 +7,7 @@
 #include <vector>
 #include <iostream>
 #include <functional>
+#include "db_callbacks.h"
 
 using namespace std;
 
@@ -118,8 +119,9 @@ class DBConnection
 {
   public:
   virtual ~DBConnection() {}
-  virtual bool Connect(const char* conn_uri) = 0;
-  virtual bool Connect(const str2strmap& conn_dict) = 0;
+  virtual bool Init(const char* conn_uri, const DBCallbacksPtr& db_cbs, bool with_connect = true) = 0;
+  virtual bool Init(const str2strmap& conn_dict, const DBCallbacksPtr& db_cbs, bool with_connect = true) = 0;
+  virtual bool Connect () = 0;
   virtual void Disconnect () = 0;
   virtual bool IsConnected() = 0;
   virtual int GetWaitingSQLCount() = 0;
@@ -135,6 +137,9 @@ class DBConnection
   virtual bool RemoveSubscribeChannel(const char* channelName) = 0;
 
   virtual const DBError&  GetLastError() = 0;
+
+  protected:
+  DBCallbacksPtr  m_db_cbs;
 };
 
 } // namespace db_api

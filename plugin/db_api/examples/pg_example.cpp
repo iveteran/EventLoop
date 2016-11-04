@@ -24,21 +24,26 @@ class PGClient_Test {
   public:
   PGClient_Test()
   {
-    bool success = false;
+    DBCallbacksPtr db_cbs = std::make_shared<DBCallbacks>();
+    db_cbs->on_connected_cb = std::bind(&PGClient_Test::OnConnectionCreated, this, std::placeholders::_1);
 #if 0
     map<string, string> conn_info;
     conn_info["user"] = "postgres";
     conn_info["dbname"] = "postgres";
     conn_info["password"] = "postgres";
-    success = pg_client_.Connect(conn_info);
+    success = pg_client_.Init(conn_info, db_cbs);
 #else
-    success = pg_client_.Connect("postgresql://postgres:postgres@localhost/postgres");
+    bool success = pg_client_.Init("postgresql://postgres:postgres@localhost/postgres", db_cbs);
 #endif
     if (!success) {
       cout << "connect failed: " << pg_client_.GetLastError().ToString() << endl;
     }
-    assert(success);
+  }
 
+  protected:
+  void OnConnectionCreated(DBConnection* db_conn)
+  {
+    bool success = false;
     uint8_t array[16] = {0, 1, 2, 0xff, 0xa};
 
     SQLParameter p1(2147483647);
@@ -59,7 +64,6 @@ class PGClient_Test {
     assert(success);
   }
 
-  protected:
   void on_insert_result(const DBError& error, DBResult* result, void* ctx) {
     bool success = !error.GetError();
     if (success) {
@@ -92,7 +96,8 @@ class PGClient_Test {
     }
     assert(success);
 
-    EV_Singleton->StopLoop();
+    //EV_Singleton->StopLoop();
+    cout << "TEST DONE, Press Ctrl-C to Exit." << endl;
   }
 
 
