@@ -77,7 +77,8 @@ int EventLoop::ProcessEvents(int timeout) {
       uint32_t events = 0;
       if (evs_[i].events & EPOLLIN) events |= IOEvent::READ;
       if (evs_[i].events & EPOLLOUT) events |= IOEvent::WRITE;
-      if (evs_[i].events & (EPOLLHUP | EPOLLRDHUP | EPOLLERR)) events |= IOEvent::ERROR;
+      if (evs_[i].events & EPOLLRDHUP) events |= IOEvent::CLOSED;
+      if (evs_[i].events & (EPOLLHUP | EPOLLERR)) events |= IOEvent::ERROR;
       e->OnEvents(events);
     }
   }
@@ -120,7 +121,8 @@ int EventLoop::SetEvent(IOEvent *e, int op)
   ev.events = 0;
   if (events & IOEvent::READ) ev.events |= EPOLLIN;
   if (events & IOEvent::WRITE) ev.events |= EPOLLOUT;
-  if (events & IOEvent::ERROR) ev.events |= EPOLLHUP | EPOLLRDHUP | EPOLLERR;
+  if (events & IOEvent::CLOSED) ev.events |= EPOLLRDHUP;
+  if (events & IOEvent::ERROR) ev.events |= EPOLLHUP | EPOLLERR;
   //ev.data.fd = e->fd_;
   ev.data.ptr = e;
 

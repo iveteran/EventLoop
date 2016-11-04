@@ -68,7 +68,6 @@ class RedisAsyncClient : public CDBClient, public IOEvent {
   private:
   redisAsyncContext*  redis_ctx_;
   bool connected_;
-  //CDBCallbacksPtr     cdb_cbs_;
   CDBReplyCallbackQueue   reply_cb_queue_;
   char m_errstr[256];
 };

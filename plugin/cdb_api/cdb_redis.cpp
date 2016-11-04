@@ -172,10 +172,12 @@ void RedisAsyncClient::OnEvents(uint32_t events)
   if (events & IOEvent::READ) {
     redisAsyncHandleRead(redis_ctx_);
   }
+  if (events & IOEvent::CLOSED) {
+    HandleDisconnect();
+  }
   if (HasError()) {
     if (redis_ctx_->err == REDIS_ERR_EOF) {
       HandleDisconnect();
-      OnError(this, redis_ctx_->err, redis_ctx_->errstr);
     } else if (redis_ctx_->err == REDIS_ERR_IO) {
       OnError(this, errno, strerror(errno));
     }
