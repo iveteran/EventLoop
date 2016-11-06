@@ -30,8 +30,8 @@ int main()
     http_request_2->EnableVerbose();
 
     SMTPRequest* smtp_request = url_reactor.NewSMTPRequest("smtp://smtp.163.com", on_result);
-    smtp_request->SetLogin("j_p_ing@163.com", "ruishi123");
-    smtp_request->SetMail("j_p_ing@163.com", "yufb116689@hanslaser.com", "test by url_api", "test, mail content");
+    smtp_request->SetLogin("you_test_examples_123@163.com", "test_123");
+    smtp_request->SetMail("you_test_examples_123@163.com", "32111580@qq.com", "test by url_api", "test, mail content");
     smtp_request->EnableSSL();
     smtp_request->EnableVerbose();
 
