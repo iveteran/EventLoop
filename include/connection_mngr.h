@@ -23,29 +23,28 @@ struct ConnectionContext
     time_t act_time;
 };
 typedef std::shared_ptr<ConnectionContext>  ConnectionContextPtr;
+typedef std::function<void (TcpConnection*, uint32_t elapse)> ConnectionIdleTimeoutCallback;
 
 class ConnectionManager
 {
     public:
-    ConnectionManager(uint32_t timeout = 0);
+    ConnectionManager(const ConnectionIdleTimeoutCallback& timeout_cb, uint32_t timeout = 0);
+    bool TimeoutCheckingEnabled() const { return m_timeout != 0; }
     void SetupInactivityChecker(uint32_t timeout);
     CM_ENUM CheckConnectionExists(ClientID cid, TcpConnection* conn);
     void AddConnection(TcpConnection* conn);
+    void ReplaceConnection(TcpConnection* conn);
     TcpConnection* GetConnection(ClientID cid);
     void RemoveConnection(ClientID cid, bool close_connection = false);
     void UpdateConnectionctivityTime(ClientID cid);
-    void CloseInactivityConnection();
-    void OnConnectionInactivityCb(PeriodicTimer* timer)
-    {
-        printf("Connections(%lu) inactivity checking on timer, now: %lu.\n", m_client_map.size(), Now());
-        CloseInactivityConnection();
-    }
+    void OnConnectionInactivityCb(PeriodicTimer* timer);
 
     private:
     std::map<ClientID, ConnectionContextPtr>  m_client_map;
     std::map<time_t, ConnectionContextPtr>    m_activity_map;
 
     uint32_t m_timeout;
+    ConnectionIdleTimeoutCallback m_conn_timeout_cb;
     PeriodicTimer m_inactivity_checker;
 };
 
