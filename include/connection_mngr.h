@@ -37,7 +37,7 @@ class ConnectionManager
     TcpConnection* GetConnection(ClientID cid);
     void RemoveConnection(ClientID cid, bool close_connection = false);
     void UpdateConnectionctivityTime(ClientID cid);
-    void OnConnectionInactivityCb(PeriodicTimer* timer);
+    void OnConnectionInactivityCb(TimerEvent* timer);
 
     private:
     std::map<ClientID, ConnectionContextPtr>  m_client_map;

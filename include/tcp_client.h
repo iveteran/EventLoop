@@ -49,7 +49,7 @@ class TcpClient : public IOEvent
     void OnConnected(int fd, const IPAddress& local_addr);
     void OnConnectionClosed(TcpConnection* conn);
     void OnError(int errcode, const char* errstr);
-    void OnReconnectTimer(PeriodicTimer* timer);
+    void OnReconnectTimer(TimerEvent* timer);
     void OnReady(TcpConnection* conn) { SendTempBuffer(); }
 
     void SendTempBuffer();

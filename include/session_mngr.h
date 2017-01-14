@@ -42,7 +42,7 @@ class TimeoutSessionManager
     uint32_t GetSessionNumber() const { return m_session_map.size(); }
 
     protected:
-    void CheckSessionTimeoutCb(PeriodicTimer* timer);
+    void CheckSessionTimeoutCb(TimerEvent* timer);
 
     private:
     std::map<SessionID, TimeoutSessionPtr>      m_session_map;

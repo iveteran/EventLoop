@@ -191,7 +191,7 @@ void TcpClient::SendTempBuffer()
     }
 }
 
-void TcpClient::OnReconnectTimer(PeriodicTimer* timer)
+void TcpClient::OnReconnectTimer(TimerEvent* timer)
 {
     if (!conn_) {  // if the connection is not created, then reconnect
         bool success = Connect_();

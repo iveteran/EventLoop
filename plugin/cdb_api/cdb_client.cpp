@@ -44,7 +44,7 @@ void CDBClient::Reconnect()
     reconnect_timer_.Start();
 }
 
-void CDBClient::OnReconnectTimer(PeriodicTimer* timer)
+void CDBClient::OnReconnectTimer(TimerEvent* timer)
 {
   //printf("[CDBClient::ReconnectTimer::OnTimer begin] is ready: %d\n", IsReady());
   if (!IsReady()) {  // if the connection is not created, then reconnect

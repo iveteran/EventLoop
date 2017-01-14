@@ -66,7 +66,7 @@ void TimeoutSessionManager::RemoveSession(SessionID sid)
         m_session_map.erase(iter);
     }
 }
-void TimeoutSessionManager::CheckSessionTimeoutCb(PeriodicTimer* timer)
+void TimeoutSessionManager::CheckSessionTimeoutCb(TimerEvent* timer)
 {
     time_t now = time(NULL);
     printf("Session timeout checking on timer, now: %lu.\n", now);

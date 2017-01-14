@@ -106,7 +106,7 @@ void ConnectionManager::UpdateConnectionctivityTime(ClientID cid)
         m_activity_map.insert(std::make_pair(conn_ctx->act_time, conn_ctx));
     }
 }
-void ConnectionManager::OnConnectionInactivityCb(PeriodicTimer* timer)
+void ConnectionManager::OnConnectionInactivityCb(TimerEvent* timer)
 {
     printf("[ConnectionManager::OnConnectionInactivityCb] Connections(%lu) inactivity checking on timer, now: %lu.\n", m_activity_map.size(), Now());
     for (auto iter = m_activity_map.begin(); iter != m_activity_map.end();)

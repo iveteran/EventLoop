@@ -48,7 +48,7 @@ int EventLoop::DoTimeout() {
   TimerManager::TimerMap::iterator iter = timers_map.begin();
   while (iter != timers_map.end()) {
     TimeVal tv = iter->first;
-    //printf("EventLoop::DoTimeout, now: %ld, tv: %ld\n", now_.Seconds(), tv.Seconds());
+    //printf("EventLoop::DoTimeout, now: %d, tv: %d\n", now_.Seconds(), tv.Seconds());
     if (TimeVal::MsDiff(now_, tv) < 0) break;
     n++;
     TimerManager::TimerSet events_set = iter->second;
@@ -86,6 +86,18 @@ int EventLoop::ProcessEvents(int timeout) {
   return nt + n;
 }
 
+int EventLoop::CalcNextTimeout()
+{
+    int timeout = 100;
+    if (timermanager_->timers_.size() > 0) {
+      TimerManager::TimerMap::iterator iter = timermanager_->timers_.begin();
+      TimeVal time = iter->first;
+      int t = TimeVal::MsDiff(time, now_);
+      if (t > 0 && timeout > t) timeout = t;
+    }
+    return timeout;
+}
+
 void EventLoop::StopLoop() {
   running_ = false;
 }
@@ -98,15 +110,8 @@ void EventLoop::StartLoop() {
 
   running_ = true;
   while (running_) {
-    int timeout = 100;
     now_.SetNow();
-
-    if (timermanager_->timers_.size() > 0) {
-      TimerManager::TimerMap::iterator iter = timermanager_->timers_.begin();
-      TimeVal time = iter->first;
-      int t = TimeVal::MsDiff(time, now_);
-      if (t > 0 && timeout > t) timeout = t;
-    }
+    int timeout = CalcNextTimeout();
 
     ProcessEvents(timeout);
   }

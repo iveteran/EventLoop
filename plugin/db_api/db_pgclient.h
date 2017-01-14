@@ -92,7 +92,7 @@ class PGClient: public DBConnection, public IOEvent
     void OnEvents(uint32_t events);  // implements IOEvent::OnEvents(uint32_t)
     void RemoveFDHandler();
 
-    void OnReconnectTimer(PeriodicTimer* timer);
+    void OnReconnectTimer(TimerEvent* timer);
     void OnConnected();
     void OnClosed();
     void OnError(int errcode, const char* errstr);

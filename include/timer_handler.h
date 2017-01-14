@@ -12,23 +12,14 @@ namespace evt_loop
 
 class TimerEvent : public IEvent {
   friend class EventLoop;
- public:
   static const uint32_t TIMER = 1 << 0;
 
  public:
-  TimerEvent(uint32_t events = IEvent::NONE) : IEvent(events) {}
+  TimerEvent();
+  TimerEvent(const TimeVal& inter);
 
   void SetTime(const TimeVal& tv) { time_ = tv; }
   const TimeVal& Time() const { return time_; }
-
- private:
-  TimeVal time_;
-};
-
-class PeriodicTimerEvent : public TimerEvent {
- public:
-  PeriodicTimerEvent();
-  PeriodicTimerEvent(const TimeVal& inter);
 
   void SetInterval(const TimeVal& inter) { interval_ = inter; }
   const TimeVal& GetInterval() const { return interval_; }
@@ -38,24 +29,37 @@ class PeriodicTimerEvent : public TimerEvent {
 
   bool IsRunning() { return running_; }
 
+ protected:
+  void OnEvents(uint32_t events) override;
   virtual void OnTimer() = 0;
 
- private:
-  void OnEvents(uint32_t events);
-
- private:
+ protected:
+  TimeVal   time_;
   TimeVal   interval_;
   bool      running_;
 };
 
-class PeriodicTimer : public PeriodicTimerEvent {
-  typedef std::function<void (PeriodicTimer*)>  OnTimerCallback;
-  public:
-    PeriodicTimer(const OnTimerCallback& cb) : timer_cb_(cb) { }
-    void OnTimer() { timer_cb_(this); }
+class PeriodicTimer : public TimerEvent {
+ public:
+  typedef std::function<void (TimerEvent*)>  OnTimerCallback;
 
-  private:
-    OnTimerCallback timer_cb_;
+  PeriodicTimer(const OnTimerCallback& cb) : timer_cb_(cb) { }
+  PeriodicTimer(const TimeVal& inter, const OnTimerCallback& cb) : TimerEvent(inter), timer_cb_(cb) { }
+
+ protected:
+  void OnTimer() override { timer_cb_(this); }
+
+ protected:
+  OnTimerCallback timer_cb_;
+};
+
+class OneshotTimer : public PeriodicTimer {
+ public:
+  OneshotTimer(const OnTimerCallback& cb) : PeriodicTimer(cb) { }
+  OneshotTimer(const TimeVal& inter, const OnTimerCallback& cb) : PeriodicTimer(inter, cb) { }
+
+ protected:
+  void OnTimer() override { PeriodicTimer::OnTimer(); Stop(); }
 };
 
 class TimerManager {

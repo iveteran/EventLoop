@@ -38,6 +38,7 @@ class EventLoop {
 
   // do epoll_waite and collect events
   int ProcessEvents(int timeout);
+  int CalcNextTimeout();
 
   // event loop control
   void StartLoop();

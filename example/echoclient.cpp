@@ -8,7 +8,8 @@ class BusinessTester {
     BusinessTester() :
         echoclient_("localhost", 20000, MessageType::BINARY),
         echoclient_ip6_("::1", 30000, MessageType::BINARY),
-        sending_timer_(std::bind(&BusinessTester::OnSendingTimer, this, std::placeholders::_1))
+        sending_timer_(TimeVal(5, 0), std::bind(&BusinessTester::OnSendingTimer, this, std::placeholders::_1)),
+        sending_timer_ip6_(TimeVal(10, 0), std::bind(&BusinessTester::OnSendingTimerIp6, this, std::placeholders::_1))
     {
         TcpCallbacksPtr echo_client_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_client_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd, this, std::placeholders::_1, std::placeholders::_2);
@@ -28,9 +29,6 @@ class BusinessTester {
 
         echoclient_ip6_.Connect();
         echoclient_ip6_.Send("hello ipv6");
-
-        TimeVal tv(10, 0);
-        sending_timer_.SetInterval(tv);
     }
 
     protected:
@@ -55,17 +53,22 @@ class BusinessTester {
         printf("[OnConnectionCreated_ip6] ip6 connection created, fd: %d\n", conn->FD());
         printf("[OnConnectionCreated_ip6] ping\n");
         conn->Send("ping ip6");
-        sending_timer_.Start();
+        sending_timer_ip6_.Start();
     }
     void OnMessageRecvd_ip6(TcpConnection* conn, const Message* msg)
     {
         printf("[OnMessageRecvd_ip6] received message, fd: %d, message: %s, length: %lu\n", conn->FD(), msg->Payload(), msg->PayloadSize());
     }
 
-    void OnSendingTimer(PeriodicTimer* timer)
+    void OnSendingTimer(TimerEvent* timer)
     {
         printf("[OnSendingTimer] ping\n");
         echoclient_.Send("ping");
+    }
+
+    void OnSendingTimerIp6(TimerEvent* timer)
+    {
+        printf("[OnSendingTimerIp6] ping\n");
         echoclient_ip6_.Send("hello ipv6");
     }
 
@@ -73,6 +76,7 @@ class BusinessTester {
     TcpClient echoclient_;
     TcpClient6 echoclient_ip6_;
     PeriodicTimer sending_timer_;
+    OneshotTimer  sending_timer_ip6_;
 };
 }   // ns evt_loop
 

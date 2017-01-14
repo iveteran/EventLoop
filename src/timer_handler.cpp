@@ -4,20 +4,20 @@
 namespace evt_loop
 {
 
-// PeriodicTimerEvent implementation
-PeriodicTimerEvent::PeriodicTimerEvent() :
-  TimerEvent(IEvent::NONE), running_(false)
+// TimerEvent implementation
+TimerEvent::TimerEvent() :
+  IEvent(IEvent::NONE), running_(false)
 {
   el_ = EV_Singleton;
 }
-PeriodicTimerEvent::PeriodicTimerEvent(const TimeVal& inter) :
-  TimerEvent(IEvent::NONE), interval_(inter), running_(false)
+TimerEvent::TimerEvent(const TimeVal& inter) :
+  IEvent(IEvent::NONE), interval_(inter), running_(false)
 {
   el_ = EV_Singleton;
 }
 
-void PeriodicTimerEvent::OnEvents(uint32_t events) {
-  printf("[TimerManager::OnEvents] timeval: (%d.%d)\n", interval_.Seconds(), interval_.USeconds());
+void TimerEvent::OnEvents(uint32_t events) {
+  printf("[TimerEvent::OnEvents] timeval: (%d.%d)\n", interval_.Seconds(), interval_.USeconds());
   OnTimer();
   if (running_) {
     el_->DeleteEvent(this);
@@ -26,14 +26,16 @@ void PeriodicTimerEvent::OnEvents(uint32_t events) {
   }
 }
 
-void PeriodicTimerEvent::Start() {
+void TimerEvent::Start() {
   if (!el_) return;
   running_ = true;
+  printf("[TimerEvent::Start] timeval: (%d.%d)\n", interval_.Seconds(), interval_.USeconds());
   SetTime(el_->Now() + interval_);
   el_->AddEvent(this);
 }
 
-void PeriodicTimerEvent::Stop() {
+void TimerEvent::Stop() {
+  printf("[TimerEvent::Stop] Timer stopped\n");
   if (!el_) return;
   running_ = false;
   el_->DeleteEvent(this);

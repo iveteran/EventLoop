@@ -102,8 +102,8 @@ class URLRequestReactor
   void StopCURLTimer() { curl_timer_.Stop(); }
   void CheckRequestStatus();
 
-  void OnCURLTimeout(PeriodicTimer* timer);
-  void OnCheckRequestTimeout(PeriodicTimer* timer);
+  void OnCURLTimeout(TimerEvent* timer);
+  void OnCheckRequestTimeout(TimerEvent* timer);
   static int StartCURLTimer(CURLM *curlm, long timeout_ms, void *userp);
   static int HandleSocketEvent(CURL *curl, curl_socket_t s, int action, void *userp, void *socketp);
 

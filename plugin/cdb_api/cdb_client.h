@@ -47,7 +47,7 @@ class CDBClient
     protected:
     virtual bool Connect_(bool reconnect = false) = 0;
     void Reconnect();
-    void OnReconnectTimer(PeriodicTimer* timer);
+    void OnReconnectTimer(TimerEvent* timer);
 
     protected:
     IPAddress           server_addr_;

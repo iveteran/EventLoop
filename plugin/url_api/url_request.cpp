@@ -189,13 +189,13 @@ bool URLRequestReactor::Init()
   curl_multi_setopt(curlm_, CURLMOPT_TIMERDATA, this);
   return true;
 }
-void URLRequestReactor::OnCURLTimeout(PeriodicTimer* timer)
+void URLRequestReactor::OnCURLTimeout(TimerEvent* timer)
 {
   int running_handles;
   curl_multi_socket_action(curlm_, CURL_SOCKET_TIMEOUT, 0, &running_handles);
   CheckRequestStatus();
 }
-void URLRequestReactor::OnCheckRequestTimeout(PeriodicTimer* timer)
+void URLRequestReactor::OnCheckRequestTimeout(TimerEvent* timer)
 {
   while (!request_queue_.empty()) {
     URLRequest* request = request_queue_.front();

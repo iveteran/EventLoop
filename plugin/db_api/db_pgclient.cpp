@@ -636,7 +636,7 @@ void PGClient::RemoveFDHandler()
   }
 }
 
-void PGClient::OnReconnectTimer(PeriodicTimer* timer)
+void PGClient::OnReconnectTimer(TimerEvent* timer)
 {
   printf("[PGClient::OnReconnectTimer] Timer tick %u\n", timer->GetInterval().Seconds());
   if (!IsConnected()) {  // if the connection is not created, then reconnect
