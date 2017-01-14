@@ -23,9 +23,15 @@ class TcpConnection : public BufferIOEvent
     uint32_t ID() const { return id_; }
     void SetID(uint32_t id) { id_ = id; }
 
+    uint8_t ClientType() const { return client_type_; }
+    void SetClientType(uint8_t ctype) { client_type_ = ctype; }
+
+    void AsClient() { is_client_ = true; }
+    bool IsClient() const { return is_client_; }
     void Disconnect();
 
     void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
+    void SetReadyCallback(const OnReadyCallback& cb);
 
     const IPAddress& GetLocalAddr() const;
     const IPAddress& GetPeerAddr() const;
@@ -36,13 +42,22 @@ class TcpConnection : public BufferIOEvent
     void OnSent(const Message* buffer);
     void OnClosed();
     void OnError(int errcode, const char* errstr);
+    void OnReady()
+    {
+        printf("TcpConnection::OnReady\n");
+        if (on_conn_ready_cb_) on_conn_ready_cb_(this);
+        if (tcp_evt_cbs_) tcp_evt_cbs_->on_conn_ready_cb(this);
+    }
 
   private:
     uint32_t        id_;
+    uint8_t         client_type_;
     IPAddress       local_addr_;
     IPAddress       peer_addr_;
     bool            active_closing_;
+    bool            is_client_;
 
+    OnReadyCallback   on_conn_ready_cb_;
     OnClosedCallback  creator_notification_cb_;
     TcpCallbacksPtr   tcp_evt_cbs_;
 };

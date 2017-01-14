@@ -1,6 +1,5 @@
 #include "fd_handler.h"
 #include "eventloop.h"
-#include <unistd.h>
 
 #define MAX_BYTES_RECEIVE       4096
 
@@ -116,42 +115,62 @@ bool BufferIOEvent::TxBuffEmpty() {
 
 int BufferIOEvent::ReceiveData(uint32_t& events) {
   char buffer[MAX_BYTES_RECEIVE];
-  int read_bytes = std::min(rx_msg_mq_.NeedMore(), (size_t)sizeof(buffer));
-  int len = read(fd_, buffer, read_bytes);
-  printf("[BufferIOEvent::ReceiveData] ts: %ld, fd [%d] to read bytes: %d, got: %d\n", Now(), fd_, read_bytes, len);
-  if (len < 0) {
-    events |= IOEvent::ERROR;
+  int total_rx = 0;
+  while (!rx_msg_mq_.LastCompletion()) {
+    int read_bytes = std::min(rx_msg_mq_.NeedMore(), (size_t)sizeof(buffer));
+    if (read_bytes == 0) break;
+
+    int len = OnRead(buffer, read_bytes);
+    printf("[BufferIOEvent::ReceiveData] ts: %ld, fd [%d] to read bytes: %d, got: %d\n", Now(), fd_, read_bytes, len);
+    if (len < 0) {
+      if (errno == EINTR) {
+        continue;
+      } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        break;
+      } else {
+        events |= IOEvent::ERROR;
+        break;
+      }
+    } else if (len == 0 ) {
+      events |= IOEvent::CLOSED;
+      break;
+    } else {
+      rx_msg_mq_.AppendData(buffer, len);
+    }
+    total_rx += len;
   }
-  else if (len == 0 ) {
-    events |= IOEvent::CLOSED;
-  } else {
-    rx_msg_mq_.AppendData(buffer, len);
+
+  if (rx_msg_mq_.FirstCompletion()) {
     MessageMQ::MessageDispatcher processing_msg_cb = std::bind(&BufferIOEvent::OnReceived, this, std::placeholders::_1);
     rx_msg_mq_.Apply(processing_msg_cb);
   }
-  return len;
+  return total_rx;
 }
 
 int BufferIOEvent::SendData(uint32_t& events) {
   uint32_t cur_sent = 0;
   while (!tx_msg_mq_.Empty()) {
     const MessagePtr& tx_msg = tx_msg_mq_.First();
-    uint32_t tosend = tx_msg->Size();
-    int len = send(fd_, tx_msg->Data().data() + sent_, tosend - sent_, MSG_NOSIGNAL);
-    printf("[BufferIOEvent::SendData] ts: %ld, fd [%d] to send bytes: %d, sent: %d\n", Now(), fd_, tosend - sent_, len);
+    uint32_t tosend = tx_msg->Size() - sent_;
+
+    int len = OnWrite(tx_msg->Data().data() + sent_, tosend);
+    printf("[BufferIOEvent::SendData] ts: %ld, fd [%d] to send bytes: %d, sent: %d\n", Now(), fd_, tosend, len);
     if (len < 0) {
-      events |= IOEvent::ERROR;
-      break;
+      if (errno == EINTR) {
+        continue;
+      } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        break;
+      } else {
+        events |= IOEvent::ERROR;
+        break;
+      }
     }
     sent_ += len;
     cur_sent += len;
-    if (sent_ == tosend) {
+    if (sent_ == tx_msg->Size()) {
       OnSent(tx_msg.get());
       tx_msg_mq_.EraseFirst();
       sent_ = 0;
-    } else {
-      /// sent_ less than tosend, breaking the sending loop and wait for next writing event
-      break;
     }
   }
   if (tx_msg_mq_.Empty()) {
@@ -163,12 +182,16 @@ int BufferIOEvent::SendData(uint32_t& events) {
 }
 
 void BufferIOEvent::OnEvents(uint32_t events) {
-  /// The WRITE events should deal with before the READ events
-  if (events & IOEvent::WRITE) {
-    SendData(events);
-  }
-  if (events & IOEvent::READ) {
-    ReceiveData(events);
+  if (state_ == CONNECTED || state_ == HANDSHAKING) {
+    OnHandshake();
+  } else {
+    /// The WRITE events should deal with before the READ events
+    if (events & IOEvent::WRITE) {
+        SendData(events);
+    }
+    if (events & IOEvent::READ) {
+        ReceiveData(events);
+    }
   }
 
   if (events & IOEvent::CLOSED) {

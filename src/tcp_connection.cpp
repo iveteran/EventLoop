@@ -6,7 +6,7 @@ namespace evt_loop {
 
 TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr,
     const OnClosedCallback& close_cb, TcpCallbacksPtr tcp_evt_cbs) :
-  BufferIOEvent(fd), id_(0), local_addr_(local_addr), peer_addr_(peer_addr), active_closing_(false),
+  BufferIOEvent(fd), id_(0), client_type_(0), local_addr_(local_addr), peer_addr_(peer_addr), active_closing_(false), is_client_(false),
   creator_notification_cb_(close_cb), tcp_evt_cbs_(tcp_evt_cbs)
 {
     printf("[TcpConnection::TcpConnection] local_addr: %s, peer_addr: %s\n",
@@ -30,6 +30,11 @@ void TcpConnection::Destroy()
 void TcpConnection::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
 {
     tcp_evt_cbs_ = tcp_evt_cbs;
+}
+
+void TcpConnection::SetReadyCallback(const OnReadyCallback& cb)
+{
+    on_conn_ready_cb_ = cb;
 }
 
 void TcpConnection::Disconnect()
@@ -71,6 +76,7 @@ void TcpConnection::OnClosed()
         if (tcp_evt_cbs_) tcp_evt_cbs_->on_closed_cb(this);
         creator_notification_cb_(this);  // NOTE: MUST run this line after close callback
     }
+    state_ = CLOSED;
 }
 
 void TcpConnection::OnError(int errcode, const char* errstr)
@@ -78,6 +84,7 @@ void TcpConnection::OnError(int errcode, const char* errstr)
     printf("[TcpConnection::OnError] fd: %d, errcode: %d, errstr: %s\n", fd_, errcode, errstr);
     if (tcp_evt_cbs_) tcp_evt_cbs_->on_error_cb(this, errcode, errstr);
     //Disconnect();
+    state_ = FAILED;
 }
 
 }  // namespace evt_loop

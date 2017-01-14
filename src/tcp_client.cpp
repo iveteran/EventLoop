@@ -35,14 +35,7 @@ TcpClient::TcpClient(const char *host, uint16_t port, MessageType msg_type, bool
     reconnect_timer_(std::bind(&TcpClient::OnReconnectTimer, this, std::placeholders::_1)),
     tcp_evt_cbs_(tcp_evt_cbs)
 {
-    server_addr_.port_ = port;
-    if (host[0] == '\0' || strcmp(host, "localhost") == 0) {
-        server_addr_.ip_ = "127.0.0.1";
-    } else if (!strcmp(host, "any")) {
-        server_addr_.ip_ = "0.0.0.0";
-    } else {
-        server_addr_.ip_ = host;
-    }
+    InitAddress(host, port);
 
     if (auto_reconnect_) {
         timeval tv;
@@ -57,6 +50,18 @@ TcpClient::TcpClient(const char *host, uint16_t port, MessageType msg_type, bool
 TcpClient::~TcpClient()
 {
     Disconnect();
+}
+
+void TcpClient::InitAddress(const char* host, uint16_t port)
+{
+    server_addr_.port_ = port;
+    if (host[0] == '\0' || strcmp(host, "localhost") == 0) {
+        server_addr_.ip_ = "127.0.0.1";
+    } else if (strcmp(host, "any") == 0) {
+        server_addr_.ip_ = "0.0.0.0";
+    } else {
+        server_addr_.ip_ = host;
+    }
 }
 
 bool TcpClient::Connect()
@@ -84,7 +89,7 @@ void TcpClient::Reconnect()
 bool TcpClient::Send(const string& msg)
 {
     bool success = true;
-    if (conn_) {
+    if (conn_ && conn_->GetState() == BufferIOEvent::READY) {
         conn_->Send(msg);
     } else {
         tmp_sendbuf_list_.push_back(msg);
@@ -115,10 +120,10 @@ void TcpClient::SetErrorCallback(const OnClientErrorCallback& error_cb)
 
 void TcpClient::OnConnected(int fd, const IPAddress& local_addr)
 {
-    conn_ = std::make_shared<TcpConnection>(fd, local_addr, server_addr_,
-        std::bind(&TcpClient::OnConnectionClosed, this, std::placeholders::_1), tcp_evt_cbs_);
+    conn_ = CreateClient(fd, local_addr, server_addr_);
     conn_->SetMessageType(msg_type_);
-    SendTempBuffer();
+    conn_->AsClient();
+    conn_->SetReadyCallback(std::bind(&TcpClient::OnReady, this, std::placeholders::_1));
     if (new_client_cb_) new_client_cb_(conn_.get());
 }
 
@@ -176,6 +181,7 @@ void TcpClient::OnError(int errcode, const char* errstr)
 
 void TcpClient::SendTempBuffer()
 {
+    printf("[TcpClient::SendTempBuffer] backlogged messages: %ld\n", tmp_sendbuf_list_.size());
     if (conn_ == NULL) return;
 
     while (!tmp_sendbuf_list_.empty()) {
@@ -197,6 +203,78 @@ void TcpClient::OnReconnectTimer(PeriodicTimer* timer)
     } else {
         timer->Stop();
     }
+}
+
+///////////////////////////////////////////////
+
+TcpClient6::TcpClient6(const char *host, uint16_t port, MessageType msg_type, bool auto_reconnect,
+        TcpCallbacksPtr tcp_evt_cbs) : TcpClient(host, port, msg_type, auto_reconnect, tcp_evt_cbs)
+{
+    /*
+    InitAddress(host, port);
+
+    if (auto_reconnect_) {
+        timeval tv;
+        tv.tv_sec = 1;
+        tv.tv_usec = 0;
+        reconnect_timer_.SetInterval(tv);
+    }
+    */
+
+    //Connect();
+}
+
+void TcpClient6::InitAddress(const char* host, uint16_t port)
+{
+    server_addr_.port_ = port;
+    if (host[0] == '\0' ||
+            strcmp(host, "localhost6") == 0 ||
+            strcmp(host, "ip6-localhost") == 0 ||
+            strcmp(host, "ipv6-localhost") == 0) {
+        server_addr_.ip_ = "::1";
+    } else if (strcmp(host, "any") == 0) {
+        server_addr_.ip_ = "::";
+    } else {
+        server_addr_.ip_ = host;
+    }
+}
+
+bool TcpClient6::Connect_()
+{
+    int fd;
+    sockaddr_in6 sock_addr;
+    memset(&sock_addr, 0, sizeof(sock_addr));
+
+    fd = socket(PF_INET6, SOCK_STREAM, 0);
+    sock_addr.sin6_family = PF_INET6;
+    sock_addr.sin6_port = htons(server_addr_.port_);
+    inet_pton(AF_INET6, server_addr_.ip_.c_str(), &sock_addr.sin6_addr);
+    int reuseaddr = 1;
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1) {
+        OnError(errno, strerror(errno));
+        close(fd);
+        return false;
+    }
+
+    if (keepalive_) {
+        bool success = SetTcpKeepAlive(fd, true, 60, 5, 3);
+        if (!success) {
+            OnError(errno, strerror(errno));
+            close(fd);
+            return false;
+        }
+    }
+
+    if (connect(fd, (sockaddr*)&sock_addr, sizeof(sock_addr)) == -1) {
+        OnError(errno, strerror(errno));
+        close(fd);
+        return false;
+    }
+    IPAddress local_addr;
+    SocketAddrToIPAddress(sock_addr, local_addr);
+    OnConnected(fd, local_addr);
+
+    return true;
 }
 
 }  // namespace evt_loop

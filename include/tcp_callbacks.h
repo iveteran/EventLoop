@@ -15,6 +15,7 @@ class Message;
 typedef std::function<void (TcpServer*, int, const char*) >         OnServerErrorCallback;
 typedef std::function<void (TcpClient*, int, const char*) >         OnClientErrorCallback;
 typedef std::function<void (TcpConnection*) >                       OnNewClientCallback;
+typedef std::function<void (TcpConnection*) >                       OnReadyCallback;
 
 typedef std::function<void (TcpConnection*, const Message*) >       OnMsgRecvdCallback;
 typedef std::function<void (TcpConnection*, const Message*) >       OnMsgSentCallback;
@@ -27,7 +28,8 @@ struct TcpCallbacks {
         on_msg_recvd_cb(std::bind(&TcpCallbacks::EmptyMsgRecvdCb, this, std::placeholders::_1, std::placeholders::_2)),
         on_msg_sent_cb(std::bind(&TcpCallbacks::EmptyMsgSentCb, this, std::placeholders::_1, std::placeholders::_2)),
         on_closed_cb(std::bind(&TcpCallbacks::EmptyClosedCb, this, std::placeholders::_1)),
-        on_error_cb(std::bind(&TcpCallbacks::EmptyErrorCb, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
+        on_error_cb(std::bind(&TcpCallbacks::EmptyErrorCb, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)),
+        on_conn_ready_cb(std::bind(&TcpCallbacks::EmptyReadyCb, this, std::placeholders::_1))
     { }
 
     public:
@@ -35,12 +37,14 @@ struct TcpCallbacks {
     OnMsgSentCallback   on_msg_sent_cb;
     OnClosedCallback    on_closed_cb;
     OnErrorCallback     on_error_cb;
+    OnReadyCallback     on_conn_ready_cb;
 
     private:
     void EmptyMsgRecvdCb(TcpConnection*, const Message*)        { printf("Empty Message Received Callback\n"); }
     void EmptyMsgSentCb(TcpConnection*, const Message*)         { printf("Empty Message Sent Callback\n"); }
     void EmptyClosedCb(TcpConnection*)                          { printf("Empty Connection Closed Callback\n"); }
     void EmptyErrorCb(TcpConnection*, int, const char*)         { printf("Empty Connection Error Callback\n"); }
+    void EmptyReadyCb(TcpConnection*)                           { printf("Empty Connection Ready Callback\n"); }
 };
 
 typedef std::shared_ptr<TcpCallbacks>           TcpCallbacksPtr;

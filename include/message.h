@@ -166,6 +166,9 @@ class MessageMQ {
   void EraseFirst() { mq_.pop(); }
 
   size_t NeedMore() { return Last()->MoreSize(); }
+  bool LastCompletion() { return Last()->Completion(); }
+  bool FirstCompletion() { return First()->Completion(); }
+
   void AppendData(const char* data, uint32_t size);
   void Apply(MessageDispatcher& cb);
 

@@ -13,13 +13,15 @@ class BusinessTester {
       echoclient_crlf_("localhost", 10001, MessageType::CRLF),
       echoserver_json_("0.0.0.0", 10002, MessageType::JSON),
       echoclient_json_("localhost", 10002, MessageType::JSON),
-      echoserver_binary2_("0.0.0.0", 20000, MessageType::BINARY)
+      echoserver_binary2_("0.0.0.0", 20000, MessageType::BINARY),
+      echoserver_ip6_("::", 30000, MessageType::BINARY)
     {
         TcpCallbacksPtr echo_svr_1_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_svr_1_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd_1, this, std::placeholders::_1, std::placeholders::_2);
 
         TcpCallbacksPtr echo_client_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_client_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd_Client, this, std::placeholders::_1, std::placeholders::_2);
+        echo_client_cbs->on_conn_ready_cb = std::bind(&BusinessTester::OnConnectionReady, this, std::placeholders    ::_1);
 
         echoserver_binary_.SetTcpCallbacks(echo_svr_1_cbs);
         echoclient_binary_.SetTcpCallbacks(echo_client_cbs);
@@ -50,6 +52,11 @@ class BusinessTester {
         TcpCallbacksPtr echo_svr_2_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_svr_2_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd_2, this, std::placeholders::_1, std::placeholders::_2);
         echoserver_binary2_.SetTcpCallbacks(echo_svr_2_cbs);
+
+        TcpCallbacksPtr echo_svr_ip6_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
+        echo_svr_ip6_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd_ip6, this, std::placeholders::_1, std::placeholders::_2);
+        echoserver_ip6_.SetTcpCallbacks(echo_svr_ip6_cbs);
+        echoserver_ip6_.SetNewClientCallback(std::bind(&BusinessTester::OnNewConnection_ip6, this, std::placeholders::_1));
     }
     void OnSignal(SignalHandler* sh, uint32_t signo)
     {
@@ -58,6 +65,11 @@ class BusinessTester {
     }
 
     private:
+    void OnConnectionReady(TcpConnection* conn)
+    {
+        printf("[OnConnectionReady] fd: %d\n", conn->FD());
+        conn->Send("hello china 2");
+    }
     void OnMessageRecvd_1(TcpConnection* conn, const Message* msg)
     {
         printf("[echoserver1] fd: %d, message: %s, length: %lu\n", conn->FD(), msg->Payload(), msg->PayloadSize());
@@ -73,6 +85,16 @@ class BusinessTester {
           conn->Send(msg->Payload(), msg->PayloadSize());
           //conn->Send(*msg);
     }
+    void OnMessageRecvd_ip6(TcpConnection* conn, const Message* msg)
+    {
+        printf("[echoserver_ip6] fd: %d, message: %s, length: %lu\n", conn->FD(), msg->Payload(), msg->PayloadSize());
+        //conn->Send(msg->Payload(), msg->PayloadSize());
+        conn->Send(*msg);
+    }
+    void OnNewConnection_ip6(TcpConnection* conn)
+    {
+        printf("[OnNewConnection_ip6] fd: %d\n", conn->FD());
+    }
     void OnMessageRecvd_Client(TcpConnection* conn, const Message* msg)
     {
         printf("[echoclient] fd: %d, message: %s, length: %lu\n", conn->FD(), msg->Payload(), msg->PayloadSize());
@@ -86,6 +108,8 @@ class BusinessTester {
     TcpServer echoserver_json_;
     TcpClient echoclient_json_;
     TcpServer echoserver_binary2_;
+
+    TcpServer6 echoserver_ip6_;
 };
 
 }  // ns evt_loop

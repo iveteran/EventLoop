@@ -74,4 +74,12 @@ void SocketAddrToIPAddress(const struct sockaddr_in& sock_addr, IPAddress& ip_ad
   ip_addr.port_ = sock_addr.sin_port;
 }
 
+void SocketAddrToIPAddress(const struct sockaddr_in6& sock_addr, IPAddress& ip_addr)
+{
+  char buffer[INET6_ADDRSTRLEN] = {0};
+  inet_ntop(sock_addr.sin6_family, (void*)&sock_addr.sin6_addr, buffer, sizeof(buffer));
+  ip_addr.ip_.assign(buffer);
+  ip_addr.port_ = sock_addr.sin6_port;
+}
+
 }  // namespace evt_loop

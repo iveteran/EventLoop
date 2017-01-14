@@ -14,7 +14,7 @@ namespace evt_loop {
 class TcpClient : public IOEvent
 {
     public:
-      TcpClient(const char *host, uint16_t port, MessageType msg_type = MessageType::BINARY,
+    TcpClient(const char *host="", uint16_t port=0, MessageType msg_type = MessageType::BINARY,
           bool auto_reconnect = true, TcpCallbacksPtr tcp_evt_cbs = nullptr);
     ~TcpClient();
 
@@ -33,21 +33,28 @@ class TcpClient : public IOEvent
 
     bool Send(const string& msg);
     
-    private:
+    protected:
     void OnEvents(uint32_t events) {}
     void SetFD(int fd) { if (conn_) conn_->SetFD(fd); }  // Hides interface of base class IOEvent
 
-    bool Connect_();
+    virtual void InitAddress(const char* host, uint16_t port);
+    virtual bool Connect_();
+    virtual TcpConnectionPtr CreateClient(int fd, const IPAddress& local_addr, const IPAddress& peer_addr)
+    {
+        return std::make_shared<TcpConnection>(fd, local_addr, server_addr_,
+                std::bind(&TcpClient::OnConnectionClosed, this, std::placeholders::_1), tcp_evt_cbs_);
+    }
     void Reconnect();
 
     void OnConnected(int fd, const IPAddress& local_addr);
     void OnConnectionClosed(TcpConnection* conn);
     void OnError(int errcode, const char* errstr);
     void OnReconnectTimer(PeriodicTimer* timer);
+    void OnReady(TcpConnection* conn) { SendTempBuffer(); }
 
     void SendTempBuffer();
 
-  private:
+  protected:
     IPAddress           server_addr_;
     MessageType         msg_type_;
     bool                keepalive_;
@@ -59,6 +66,17 @@ class TcpClient : public IOEvent
     OnNewClientCallback     new_client_cb_;
     OnClientErrorCallback   error_cb_;
     TcpCallbacksPtr         tcp_evt_cbs_;
+};
+
+class TcpClient6 : public TcpClient
+{
+  public:
+    TcpClient6(const char *host="", uint16_t port=0, MessageType msg_type = MessageType::BINARY,
+          bool auto_reconnect = true, TcpCallbacksPtr tcp_evt_cbs = nullptr);
+
+  protected:
+    virtual void InitAddress(const char* host, uint16_t port);
+    virtual bool Connect_();
 };
 
 }  // namespace evt_loop

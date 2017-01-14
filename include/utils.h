@@ -58,6 +58,7 @@ struct IPAddress
 };
 
 void SocketAddrToIPAddress(const struct sockaddr_in& sock_addr, IPAddress& ip_addr);
+void SocketAddrToIPAddress(const struct sockaddr_in6& sock_addr, IPAddress& ip_addr);
 
 }  // namespace evt_loop
 
