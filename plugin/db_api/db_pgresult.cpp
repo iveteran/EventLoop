@@ -89,7 +89,7 @@ int PGResult::GetIntValue(int row, int column) const
       }
     }
   }
-  return -1;
+  return 0;
 }
 
 double PGResult::GetDoubleValue(int row, int column) const

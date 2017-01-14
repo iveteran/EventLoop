@@ -115,7 +115,7 @@ class PGClient: public DBConnection, public IOEvent
 
     struct QueryItem {
       QueryItem(const char* sql, const DBResultCallback& c, void* cx, const vector<SQLParameter>* p = NULL) :
-        sqlQuery(sql), cb(c), ctx(cx)
+        sqlQuery(sql), cb(c), ctx(cx), committed(false)
       {
         if (p) params = *p;
       }
@@ -125,6 +125,7 @@ class PGClient: public DBConnection, public IOEvent
       vector<SQLParameter> params;
       DBResultCallback cb;
       void* ctx;
+      bool committed;
     };
 
     std::queue<QueryItem>  m_queryQueue;

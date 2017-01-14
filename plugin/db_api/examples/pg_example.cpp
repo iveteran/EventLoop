@@ -62,6 +62,10 @@ class PGClient_Test {
     DBResultCallback cb3 = std::bind(&PGClient_Test::on_delete_result, this, _1, _2, _3);
     success = pg_client_.ExecuteSQLAsync("delete from test where id=$1", cb3, (void*)"test delete", 1, &p1);
     assert(success);
+
+    DBResultCallback cb4 = std::bind(&PGClient_Test::on_select_result, this, _1, _2, _3);
+    success = pg_client_.ExecuteSQLAsync("select * from test", cb4, (void*)"test select 2");
+    assert(success);
   }
 
   void on_insert_result(const DBError& error, DBResult* result, void* ctx) {

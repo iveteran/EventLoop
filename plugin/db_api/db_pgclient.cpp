@@ -316,13 +316,15 @@ bool PGClient::SendNextQueryAsync()
   printf("PGClient::SendNextQueryAsync start\n");
   bool success = false;
 
-  if (m_queryQueue.size() > 0) {
-    QueryItem qitem = m_queryQueue.front();
+  if (!m_queryQueue.empty()) {
+    QueryItem& qitem = m_queryQueue.front();
+    if (qitem.committed) return true;
+
     const char* sql = qitem.sqlQuery.c_str();
     const char**  paramsValue = (const char**)NULL;
-    int*    paramLengths = (int*)NULL;
-    int*    paramFormats = (int*)NULL;
-    int     paramsCount = qitem.params.size();
+    int* paramLengths = NULL;
+    int* paramFormats = NULL;
+    int  paramsCount = qitem.params.size();
 
     if (paramsCount > 0) {
       paramsValue = new const char*[paramsCount];
@@ -368,6 +370,8 @@ bool PGClient::SendNextQueryAsync()
     if (paramFormats != NULL) delete[] paramFormats;
     if (paramLengths != NULL) delete[] paramLengths;
     if (paramsValue != NULL) delete[] paramsValue;
+
+    qitem.committed = true;
   } else {
     // The queue is empty. Nothing to request
     success = true;
@@ -389,7 +393,8 @@ bool PGClient::ExecuteSQLAsync(const char* sql, const DBResultCallback& cb, void
   }
   va_end(vl);
   m_queryQueue.push(qry_item);
-  if (m_queryQueue.size() == 1) {
+  if (!m_queryQueue.empty()) {
+  //if (m_queryQueue.size() == 1) {
     success = SendNextQueryAsync();
     if (!success) {
       m_queryQueue.pop();
@@ -547,32 +552,32 @@ void PGClient::ReadBytes() {
       break;
   }
 
-  if (m_subscribeMap.size() > 0) {
+  if (!m_subscribeMap.empty()) {
     HandleSubscription();
   }
 
   if (success) {
     if (!m_queryQueue.empty()) {
-      QueryItem qitem = m_queryQueue.front();
-      const char* sql = qitem.sqlQuery.c_str();
-      DBResultCallback& cb = qitem.cb;
-      void* callerContext = qitem.ctx;
-      m_queryQueue.pop();
+      QueryItem& qitem = m_queryQueue.front();
 
       if (!m_dberror.GetError()) {
-        if (strcmp("begin transaction", sql) == 0) {
+        if (strcasecmp("begin transaction", qitem.sqlQuery.c_str()) == 0) {
           this->m_transactionStarted = true;
-        } else if (strcmp("commit transaction", sql) == 0) {
+        } else if (strcasecmp("commit transaction", qitem.sqlQuery.c_str()) == 0) {
           this->m_transactionStarted = false;
         }
       }
 
-      cb(m_dberror, rst, callerContext);
+      qitem.cb(m_dberror, rst, qitem.ctx);
+      m_queryQueue.pop();
 
       if (!m_queryQueue.empty()) {
         success = SendNextQueryAsync();
         if (!success) {
           //CancelQueue(true);
+          QueryItem& qitem = m_queryQueue.front();
+          qitem.cb(m_dberror, NULL, qitem.ctx);
+          m_queryQueue.pop();
         }
       }
     } else {
@@ -618,7 +623,7 @@ void PGClient::OnEvents(uint32_t events)
     OnError(errno, strerror(errno));
   }
   if (m_dberror.GetError()) {
-    OnError(-1, m_dberror.GetDetail());
+    OnError(-1, m_dberror.GetMessage());
   }
 }
 
