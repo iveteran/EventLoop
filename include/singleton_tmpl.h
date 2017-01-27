@@ -1,6 +1,10 @@
 #ifndef _SINGLETON_TMPL_H
 #define _SINGLETON_TMPL_H
 #include <stdio.h>
+#if defined(MULTIPLE_THREAD_SUPPORTS)
+#include <map>
+#include <algorithm>
+#endif
 
 namespace evt_loop {
 
@@ -9,20 +13,41 @@ template<typename T>
 class Singleton
 {
     public:
+#if !defined(MULTIPLE_THREAD_SUPPORTS)
     static T* GetInstance()
     {
-        if (m_Instance == NULL )
+        if (m_instance == NULL )
         {
-            m_Instance = new T;
+            m_instance = new T;
         }
-        return m_Instance;
+        return m_instance;
     }
     static void ReleaseInstance()
     {
-        if(m_Instance != NULL)
-            delete m_Instance;
-        m_Instance = NULL;
+        delete m_instance;
+        m_instance = NULL;
     }
+#else
+    static T* GetInstance()
+    {
+        T* instance = NULL;
+        uint32_t tid = pthread_self();
+        auto iter = m_thread_instance_map.find(tid);
+        if (iter != m_thread_instance_map.end()) {
+            instance = iter->second;
+        } else {
+            instance = new T;
+            m_thread_instance_map[tid] = instance;
+        }
+        return instance;
+    }
+    static void ReleaseInstance()
+    {
+        for (auto item : m_thread_instance_map ) {
+            delete item->second;
+        }
+    }
+#endif
     virtual ~Singleton()
     {
         ReleaseInstance();
@@ -36,11 +61,20 @@ class Singleton
     Singleton& operator= (const Singleton& );
 
     private:
-    static T* m_Instance;
+#if !defined(MULTIPLE_THREAD_SUPPORTS)
+    static T* m_instance;
+#else
+    static std::map<uint32_t, T*> m_thread_instance_map;
+#endif
 };
 
+#if !defined(MULTIPLE_THREAD_SUPPORTS)
 template<typename T>
-T* Singleton<T>::m_Instance = NULL;
+T* Singleton<T>::m_instance = NULL;
+#else
+template<typename T>
+std::map<uint32_t, T*> Singleton<T>::m_thread_instance_map;
+#endif
 
 }  // ns evt_loop
 
