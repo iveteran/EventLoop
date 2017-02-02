@@ -1,6 +1,6 @@
 TARGET = hiredis_example
 
-HIREDIS_LIB = ../../../../hiredis-ext
+HIREDIS_LIB = ../../../../../hiredis-ext
 
 CPPFLAGS = -g -Wall -std=c++0x
 CXXFLAGS = -I../../../include \

@@ -85,6 +85,18 @@ using namespace evt_loop;
 int main(int argc, char **argv) {
   BusinessTester biz_tester;
 
+  SignalHandler sh(SignalEvent::INT, [&](SignalHandler* sh, uint32_t signo) {
+          printf("Shutdown\n");
+          EV_Singleton->StopLoop();
+          });
+
+  IdleEvent idle_task([](IdleEvent* idle, void* udata) {
+          printf("trigger idle event(id: %d), udata: %p\n", idle->Id(), udata);
+          }, &biz_tester);
+  IdleEvent idle_task2([](IdleEvent* idle, void* udata) {
+          printf("trigger idle event(id: %d), udata: %p\n", idle->Id(), udata);
+          }, NULL, 5);
+
   EV_Singleton->StartLoop();
 
   return 0;

@@ -610,16 +610,16 @@ void PGClient::WriteBytes() {
 void PGClient::OnEvents(uint32_t events)
 {
   //printf("[PGClient::OnEvents] events: %d\n", events);
-  if (events & IOEvent::WRITE) {
+  if (events & FileEvent::WRITE) {
     WriteBytes();
   }
-  if (events & IOEvent::READ) {
+  if (events & FileEvent::READ) {
     ReadBytes();
   }
-  if (events & IOEvent::CLOSED || !IsConnected()) {
+  if (events & FileEvent::CLOSED || !IsConnected()) {
     OnClosed();
   }
-  if (events & IOEvent::ERROR) {
+  if (events & FileEvent::ERROR) {
     OnError(errno, strerror(errno));
   }
   if (m_dberror.GetError()) {

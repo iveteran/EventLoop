@@ -6,6 +6,7 @@
 #include "timer_handler.h"
 #include "signal_handler.h"
 #include "fd_handler.h"
+#include "idle_handler.h"
 
 namespace evt_loop {
 
@@ -28,18 +29,19 @@ int SetNonblocking(int fd) {
 
 // EventLoop implementation
 EventLoop::EventLoop() {
-  epfd_ = epoll_create(256);
   timermanager_ = std::make_shared<TimerManager>();
+  idle_events_ = std::make_shared<IdleEventManager>();
   now_.SetNow();
   running_ = false;
+  signal(SIGPIPE, SIG_IGN);  // Ignore SIGPIPE, this signal will be received when write the socket that closed by peer
 }
 
 EventLoop::~EventLoop() {
-  close(epfd_);
 }
 
-int EventLoop::CollectFileEvents(int timeout) {
-  return epoll_wait(epfd_, evs_, 256, timeout);
+int EventLoop::PollFileEvents(int timeout) {
+  return poller_.Poll(timeout, std::bind(&EventLoop::ProcessFileEvents, this,
+              std::placeholders::_1, std::placeholders::_2));
 }
 
 int EventLoop::DoTimeout() {
@@ -64,26 +66,28 @@ int EventLoop::DoTimeout() {
 }
 
 int EventLoop::ProcessEvents(int timeout) {
-  int i, nt, n;
-
-  n = CollectFileEvents(timeout);
+  int nidle = 0;
   now_.SetNow();
-  nt = DoTimeout();
+  int ntimeout = DoTimeout();
 
-  for(i = 0; i < n; i++) {
-    //int fd = evs_[i].data.fd;
-    IOEvent *e = (IOEvent *)evs_[i].data.ptr;
-    if (e && e->fd_ > 0) {
-      uint32_t events = 0;
-      if (evs_[i].events & EPOLLIN) events |= IOEvent::READ;
-      if (evs_[i].events & EPOLLOUT) events |= IOEvent::WRITE;
-      if (evs_[i].events & EPOLLRDHUP) events |= IOEvent::CLOSED;
-      if (evs_[i].events & (EPOLLHUP | EPOLLERR)) events |= IOEvent::ERROR;
-      e->OnEvents(events);
-    }
+  int nfile = PollFileEvents(timeout);
+  if (nfile == 0) {
+    nidle = ProcessIdleEvents();
   }
 
-  return nt + n;
+  return ntimeout + nfile + nidle;
+}
+
+void EventLoop::ProcessFileEvents(void* evt, uint32_t events) {
+  IOEvent* e = (IOEvent*)evt;
+  if (e && e->fd_ > 0) {
+    e->OnEvents(events);
+  }
+}
+
+int EventLoop::ProcessIdleEvents()
+{
+  return idle_events_->Process();
 }
 
 int EventLoop::CalcNextTimeout()
@@ -117,37 +121,18 @@ void EventLoop::StartLoop() {
   }
 }
 
-int EventLoop::SetEvent(IOEvent *e, int op)
-{
-  if (e->fd_ < 0) return -1;
-  epoll_event ev = {0, {0}};
-  uint32_t events = e->events_;
-
-  ev.events = 0;
-  if (events & IOEvent::READ) ev.events |= EPOLLIN;
-  if (events & IOEvent::WRITE) ev.events |= EPOLLOUT;
-  if (events & IOEvent::CLOSED) ev.events |= EPOLLRDHUP;
-  if (events & IOEvent::ERROR) ev.events |= EPOLLHUP | EPOLLERR;
-  //ev.data.fd = e->fd_;
-  ev.data.ptr = e;
-
-  return epoll_ctl(epfd_, op, e->fd_, &ev);
-}
-
 int EventLoop::AddEvent(IOEvent *e) {
   e->el_ = this;
   SetNonblocking(e->fd_);
-  return SetEvent(e, EPOLL_CTL_ADD);
+  return poller_.SetEvents(e->fd_, PollerCtrl::ADD, e->events_, e);
 }
 
 int EventLoop::UpdateEvent(IOEvent *e) {
-  return SetEvent(e, EPOLL_CTL_MOD);
+  return poller_.SetEvents(e->fd_, PollerCtrl::UPDATE, e->events_, e);
 }
 
 int EventLoop::DeleteEvent(IOEvent *e) {
-  if (e->fd_ < 0) return -1;
-  epoll_event ev = {0, {0}}; // kernel before 2.6.9 requires
-  return epoll_ctl(epfd_, EPOLL_CTL_DEL, e->fd_, &ev);
+  return poller_.SetEvents(e->fd_, PollerCtrl::DELETE, e->events_);
 }
 
 int EventLoop::AddEvent(TimerEvent *e) {
@@ -174,6 +159,19 @@ int EventLoop::DeleteEvent(SignalEvent *e) {
 
 int EventLoop::UpdateEvent(SignalEvent *e) {
   return SignalManager::Instance()->UpdateEvent(e);
+}
+
+int EventLoop::AddEvent(IdleEvent *e) {
+  e->el_ = this;
+  return idle_events_->AddEvent(e);
+}
+
+int EventLoop::UpdateEvent(IdleEvent *e) {
+  return idle_events_->UpdateEvent(e);
+}
+
+int EventLoop::DeleteEvent(IdleEvent *e) {
+  return idle_events_->DeleteEvent(e);
 }
 
 }   // ns evt_loop

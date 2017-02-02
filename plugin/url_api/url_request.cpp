@@ -25,7 +25,7 @@ bool URLRequest::Init(const char* url, const CompletionCallback& cb, uint32_t ti
 void URLRequest::SetSocketEvent(curl_socket_t sockfd, int action)
 {
   //printf("%s: socket: %d, action: %d\n", __FUNCTION__, sockfd, action);
-  uint32_t events = (action & CURL_POLL_IN ? IOEvent::READ : 0) | ( action & CURL_POLL_OUT ? IOEvent::WRITE : 0);
+  uint32_t events = (action & CURL_POLL_IN ? FileEvent::READ : 0) | ( action & CURL_POLL_OUT ? FileEvent::WRITE : 0);
   if (FD() < 0) {
     WatchEvents(sockfd, events);
     curl_multi_assign(url_reactor_->GetCURLM(), sockfd, this);
@@ -67,9 +67,9 @@ void URLRequest::OnEvents(uint32_t events)
 
   url_reactor_->StopCURLTimer();
 
-  if(events & IOEvent::READ)
+  if(events & FileEvent::READ)
     action |= CURL_CSELECT_IN;
-  if(events & IOEvent::WRITE)
+  if(events & FileEvent::WRITE)
     action |= CURL_CSELECT_OUT;
 
   curl_multi_socket_action(url_reactor_->GetCURLM(), FD(), action, &running_handles);

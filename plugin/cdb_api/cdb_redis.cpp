@@ -175,13 +175,13 @@ bool RedisAsyncClient::SetRedisCallbacks()
 void RedisAsyncClient::OnEvents(uint32_t events)
 {
   //printf("[RedisAsyncClient::OnEvents] events: %d, redis.errcode: %d\n", events, redis_ctx_->err);
-  if (events & IOEvent::WRITE) {
+  if (events & FileEvent::WRITE) {
     redisAsyncHandleWrite(redis_ctx_); 
   }
-  if (events & IOEvent::READ) {
+  if (events & FileEvent::READ) {
     redisAsyncHandleRead(redis_ctx_);
   }
-  if (events & IOEvent::CLOSED) {
+  if (events & FileEvent::CLOSED) {
     HandleDisconnect();
   }
   if (HasError()) {
@@ -191,7 +191,7 @@ void RedisAsyncClient::OnEvents(uint32_t events)
       OnError(this, errno, strerror(errno));
     }
   }
-  if (events & IOEvent::ERROR) {
+  if (events & FileEvent::ERROR) {
     OnError(this, errno, strerror(errno));
   }
 }

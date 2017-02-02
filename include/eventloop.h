@@ -1,9 +1,9 @@
 #ifndef _EVENT_LOOP_H
 #define _EVENT_LOOP_H
 
-#include <sys/epoll.h>
 #include <memory>
 #include "utils.h"
+#include "poller.h"
 
 namespace evt_loop {
 
@@ -13,6 +13,8 @@ class TimerManager;
 class SignalEvent;
 class TimerEvent;
 class PeriodicTimerEvent;
+class IdleEvent;
+class IdleEventManager;
 
 time_t Now();
 int SetNonblocking(int fd);
@@ -36,30 +38,37 @@ class EventLoop {
   int DeleteEvent(SignalEvent *e);
   int UpdateEvent(SignalEvent *e);
 
+  int AddEvent(IdleEvent *e);
+  int DeleteEvent(IdleEvent *e);
+  int UpdateEvent(IdleEvent *e);
+
   // do epoll_waite and collect events
   int ProcessEvents(int timeout);
+  void ProcessFileEvents(void* evt, uint32_t events);
+  int ProcessIdleEvents();
+
   int CalcNextTimeout();
 
   // event loop control
   void StartLoop();
   void StopLoop();
 
+  bool IsRunning() const { return running_; }
   const TimeVal& Now() const { return now_; }
   time_t UnixTime() const { return now_.Seconds(); }
 
  private:
-  int SetEvent(IOEvent *e, int op);
-  int CollectFileEvents(int timeout);
+  int PollFileEvents(int timeout);
   int DoTimeout();
 
  private:
-  int epfd_;
-  epoll_event evs_[256];
+  Poller    poller_;
 
   TimeVal   now_;
   bool      running_;
 
   std::shared_ptr<TimerManager> timermanager_;
+  std::shared_ptr<IdleEventManager> idle_events_;
 };
 
 }  // ns evt_loop

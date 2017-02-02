@@ -99,17 +99,17 @@ bool TcpServer::Start()
 
 void TcpServer::OnEvents(uint32_t events)
 {
-    if (events & IOEvent::READ) {
+    if (events & FileEvent::READ) {
         IPAddress peer_addr;
         int fd = AcceptClient(peer_addr);
         if (fd > 0) {
             OnNewClient(fd, peer_addr);
         } else {
-            events |= IOEvent::ERROR;
+            events |= FileEvent::ERROR;
         }
     }
 
-    if (events & IOEvent::ERROR) {
+    if (events & FileEvent::ERROR) {
         OnError(errno, strerror(errno));
     }
 }

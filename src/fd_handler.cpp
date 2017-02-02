@@ -54,46 +54,46 @@ void IOEvent::UpdateEvents(uint32_t events)
   }
 }
 void IOEvent::AddReadEvent() {
-  if (el_ && !(events_ & IOEvent::READ))
+  if (el_ && !(events_ & FileEvent::READ))
   {
-    SetEvents(events_ | IOEvent::READ);
+    SetEvents(events_ | FileEvent::READ);
     el_->UpdateEvent(this);
   }
 }
 void IOEvent::DeleteReadEvent() {
-  if (el_ && (events_ & IOEvent::READ))
+  if (el_ && (events_ & FileEvent::READ))
   {
-    SetEvents(events_ & (~IOEvent::READ));
+    SetEvents(events_ & (~FileEvent::READ));
     el_->UpdateEvent(this);
   }
 }
 
 void IOEvent::AddWriteEvent() {
-  if (el_ && !(events_ & IOEvent::WRITE))
+  if (el_ && !(events_ & FileEvent::WRITE))
   {
-    SetEvents(events_ | IOEvent::WRITE);
+    SetEvents(events_ | FileEvent::WRITE);
     el_->UpdateEvent(this);
   }
 }
 void IOEvent::DeleteWriteEvent() {
-  if (el_ && (events_ & IOEvent::WRITE))
+  if (el_ && (events_ & FileEvent::WRITE))
   {
-    SetEvents(events_ & (~IOEvent::WRITE));
+    SetEvents(events_ & (~FileEvent::WRITE));
     el_->UpdateEvent(this);
   }
 }
 
 void IOEvent::AddErrorEvent() {
-  if (el_ && !(events_ & IOEvent::ERROR))
+  if (el_ && !(events_ & FileEvent::ERROR))
   {
-    SetEvents(events_ | IOEvent::ERROR);
+    SetEvents(events_ | FileEvent::ERROR);
     el_->UpdateEvent(this);
   }
 }
 void IOEvent::DeleteErrorEvent() {
-  if (el_ && (events_ & IOEvent::ERROR))
+  if (el_ && (events_ & FileEvent::ERROR))
   {
-    SetEvents(events_ & (~IOEvent::ERROR));
+    SetEvents(events_ & (~FileEvent::ERROR));
     el_->UpdateEvent(this);
   }
 }
@@ -128,11 +128,11 @@ int BufferIOEvent::ReceiveData(uint32_t& events) {
       } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
         break;
       } else {
-        events |= IOEvent::ERROR;
+        events |= FileEvent::ERROR;
         break;
       }
     } else if (len == 0 ) {
-      events |= IOEvent::CLOSED;
+      events |= FileEvent::CLOSED;
       break;
     } else {
       rx_msg_mq_.AppendData(buffer, len);
@@ -161,7 +161,7 @@ int BufferIOEvent::SendData(uint32_t& events) {
       } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
         break;
       } else {
-        events |= IOEvent::ERROR;
+        events |= FileEvent::ERROR;
         break;
       }
     }
@@ -176,7 +176,7 @@ int BufferIOEvent::SendData(uint32_t& events) {
   if (tx_msg_mq_.Empty()) {
     DeleteWriteEvent();  // All data in the output buffer has been sent, then remove writing event from epoll
     if (close_wait_)
-      events |= IOEvent::CLOSED;
+      events |= FileEvent::CLOSED;
   }
   return cur_sent;
 }
@@ -186,17 +186,17 @@ void BufferIOEvent::OnEvents(uint32_t events) {
     OnHandshake();
   } else {
     /// The WRITE events should deal with before the READ events
-    if (events & IOEvent::WRITE) {
+    if (events & FileEvent::WRITE) {
         SendData(events);
     }
-    if (events & IOEvent::READ) {
+    if (events & FileEvent::READ) {
         ReceiveData(events);
     }
   }
 
-  if (events & IOEvent::CLOSED) {
+  if (events & FileEvent::CLOSED) {
     OnClosed();
-  } else if ((events & IOEvent::ERROR)) {
+  } else if ((events & FileEvent::ERROR)) {
     OnError(errno, strerror(errno));
   }
 }
@@ -253,7 +253,7 @@ void BufferIOEvent::SendMore(const char *data, uint32_t len) {
 
 void BufferIOEvent::SendInner(const MessagePtr& msg) {
   tx_msg_mq_.Push(msg);
-  if (!(events_ & IOEvent::WRITE)) {
+  if (!(events_ & FileEvent::WRITE)) {
     AddWriteEvent();  // The output buffer has data now, then add writing event to epoll again if epoll has no writing event
   }
 }

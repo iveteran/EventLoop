@@ -58,7 +58,7 @@ class aio_request : public IOEvent
     void OnEvents(uint32_t events) override
     {
         //printf("[OnEvents]\n");
-        if (events & IOEvent::READ) {
+        if (events & FileEvent::READ) {
             get_aio_events();
         }
     }

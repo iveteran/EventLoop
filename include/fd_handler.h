@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include "event.h"
 #include "message.h"
+#include "poller.h"
 
 using std::string;
 
@@ -14,21 +15,23 @@ namespace evt_loop
 
 class IOEvent : public IEvent {
   friend class EventLoop;
+  /*
  public:
   static const uint32_t  READ = 1 << 0;
   static const uint32_t  WRITE = 1 << 1;
   static const uint32_t  ERROR = 1 << 2;
   static const uint32_t  CREATE = 1 << 3;
   static const uint32_t  CLOSED = 1 << 4;
+  */
 
  public:
-  IOEvent(int fd = -1, uint32_t events = IOEvent::READ | IOEvent::ERROR);
+  IOEvent(int fd = -1, uint32_t events = FileEvent::READ | FileEvent::ERROR);
   virtual ~IOEvent();
 
  public:
   void SetFD(int fd);
   int FD() const { return fd_; }
-  void WatchEvents(int fd, uint32_t events = IOEvent::READ | IOEvent::ERROR);
+  void WatchEvents(int fd, uint32_t events = FileEvent::READ | FileEvent::ERROR);
   void UpdateEvents(uint32_t events);
 
   void AddReadEvent();
@@ -57,7 +60,7 @@ class BufferIOEvent : public IOEvent {
   enum State { CLOSED, CONNECTED, READY, HANDSHAKING, FAILED };
 
  public:
-  BufferIOEvent(int fd, uint32_t events = IOEvent::READ | IOEvent::WRITE | IOEvent::ERROR)
+  BufferIOEvent(int fd, uint32_t events = FileEvent::READ | FileEvent::WRITE | FileEvent::ERROR)
     : IOEvent(fd, events), state_(CONNECTED), sent_(0), msg_seq_(0), close_wait_(false) {
   }
 
