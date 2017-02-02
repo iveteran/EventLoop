@@ -9,7 +9,7 @@ namespace evt_loop {
 
 typedef uint64_t    SessionID;
 
-class TimeoutSession;
+struct TimeoutSession;
 class TimeoutSessionManager;
 typedef std::function<void (TimeoutSession*, uint32_t elapse)>  SessionFinishAction;
 

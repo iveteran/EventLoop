@@ -1,6 +1,10 @@
 #ifndef _FD_HANDLER_H
 #define _FD_HANDLER_H
 
+#if defined(__OSX__) || defined(__DARWIN__) || defined(__APPLE__) || defined(__FREEBSD__)
+#define MSG_NOSIGNAL MSG_HAVEMORE
+#endif
+
 #include <string>
 #include <unistd.h>
 #include <sys/socket.h>

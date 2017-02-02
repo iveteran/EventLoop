@@ -1,14 +1,15 @@
-#if defined(__macosx__) || defined(__darwin__) || defined(__freebsd__)
+#if defined(__macosx__) || defined(__darwin__) || defined(__APPLE__) || defined(__freebsd__)
 #include <unistd.h>
+#include <sys/event.h>
 #include "poller.h"
 
-#define EVENT_NUM;
+#define EVENT_NUM 1024 
 
 namespace evt_loop {
 
-static void AddKqueueEvents(struct kevent& ev[], int n_ev, void* userdata);
-static void DeleteKqueueEvents(struct kevent& ev[], int n_ev);
-static void UpdateKqueueEvents(struct kevent& ev[], int n_ev, void* userdata);
+static void AddKqueueEvents(struct kevent* ev[], int n_ev, int fd, uint32_t events, void* userdata);
+static void DeleteKqueueEvents(struct kevent* ev[], int n_ev, int fd, uint32_t events);
+static void UpdateKqueueEvents(struct kevent* ev[], int n_ev, int fd, uint32_t events, void* userdata);
 static uint32_t FromKqueueEvents(int kqueue_filter, int kqueue_flags);
 
 Poller::Poller()
@@ -39,14 +40,18 @@ int Poller::Poll(uint32_t wait_ms, const PollCallback& poll_cb)
 int Poller::SetEvents(int fd, PollerCtrl ctrl, uint32_t events, void* userdata)
 {
   if (fd < 0) return -1;
-  struct kevent ev[EVENT_NUM] = {0};
+  struct kevent ev[EVENT_NUM];
+  struct kevent* evp = &ev[0];
+  for (int i=0; i < EVENT_NUM; i++) {
+    memset(&ev[i], 0, sizeof(ev));
+  }
 
   if (ctrl == PollerCtrl::ADD) {
-    AddKqueueEvents(ev, EVENT_NUM, userdata);
+    AddKqueueEvents(&evp, EVENT_NUM, fd, events, userdata);
   } else if (ctrl == PollerCtrl::DELETE) {
-    DeleteKqueueEvents(ev, EVENT_NUM);
+    DeleteKqueueEvents(&evp, EVENT_NUM, fd, events);
   } else if (ctrl == PollerCtrl::UPDATE) {
-    UpdateKqueueEvents(ev, EVENT_NUM, userdata);
+    UpdateKqueueEvents(&evp, EVENT_NUM, fd, events, userdata);
   }
 
   struct timespec timeout;
@@ -55,36 +60,36 @@ int Poller::SetEvents(int fd, PollerCtrl ctrl, uint32_t events, void* userdata)
   return kevent(pfd_, ev, EVENT_NUM, NULL, 0, &timeout);
 }
 
-static void AddKqueueEvents(struct kevent& ev[], int n_ev, void* userdata)
+static void AddKqueueEvents(struct kevent* ev[], int n_ev, int fd, uint32_t events, void* userdata)
 {
   int n = 0;
   if (events & FileEvent::READ)
-    EV_SET(&ev[n++], fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, userdata);
+    EV_SET(ev[n++], fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, userdata);
   if (events & FileEvent::WRITE)
-    EV_SET(&ev[n++], fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, userdata);
+    EV_SET(ev[n++], fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, userdata);
 }
 
-static void DeleteKqueueEvents(struct kevent& ev[], int n_ev)
+static void DeleteKqueueEvents(struct kevent* ev[], int n_ev, int fd, uint32_t events)
 {
   int n = 0;
   if (events & FileEvent::READ)
-    EV_SET(&ev[n++], fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+    EV_SET(ev[n++], fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
   if (events & FileEvent::WRITE)
-    EV_SET(&ev[n++], fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
+    EV_SET(ev[n++], fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
 }
 
-static void UpdateKqueueEvents(struct kevent& ev[], int n_ev, void* userdata)
+static void UpdateKqueueEvents(struct kevent* ev[], int n_ev, int fd, uint32_t events, void* userdata)
 {
   int n = 0;
   if (events & FileEvent::READ)
-    EV_SET(&ev[n++], fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, userdata);
+    EV_SET(ev[n++], fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, userdata);
   else
-    EV_SET(&ev[n++], fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+    EV_SET(ev[n++], fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
 
   if (events & FileEvent::WRITE)
-    EV_SET(&ev[n++], fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, userdata);
+    EV_SET(ev[n++], fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, userdata);
   else
-    EV_SET(&ev[n++], fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
+    EV_SET(ev[n++], fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
 }
 
 static uint32_t FromKqueueEvents(int kqueue_filter, int kqueue_flags)

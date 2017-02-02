@@ -1,6 +1,7 @@
 #include "eventloop.h"
 #include "tcp_server.h"
 #include <unistd.h>
+#include <errno.h>
 
 namespace evt_loop {
 

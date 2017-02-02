@@ -1,9 +1,10 @@
 #ifndef _MESSAGE_H
 #define _MESSAGE_H
 
-#include <string.h>
+#include <string>
 #include <queue>
 #include <memory>
+#include <functional>
 
 #define UNUSED(var) ((void)var)
 

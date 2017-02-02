@@ -1,12 +1,16 @@
 #include "tcp_client.h"
 #include "eventloop.h"
 #include <unistd.h>
+#include <errno.h>
+#if defined(__linux__)
 #include <linux/tcp.h>
+#endif
 
 namespace evt_loop {
 
 bool SetTcpKeepAlive(int fd, bool enable, int idle, int interval, int count)
 {
+#if defined(__linux__)
     int keepAlive = enable;         // 设定KeepAlive
     int keepIdle = idle;            // 开始首次KeepAlive探测前的TCP空闭时间
     int keepInterval = interval;    // 两次KeepAlive探测间的时间间隔
@@ -27,6 +31,7 @@ bool SetTcpKeepAlive(int fd, bool enable, int idle, int interval, int count)
     {
         return false;
     }
+#endif
     return true;
 }
 

@@ -1,3 +1,4 @@
+#include <errno.h>
 #include "fd_handler.h"
 #include "eventloop.h"
 

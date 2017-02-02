@@ -34,7 +34,7 @@ class SignalEvent : public IEvent {
       PIPE      = SIGPIPE,
       ALRM      = SIGALRM,
       TERM      = SIGTERM,
-      STKFLT    = SIGSTKFLT,
+      //STKFLT    = SIGSTKFLT,
       CHLD      = SIGCHLD,
       CONT      = SIGCONT,
       STOP      = SIGSTOP,
@@ -48,7 +48,7 @@ class SignalEvent : public IEvent {
       PROF      = SIGPROF,
       WINCH     = SIGWINCH,
       IO        = SIGIO,
-      PWR       = SIGPWR,
+      //PWR       = SIGPWR,
       SYS       = SIGSYS,
   };
 

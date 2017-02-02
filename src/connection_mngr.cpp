@@ -1,4 +1,5 @@
 #include "connection_mngr.h"
+#include <functional>
 
 namespace evt_loop {
 

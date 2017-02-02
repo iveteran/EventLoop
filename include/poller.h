@@ -10,13 +10,13 @@ enum FileEvent {
   WRITE = 1 << 1,
   ERROR = 1 << 2,
   CREATE = 1 << 3,
-  CLOSED = 1 << 4,
+  CLOSED = 1 << 4
 };
 
 enum PollerCtrl {
   ADD,
   UPDATE,
-  DELETE,
+  DELETE
 };
 
 class Poller
