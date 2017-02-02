@@ -1,5 +1,6 @@
 #if defined(__linux__)
 #include <unistd.h>
+#include <sys/epoll.h>
 #include "poller.h"
 
 namespace evt_loop {

@@ -1,6 +1,7 @@
 #ifndef _MESSAGE_H
 #define _MESSAGE_H
 
+#include <string.h>
 #include <string>
 #include <queue>
 #include <memory>
