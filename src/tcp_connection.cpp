@@ -39,6 +39,8 @@ void TcpConnection::SetReadyCallback(const OnReadyCallback& cb)
 
 void TcpConnection::Disconnect()
 {
+    if (state_ == CLOSED) return;
+
     active_closing_ = true;
     if (TxBuffEmpty())
         OnClosed();

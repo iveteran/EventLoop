@@ -153,6 +153,10 @@ void TcpServer::OnError(int errcode, const char* errstr)
 {
     printf("[TcpServer::OnError] error code: %d, error string: %s\n", errcode, errstr);
     if (error_cb_) error_cb_(this, errcode, errstr);
+
+    if (errcode == EADDRINUSE || errcode == EADDRNOTAVAIL) {
+        exit(1);
+    }
 }
 
 //////////////////////////////////////////////

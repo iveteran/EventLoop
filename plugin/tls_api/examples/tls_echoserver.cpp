@@ -24,12 +24,10 @@ class BusinessTester {
         echoserver_binary_.SetTcpCallbacks(echo_svr_1_cbs);
         echoclient_binary_.SetTcpCallbacks(echo_client_cbs);
 
-        /*
         echoclient_binary_.Connect();
 
         echoclient_binary_.Send("hello, binary message");
         echoclient_binary_.Send("hello china");
-        */
     }
     void OnSignal(SignalHandler* sh, uint32_t signo)
     {
