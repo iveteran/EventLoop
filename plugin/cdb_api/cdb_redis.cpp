@@ -229,10 +229,10 @@ bool RedisAsyncClient::SendCommand(const RedisRequestPtr& request)
   int status = redisAsyncFormattedCommand(redis_ctx_, __GetReplyCallback, this, request->cmd_.data(), request->cmd_.size());
   return status == REDIS_OK;
 }
-bool RedisAsyncClient::Connect_(bool reconnect)
+bool RedisAsyncClient::Connect_(bool is_reconnect)
 {
   int status = REDIS_ERR;
-  if (!reconnect)
+  if (!is_reconnect)
     status = redisAsyncConnectBlock_ext(redis_ctx_, server_addr_.ip_.c_str(), server_addr_.port_);
   else
     status = redisAsyncReconnectBlock_ext(redis_ctx_);
@@ -297,8 +297,13 @@ void RedisAsyncClient::OnRedisReply(const redisAsyncContext* ctx, redisReply* re
 
   if (!request_queue_.empty()) {
     auto& request = request_queue_.front();
-    RedisReply redis_reply(reply);
-    HandleReply(request, redis_reply);
+    if (!request || request->step_ >= RedisRequest::Step::COUNT) {
+      // TODO: Don't know why the request is invalid sometimes
+      printf("[RedisAsyncClient::OnRedisReply] ERROR: Invalid request object!");
+    } else {
+      RedisReply redis_reply(reply);
+      HandleReply(request, redis_reply);
+    }
     request_queue_.pop();
   }
 }
@@ -379,29 +384,36 @@ bool RedisSyncClient::SendCommand(CDBReply* user_reply, const RedisRequestPtr& r
 }
 bool RedisSyncClient::SendCommand(const OnReplyCallback& reply_cb, const char* format, ...)
 {
-  snprintf(m_errstr, sizeof(m_errstr), "[RedisSyncClient::SendCommand]: api not implemented");
+  snprintf(m_errstr, sizeof(m_errstr), "[RedisSyncClient::SendCommand] api not implemented");
+  printf("%s", m_errstr);
   return false;
 }
 
-bool RedisSyncClient::Connect_(bool reconnect)
+bool RedisSyncClient::Connect_(bool is_reconnect)
 {
-  if (reconnect && redis_ctx_) {
+  if (is_reconnect && redis_ctx_) {
     int status = redisReconnect(redis_ctx_);
     if (status != REDIS_OK) {
       printf("[RedisSyncClient::Connect_] Reconnect failed: %s\n", redis_ctx_->errstr);
       snprintf(m_errstr, sizeof(m_errstr), "RedisSyncClient(%d): %s", redis_ctx_->err, redis_ctx_->errstr);
-      return false;
+      connected_ = false;
+    } else {
+      connected_ = true;
     }
   } else {
     redis_ctx_ = redisConnect(server_addr_.ip_.c_str(), server_addr_.port_);
-    if (redis_ctx_ && redis_ctx_->err) {
+    if (redis_ctx_ == NULL || redis_ctx_->err) {
       printf("[RedisSyncClient::Connect_] Connect failed: %s\n", redis_ctx_->errstr);
       snprintf(m_errstr, sizeof(m_errstr), "RedisSyncClient(%d): %s", redis_ctx_->err, redis_ctx_->errstr);
-      return false;
+      connected_ = false;
+    } else {
+      connected_ = true;
     }
   }
-  if (cdb_cbs_) cdb_cbs_->on_connected_cb(this);
-  return true;
+  if (connected_ && cdb_cbs_)
+      cdb_cbs_->on_connected_cb(this);
+
+  return connected_;
 }
 
 bool RedisSyncClient::HasError() const

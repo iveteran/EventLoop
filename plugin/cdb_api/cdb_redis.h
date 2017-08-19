@@ -30,7 +30,7 @@ enum ReplyState { UNDEFINED, ASK, MOVED, CLUSTERDOWN, FAILED, NORMAL };
 
 struct RedisRequest
 {
-  enum Step { UNDEFINED, ASK, REDIRECT, RETRY, FAILED, FINISH };
+  enum Step { UNDEFINED, ASK, REDIRECT, RETRY, FAILED, FINISH, COUNT };
 
   RedisRequest(const OnReplyCallback& reply_cb, const char* format, va_list ap)
   {
@@ -129,7 +129,7 @@ class RedisAsyncClient : public RedisClient, public IOEvent {
   ~RedisAsyncClient() { Disconnect(); redis_ctx_ = NULL; }
   bool Init(const char* host, uint16_t port, const CDBCallbacksPtr& cdb_cbs = nullptr, bool auto_reconnect = true);
 
-  bool IsReady() const { return redis_ctx_ && redis_ctx_->err == REDIS_OK; }
+  //bool IsReady() const { return redis_ctx_ && redis_ctx_->err == REDIS_OK; }
   void Disconnect();
   void HandleConnect();
   void HandleDisconnect();
@@ -153,7 +153,7 @@ class RedisAsyncClient : public RedisClient, public IOEvent {
   bool HasError() const;
 
   private:
-  bool Connect_(bool reconnect = false);
+  bool Connect_(bool is_reconnect = false);
   bool SetRedisCallbacks();
 
   void OnEvents(uint32_t events);
@@ -175,7 +175,7 @@ class RedisSyncClient : public RedisClient {
   RedisSyncClient(bool auto_reconnect = true) : RedisClient(auto_reconnect), redis_ctx_(NULL) { }
   ~RedisSyncClient() { Disconnect(); redis_ctx_ = NULL; }
 
-  bool IsReady() const { return redis_ctx_ && redis_ctx_->err == REDIS_OK; }
+  //bool IsReady() const { return redis_ctx_ && redis_ctx_->err == REDIS_OK; }
   void Disconnect();
 
   bool SendCommand(CDBReply* user_reply, const char* format, ...);
@@ -186,7 +186,7 @@ class RedisSyncClient : public RedisClient {
   bool HasError() const;
 
   private:
-  bool Connect_(bool reconnect = false);
+  bool Connect_(bool is_reconnect = false);
   RedisRequest::Step HandleReply(CDBReply* user_reply, const RedisRequestPtr& request, const RedisReply& reply);
   void SendAskRequest(CDBReply* user_reply, const string& ip, uint16_t port);
   void SendRedirectRequest(CDBReply* user_reply, const RedisRequestPtr& request, const string& ip, uint16_t port);

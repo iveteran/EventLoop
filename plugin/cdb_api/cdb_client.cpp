@@ -46,13 +46,13 @@ void CDBClient::Reconnect()
 
 void CDBClient::OnReconnectTimer(TimerEvent* timer)
 {
-  //printf("[CDBClient::ReconnectTimer::OnTimer begin] is ready: %d\n", IsReady());
+  //printf("[CDBClient::OnReconnectTimer begin] is ready: %d\n", IsReady());
   if (!IsReady()) {  // if the connection is not created, then reconnect
     bool success = Connect_(RECONNECT);
     if (success)
       timer->Stop();
     else
-      printf("[CDBClient::ReconnectTimer::OnTimer] Reconnect failed, retry %u seconds later...\n", timer->GetInterval().Seconds());
+      printf("[CDBClient::OnReconnectTimer] Reconnect failed, retry %u seconds later...\n", timer->GetInterval().Seconds());
   } else {
     timer->Stop();
   }
