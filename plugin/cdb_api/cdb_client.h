@@ -51,6 +51,7 @@ class CDBClient
 
     protected:
     IPAddress           server_addr_;
+    IPAddress           local_addr_;
     bool                auto_reconnect_;
     PeriodicTimer       reconnect_timer_;
     CDBCallbacksPtr     cdb_cbs_;

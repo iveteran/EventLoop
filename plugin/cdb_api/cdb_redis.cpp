@@ -1,17 +1,53 @@
 #include "cdb_redis.h"
-
-#define PRINT_COMMAND(prefix_str, format, ap) { \
-  printf("[%s] ", prefix_str);                  \
-  va_list ap;                                   \
-  va_start(ap, format);                         \
-  vprintf(format, ap);                          \
-  printf("\n");                                 \
-  va_end(ap);                                   \
-  }
+#include "cdb_redis_cluster.h"
 
 namespace cdb_api {
 
-const char* ERR_CONNECTION_NOT_READY = "RedisClient: client is not connected";
+string GetRedisKeyFromCommand(char* cmd_str)
+{
+  char* token = NULL;
+  const char* sep = " ";
+  token = strtok(cmd_str, sep);
+  if (token)
+      token = strtok(NULL, sep);
+  return token ? string(token) : string();
+}
+string GetRedisKeyFromCommand(const char* format, va_list ap, string* fmt_cmd)
+{
+  char cmd_str[1024] = {0};
+  vsnprintf(cmd_str, sizeof(cmd_str), format, ap);
+  if (fmt_cmd) {
+    *fmt_cmd = cmd_str;
+  }
+  return GetRedisKeyFromCommand(cmd_str);
+}
+
+static ReplyState ProcessResult(int result_code, const char* result_desc, int result_desc_len)
+{
+  ReplyState state = ReplyState::NORMAL;
+  if (result_code == REDIS_REPLY_ERROR ) {
+    if (strstr(result_desc, "ASK") != NULL) {
+      state = ReplyState::ASK;
+    } else if (strstr(result_desc, "MOVED") != NULL) {
+      state = ReplyState::MOVED;
+    } else if (strstr(result_desc, "CLUSTERDOWN") != NULL) {
+      state = ReplyState::CLUSTERDOWN;
+    }
+  }
+  return state;
+}
+static bool ParseNodeAddress(string desc, string& host, uint16_t& port)
+{
+  size_t hostPotision = desc.find( " ", desc.find( " ") + 1) + 1;
+  size_t portPosition = desc.find( ":", hostPotision) + 1;
+
+  if( hostPotision != string::npos && portPosition != string::npos) {
+    host = desc.substr(hostPotision, portPosition - hostPotision - 1);
+    port = atol(desc.substr(portPosition).c_str());
+    return true;
+  }
+  return false;
+}
 
 /*
  * Implements of RedisAsyncClient
@@ -61,12 +97,6 @@ static void __RedisDisconnectCallback(const redisAsyncContext *ctx, int status)
   rac->OnRedisDisconnect(ctx, status);
 }
 
-RedisAsyncClient::~RedisAsyncClient()
-{
-  Disconnect();
-  redis_ctx_ = NULL;
-}
-
 bool RedisAsyncClient::Init(const char* host, uint16_t port, const CDBCallbacksPtr& cdb_cbs, bool auto_reconnect)
 {
   redis_ctx_ = redisAsyncContextCreate_ext();
@@ -74,20 +104,9 @@ bool RedisAsyncClient::Init(const char* host, uint16_t port, const CDBCallbacksP
 
   return CDBClient::Init(host, port, cdb_cbs, auto_reconnect);
 }
-
-bool RedisAsyncClient::IsReady() const
-{
-  return Connected();
-}
-
-bool RedisAsyncClient::Connected() const
-{
-  return connected_;
-}
-
 void RedisAsyncClient::HandleConnect()
 {
-  printf("[RedisAsyncClient::HandleConnect] Connect to redis server successful, fd: %d\n", redis_ctx_->c.fd);
+  printf("[RedisAsyncClient::HandleConnect] Connect to redis server(%s) successful, fd: %d\n", server_addr_.ToString().c_str(), redis_ctx_->c.fd);
   SetFD(redis_ctx_->c.fd);
   connected_ = true;
   SendCommand(NULL, "PING");  // just to check the connection whether available
@@ -98,42 +117,118 @@ void RedisAsyncClient::HandleDisconnect()
   SetFD(-1);
   connected_ = false;
 }
-
 void RedisAsyncClient::Disconnect()
 {
   if (redis_ctx_) {
     redisAsyncDisconnect(redis_ctx_);
   }
 }
-
-bool RedisAsyncClient::SendCommand(CDBReply* msg, const char* format, ...)
+void RedisAsyncClient::SetExcepitonReplyCallback(const RedisAskReplyCallback& ask_cb,
+        const RedisRedirectReplyCallback& redirect_cb,
+        const RedisClusterDownReplyCallback& cluster_down_cb)
 {
-  UNUSED(msg);
-  PRINT_COMMAND("RedisAsyncClient::SendCommand", format, _ap);
-  if (!IsReady()) { return false; }
+  ask_cb_ = ask_cb;
+  redirect_cb_ = redirect_cb;
+  cluster_down_cb_ = cluster_down_cb;
+}
+RedisRequest::Step RedisAsyncClient::HandleReply(const RedisRequestPtr& request, const RedisReply& reply)
+{
+  RedisRequest::Step step = RedisRequest::Step::FAILED;
+  const redisReply* r_reply = (const redisReply*)reply.GetReply();
 
-  OnReplyCallback default_on_reply_cb = std::bind(&RedisAsyncClient::DefaultOnReplyCb, this, std::placeholders::_1, std::placeholders::_2);
-  reply_cb_queue_.push(default_on_reply_cb);
+  ReplyState reply_state = ProcessResult(r_reply->type, r_reply->str, r_reply->len);
+  switch (reply_state) {
+    case ReplyState::ASK:
+    case ReplyState::MOVED:
+      {
+        string host;
+        uint16_t port;
+        bool success = ParseNodeAddress(r_reply->str, host, port);
+        if (success) {
+          if (reply_state == ReplyState::ASK) {
+            step = RedisRequest::Step::ASK;
+            if (ask_cb_) ask_cb_(this, request, host, port);
+          } else {
+            step = RedisRequest::Step::REDIRECT;
+            if (redirect_cb_) redirect_cb_(this, request, host, port);
+          }
+        } else {
+          step = RedisRequest::Step::FAILED;
+        }
+      }
+      break;
+    case ReplyState::CLUSTERDOWN:
+      step = RedisRequest::Step::FAILED;
+      if (cluster_down_cb_) cluster_down_cb_(this, request);
+      break;
+    case ReplyState::NORMAL:
+      {
+        step = RedisRequest::Step::FINISH;
+        if (request->reply_cb_) request->reply_cb_(this, &reply);
+      }
+      break;
+    default:
+      step = RedisRequest::Step::FAILED;
+      break;
+  }
+  if (step == RedisRequest::Step::FAILED && NeedRetry()) {
+    //retry(con, r, data );
+  }
+  return step;
+}
+bool RedisAsyncClient::SendCommand(CDBReply* user_reply, const char* format, ...)
+{
+  UNUSED(user_reply);
+
   va_list ap;
   va_start(ap, format);
-  int status = redisvAsyncCommand(redis_ctx_, __GetReplyCallback, this, format, ap);
+  bool success = SendCommand(user_reply, format, ap);
   va_end(ap);
+  return success;
+}
+bool RedisAsyncClient::SendCommand(CDBReply* user_reply, const char* format, va_list ap)
+{
+  UNUSED(user_reply);
+  if (!IsReady()) { return false; }
+
+  OnReplyCallback reply_cb = std::bind(&RedisClient::DefaultOnReplyCb, this, std::placeholders::_1, std::placeholders::_2);
+  va_list ap_copy;
+  va_copy(ap_copy, ap);
+  auto request = std::make_shared<RedisRequest>(reply_cb, format, ap_copy);
+  va_end(ap_copy);
+  printf("[RedisAsyncClient::SendCommand] cmd: %s\n", request->ToString().c_str());
+  request_queue_.push(request);
+  int status = redisAsyncFormattedCommand(redis_ctx_, __GetReplyCallback, this, request->cmd_.data(), request->cmd_.size());
   return status == REDIS_OK;
 }
-
 bool RedisAsyncClient::SendCommand(const OnReplyCallback& reply_cb, const char* format, ...)
 {
-  PRINT_COMMAND("RedisAsyncClient::SendCommand", format, _ap);
-  if (!IsReady()) { return false; }
-
-  reply_cb_queue_.push(reply_cb);
   va_list ap;
   va_start(ap, format);
-  int status = redisvAsyncCommand(redis_ctx_, __GetReplyCallback, this, format, ap);
+  bool success = SendCommand(reply_cb, format, ap);
   va_end(ap);
+  return success;
+}
+bool RedisAsyncClient::SendCommand(const OnReplyCallback& reply_cb, const char* format, va_list ap)
+{
+  if (!IsReady()) { return false; }
+
+  va_list ap_copy;
+  va_copy(ap_copy, ap);
+  auto request = std::make_shared<RedisRequest>(reply_cb, format, ap_copy);
+  va_end(ap_copy);
+  printf("[RedisAsyncClient::SendCommand] cmd: %s\n", request->ToString().c_str());
+  request_queue_.push(request);
+  int status = redisAsyncFormattedCommand(redis_ctx_, __GetReplyCallback, this, request->cmd_.data(), request->cmd_.size());
   return status == REDIS_OK;
 }
-
+bool RedisAsyncClient::SendCommand(const RedisRequestPtr& request)
+{
+  printf("[RedisAsyncClient::SendCommand] cmd: %s\n", request->ToString().c_str());
+  request_queue_.push(request);
+  int status = redisAsyncFormattedCommand(redis_ctx_, __GetReplyCallback, this, request->cmd_.data(), request->cmd_.size());
+  return status == REDIS_OK;
+}
 bool RedisAsyncClient::Connect_(bool reconnect)
 {
   int status = REDIS_ERR;
@@ -153,7 +248,6 @@ bool RedisAsyncClient::Connect_(bool reconnect)
 
   return connected_;
 }
-
 bool RedisAsyncClient::SetRedisCallbacks()
 {
   if (redis_ctx_->ev.data != NULL)
@@ -171,7 +265,6 @@ bool RedisAsyncClient::SetRedisCallbacks()
 
   return true;
 }
-
 void RedisAsyncClient::OnEvents(uint32_t events)
 {
   //printf("[RedisAsyncClient::OnEvents] events: %d, redis.errcode: %d\n", events, redis_ctx_->err);
@@ -201,24 +294,14 @@ void RedisAsyncClient::OnRedisReply(const redisAsyncContext* ctx, redisReply* re
   printf("[RedisAsyncClient::OnRedisReply] received reply, fd: %d\n"
       " reply: { type: %d, integer: %lld, len: %ld, str: %s, elements: %lu, element list: %p }\n",
       ctx->c.fd, reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
-  RedisReply rmsg(reply);
-  auto& reply_cb = reply_cb_queue_.front();
-  reply_cb(this, &rmsg);
-  reply_cb_queue_.pop();
-}
-void RedisAsyncClient::DefaultOnReplyCb(CDBClient* cdbc, const CDBReply* cdb_msg)
-{
-    const redisReply* reply = (const redisReply*)cdb_msg->GetReply();
-    printf("[DASMsgHandler::DefaultOnReplyCb] received reply: \n"
-            "{ type: %d, integer: %lld, len: %ld, str: %s, elements: %lu, element list: %p }\n",
-            reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
-}
 
-void RedisAsyncClient::SetCallbacks(const CDBCallbacksPtr& cdb_cbs)
-{
-  cdb_cbs_ = cdb_cbs;
+  if (!request_queue_.empty()) {
+    auto& request = request_queue_.front();
+    RedisReply redis_reply(reply);
+    HandleReply(request, redis_reply);
+    request_queue_.pop();
+  }
 }
-
 void RedisAsyncClient::OnRedisConnect(const redisAsyncContext* ctx, int status)
 {
   if (status == REDIS_OK) {
@@ -250,21 +333,8 @@ bool RedisAsyncClient::HasError() const
 {
   return redis_ctx_ && redis_ctx_->err != REDIS_OK;
 }
-const char* RedisAsyncClient::GetLastError() const
-{
-  return IsReady() ? m_errstr : ERR_CONNECTION_NOT_READY;
-}
 
-
-/*
- * Implements of RedisClient
- */
-bool RedisClient::IsReady() const
-{
-  return redis_ctx_ && redis_ctx_->err == REDIS_OK;
-}
-
-void RedisClient::Disconnect()
+void RedisSyncClient::Disconnect()
 {
   if (redis_ctx_) {
     redisFree(redis_ctx_);
@@ -272,41 +342,61 @@ void RedisClient::Disconnect()
   }
 }
 
-
-bool RedisClient::SendCommand(CDBReply* msg, const char* format, ...)
+bool RedisSyncClient::SendCommand(CDBReply* user_reply, const char* format, ...)
 {
-  PRINT_COMMAND("RedisClient::SendCommand", format, _ap);
-
   if (!IsReady()) { return false; }
 
   va_list ap;
   va_start(ap, format);
-  void* reply = redisvCommand(redis_ctx_, format, ap);
+  bool success = SendCommand(user_reply, format, ap);
   va_end(ap);
-  if (msg && reply) msg->SetReply(reply);
-  return msg != NULL;
+  return success;
 }
-
-bool RedisClient::SendCommand(const OnReplyCallback& reply_cb, const char* format, ...)
+bool RedisSyncClient::SendCommand(CDBReply* user_reply, const char* format, va_list ap)
 {
-  snprintf(m_errstr, sizeof(m_errstr), "[RedisClient::SendCommand]: api not implemented");
+  if (!IsReady()) { return false; }
+
+  auto request = std::make_shared<RedisRequest>(nullptr, format, ap);
+  return SendCommand(user_reply, request);
+}
+bool RedisSyncClient::SendCommand(CDBReply* user_reply, const RedisRequestPtr& request)
+{
+  printf("[RedisSyncClient::SendCommand] cmd: %s, len: %ld\n", request->ToString().c_str(), request->cmd_.size());
+  if (!IsReady()) { return false; }
+
+  bool success = false;
+  int status = redisAppendFormattedCommand(redis_ctx_, request->cmd_.data(), request->cmd_.size());
+  if (status == REDIS_OK) {
+    void* r_reply = NULL;
+    status = redisGetReply(redis_ctx_, &r_reply);
+    if (status == REDIS_OK && r_reply != NULL) {
+      RedisReply redis_reply((redisReply*)r_reply);
+      HandleReply(user_reply, request, redis_reply);
+      success = true;
+    }
+  }
+  return success;
+}
+bool RedisSyncClient::SendCommand(const OnReplyCallback& reply_cb, const char* format, ...)
+{
+  snprintf(m_errstr, sizeof(m_errstr), "[RedisSyncClient::SendCommand]: api not implemented");
   return false;
 }
 
-bool RedisClient::Connect_(bool reconnect)
+bool RedisSyncClient::Connect_(bool reconnect)
 {
   if (reconnect && redis_ctx_) {
     int status = redisReconnect(redis_ctx_);
     if (status != REDIS_OK) {
-      printf("[RedisClient::Connect_] Reconnect failed: %s\n", redis_ctx_->errstr);
-      snprintf(m_errstr, sizeof(m_errstr), "RedisClient(%d): %s", redis_ctx_->err, redis_ctx_->errstr);
+      printf("[RedisSyncClient::Connect_] Reconnect failed: %s\n", redis_ctx_->errstr);
+      snprintf(m_errstr, sizeof(m_errstr), "RedisSyncClient(%d): %s", redis_ctx_->err, redis_ctx_->errstr);
       return false;
     }
   } else {
     redis_ctx_ = redisConnect(server_addr_.ip_.c_str(), server_addr_.port_);
     if (redis_ctx_ && redis_ctx_->err) {
-      printf("[RedisClient::Connect_] Connect failed: %s\n", redis_ctx_->errstr);
-      snprintf(m_errstr, sizeof(m_errstr), "RedisClient(%d): %s", redis_ctx_->err, redis_ctx_->errstr);
+      printf("[RedisSyncClient::Connect_] Connect failed: %s\n", redis_ctx_->errstr);
+      snprintf(m_errstr, sizeof(m_errstr), "RedisSyncClient(%d): %s", redis_ctx_->err, redis_ctx_->errstr);
       return false;
     }
   }
@@ -314,13 +404,77 @@ bool RedisClient::Connect_(bool reconnect)
   return true;
 }
 
-bool RedisClient::HasError() const
+bool RedisSyncClient::HasError() const
 {
   return redis_ctx_ && redis_ctx_->err != REDIS_OK;
 }
-const char* RedisClient::GetLastError() const
+
+RedisRequest::Step RedisSyncClient::HandleReply(CDBReply* user_reply, const RedisRequestPtr& request, const RedisReply& reply)
 {
-  return IsReady() ? m_errstr : ERR_CONNECTION_NOT_READY;
+  RedisRequest::Step step = RedisRequest::Step::FAILED;
+  const redisReply* r_reply = (const redisReply*)reply.GetReply();
+
+  ReplyState reply_state = ProcessResult(r_reply->type, r_reply->str, r_reply->len);
+  switch (reply_state) {
+    case ReplyState::ASK:
+    case ReplyState::MOVED:
+      {
+        string host;
+        uint16_t port;
+        bool success = ParseNodeAddress(r_reply->str, host, port);
+        if (success) {
+          if (reply_state == ReplyState::ASK) {
+            step = RedisRequest::Step::ASK;
+            SendAskRequest(user_reply, host, port);
+          } else {
+            step = RedisRequest::Step::REDIRECT;
+            SendRedirectRequest(user_reply, request, host, port);
+          }
+        } else {
+          step = RedisRequest::Step::FAILED;
+          user_reply->SetReply(reply.GetReply());
+        }
+      }
+      break;
+    case ReplyState::CLUSTERDOWN:
+      step = RedisRequest::Step::FAILED;
+    case ReplyState::NORMAL:
+      step = RedisRequest::Step::FINISH;
+    default:
+      step = RedisRequest::Step::FAILED;
+      user_reply->SetReply(reply.GetReply());
+      break;
+  }
+  if (step == RedisRequest::Step::FAILED && NeedRetry()) {
+    //retry(con, r, data );
+  }
+  return step;
+}
+void RedisSyncClient::SendAskRequest(CDBReply* user_reply, const string& ip, uint16_t port)
+{
+  printf("[RedisSyncClient::SendAskRequest] Asking to node: %s:%d\n", ip.c_str(), port);
+  RedisClusterSync* cluster = (RedisClusterSync*)GetCluster();
+  if (cluster) {
+    auto target_node = cluster->GetNode(ip, port);
+    if (!target_node) {
+      target_node = cluster->AddNode(ip, port, cluster->IsAutoReconnect());
+      //SetNodeExceptionReplyCallback(target_node.get());
+    }
+    target_node->SendCommand(user_reply, "ASKING");
+  }
+}
+void RedisSyncClient::SendRedirectRequest(CDBReply* user_reply, const RedisRequestPtr& request, const string& ip, uint16_t port)
+{
+  printf("[RedisSyncClient::SendRedirectRequest] Redirect to node: %s:%d\n", ip.c_str(), port);
+  RedisClusterSync* cluster = (RedisClusterSync*)GetCluster();
+  if (cluster) {
+    auto target_node = cluster->GetNode(ip, port);
+    if (!target_node) {
+      target_node = cluster->AddNode(ip, port, cluster->IsAutoReconnect());
+      //SetNodeExceptionReplyCallback(target_node.get());
+    }
+    target_node->SendCommand(user_reply, request);
+  }
 }
 
 }  // namespace db_api

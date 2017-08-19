@@ -2,9 +2,12 @@
 #include <assert.h>
 #include "el.h"
 #include "cdb_redis.h"
+#include "cdb_redis_cluster.h"
 
 #define TEST_STRING     "hiredis_async_test"
 #define TEST_STRING_2   "hiredis_async_test 2"
+
+#define TEST_CLUSTER    1
 
 using namespace evt_loop;
 using namespace cdb_api;
@@ -15,9 +18,14 @@ class RedisClient_Test {
   {
     CDBCallbacksPtr cdb_cbs = std::make_shared<CDBCallbacks>();
     cdb_cbs->on_connected_cb = std::bind(&RedisClient_Test::OnConnectionCreated, this, std::placeholders::_1);
+#if TEST_CLUSTER
+    IPAddressList addr_list{ IPAddress("localhost", 7000), IPAddress("127.0.0.1", 7003) };
+    bool success = m_client.Init(addr_list, cdb_cbs);
+#else
     bool success = m_client.Init("localhost", 6379, cdb_cbs);
+#endif
     if (!success) {
-      printf("[RedisClient_Test] Init failed: %s\n", m_client.GetLastError());
+      //printf("[RedisClient_Test] Init failed: %s\n", m_client.GetLastError());
     }
   }
 
@@ -25,6 +33,8 @@ class RedisClient_Test {
   void OnConnectionCreated(CDBClient* client)
   {
     printf("[RedisClient_Test::OnConnectionCreated] connection created\n");
+    node_num++;
+    if (node_num > 1) return;
 
     RedisReply rmsg;
     const redisReply* reply = NULL;
@@ -75,11 +85,16 @@ class RedisClient_Test {
     rmsg.ReleaseReplyObject();
     // end test for binary data
 
-    printf("--- All RedisClient tests passed!\n\n");
+    printf("--- All RedisSyncClient tests passed!\n\n");
   }
 
   private:
-  RedisClient m_client;
+#if TEST_CLUSTER
+  RedisClusterSyncClient m_client;
+#else
+  RedisSyncClient m_client;
+#endif
+  int node_num = 0;
 };
 
 class RedisAsyncClient_Test {
@@ -93,8 +108,15 @@ class RedisAsyncClient_Test {
       lrange_reply_cb_ = std::bind(&RedisAsyncClient_Test::LrangeReplyCb, this, std::placeholders::_1, std::placeholders::_2);
       hgetall_reply_cb_ = std::bind(&RedisAsyncClient_Test::HgetallReplyCb, this, std::placeholders::_1, std::placeholders::_2);
       exists_reply_cb_ = std::bind(&RedisAsyncClient_Test::ExistsReplyCb, this, std::placeholders::_1, std::placeholders::_2);
+      set_binary_reply_cb_ = std::bind(&RedisAsyncClient_Test::SetBinaryDataCb, this, std::placeholders::_1, std::placeholders::_2);
+      get_binary_reply_cb_ = std::bind(&RedisAsyncClient_Test::GetBinaryDataCb, this, std::placeholders::_1, std::placeholders::_2);
 
+#if TEST_CLUSTER
+      IPAddressList addr_list{ IPAddress("localhost", 7000), IPAddress("127.0.0.1", 7003) };
+      m_client.Init(addr_list, cdb_cbs);
+#else
       m_client.Init("localhost", 6379, cdb_cbs);
+#endif
     }
 
     private:
@@ -107,6 +129,8 @@ class RedisAsyncClient_Test {
 
         assert(reply->type == REDIS_REPLY_STATUS);
         assert(strcmp(reply->str, "OK") == 0);
+
+        CheckTestFinished();
     }
     void GetkeyReplyCb(CDBClient* client, const CDBReply* rmsg)
     {
@@ -117,6 +141,8 @@ class RedisAsyncClient_Test {
 
         assert(reply->type == REDIS_REPLY_STRING);
         assert(strcmp(reply->str, TEST_STRING) == 0);
+
+        CheckTestFinished();
     }
     void LrangeReplyCb(CDBClient* client, const CDBReply* rmsg)
     {
@@ -126,6 +152,8 @@ class RedisAsyncClient_Test {
             ((RedisAsyncClient *)client)->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
 
         assert(reply->type == REDIS_REPLY_ARRAY);
+
+        CheckTestFinished();
     }
     void HgetallReplyCb(CDBClient* client, const CDBReply* rmsg)
     {
@@ -135,6 +163,8 @@ class RedisAsyncClient_Test {
             ((RedisAsyncClient *)client)->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
 
         assert(reply->type == REDIS_REPLY_ARRAY);
+
+        CheckTestFinished();
     }
     void ExistsReplyCb(CDBClient* client, const CDBReply* rmsg)
     {
@@ -145,12 +175,42 @@ class RedisAsyncClient_Test {
 
         assert(reply->type == REDIS_REPLY_INTEGER);
         assert(reply->integer == 1);
-        printf("--- All RedisAsyncClient tests passed!\n\n");
-        //EV_Singleton->StopLoop();
+
+        CheckTestFinished();
+    }
+    void SetBinaryDataCb(CDBClient* client, const CDBReply* rmsg)
+    {
+        const redisReply* reply = (const redisReply*)rmsg->GetReply();
+        printf("[RedisAsyncClient_Test::SetBinaryDataCb] received reply, fd: %d\n"
+                " reply: { type: %d, integer: %lld, len: %ld, str: %s, elements: %lu, element list: %p }\n",
+                ((RedisAsyncClient *)client)->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
+        assert(reply->type == REDIS_REPLY_STATUS);
+
+        CheckTestFinished();
+    }
+    void GetBinaryDataCb(CDBClient* client, const CDBReply* rmsg)
+    {
+        const redisReply* reply = (const redisReply*)rmsg->GetReply();
+        printf("[RedisAsyncClient_Test::GetBinaryDataCb] received reply, fd: %d\n"
+                " reply: { type: %d, integer: %lld, len: %ld, str: %p, elements: %lu, element list: %p }\n",
+                ((RedisAsyncClient *)client)->FD(), reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
+        assert(reply->type == REDIS_REPLY_STRING);
+
+        CheckTestFinished();
+    }
+    void CheckTestFinished()
+    {
+        rsp_num++;
+        if (req_num == rsp_num) {
+          printf("--- All RedisAsyncClient tests passed!\n\n");
+          //EV_Singleton->StopLoop();
+        }
     }
     void OnConnectionCreated(CDBClient* client)
     {
         printf("[RedisAsyncClient_Test::OnConnectionCreated] connection created, fd: %d\n", ((RedisAsyncClient *)client)->FD());
+        node_num++;
+        if (node_num > 1) return;
 
         bool success = false;
         success = client->SendCommand(setkey_reply_cb_, "SET mykey %s", TEST_STRING);
@@ -176,15 +236,33 @@ class RedisAsyncClient_Test {
         assert(success);
         success = client->SendCommand(exists_reply_cb_, "EXISTS myhash");
         assert(success);
+
+        char my_binary_data[] = {'x', 'y', 'z', 0x11, 0x00, 'a', 'b', 'c'};
+        success = client->SendCommand(set_binary_reply_cb_, "set my_binary_data %b", &my_binary_data, sizeof(my_binary_data));
+        assert(success);
+
+        success = client->SendCommand(get_binary_reply_cb_, "get my_binary_data");
+        assert(success);
+
+        req_num = 7;
     }
 
     private:
+#if TEST_CLUSTER
+    RedisClusterAsyncClient m_client;
+#else
     RedisAsyncClient m_client;
+#endif
     OnReplyCallback setkey_reply_cb_;
     OnReplyCallback getkey_reply_cb_;
     OnReplyCallback lrange_reply_cb_;
     OnReplyCallback hgetall_reply_cb_;
     OnReplyCallback exists_reply_cb_;
+    OnReplyCallback set_binary_reply_cb_;
+    OnReplyCallback get_binary_reply_cb_;
+    int node_num = 0;
+    int req_num = 0;
+    int rsp_num = 0;
 };
 
 int main(int argc, char **argv) {
