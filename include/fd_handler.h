@@ -91,7 +91,7 @@ class BufferIOEvent : public IOEvent {
   virtual void OnSent(const Message* msg) { }
   virtual void OnReady() { }
 
-  virtual void OnHandshake() { printf("BufferIOEvent::OnHandshake\n"); state_ = READY; OnReady(); }
+  virtual bool OnHandshake() { printf("BufferIOEvent::OnHandshake\n"); state_ = READY; OnReady(); return true; }
 
  private:
   void OnEvents(uint32_t events);

@@ -15,7 +15,7 @@ struct TLSConnection : public TcpConnection
    static void setSSLCertKey(const char* cert, const char* key, const char* ca_cert = NULL);
 
   protected:
-  virtual void OnHandshake();
+  virtual bool OnHandshake();
   virtual int OnRead(const void* buf, size_t bytes);
   virtual int OnWrite(const void* buf, size_t bytes);
 

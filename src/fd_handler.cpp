@@ -183,8 +183,11 @@ int BufferIOEvent::SendData(uint32_t& events) {
 }
 
 void BufferIOEvent::OnEvents(uint32_t events) {
-  if (state_ == CONNECTED || state_ == HANDSHAKING) {
-    OnHandshake();
+  bool success = false;
+  if ((events & FileEvent::WRITE || events & FileEvent::READ) &&
+          (state_ == CONNECTED || state_ == HANDSHAKING)) {
+    success = OnHandshake();
+    if (!success) events |= FileEvent::CLOSED;
   } else {
     /// The WRITE events should deal with before the READ events
     if (events & FileEvent::WRITE) {

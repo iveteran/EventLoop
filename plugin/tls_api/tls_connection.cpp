@@ -35,7 +35,7 @@ void TLSConnection::setSSLCertKey(const char* cert, const char* key, const char*
     r = SSL_CTX_check_private_key(g_sslCtx);
     if (!r) { printf("SSL_CTX_check_private_key failed\n"); ERR_print_errors_fp(stderr); return; }
 
-    if (ca_cert) {
+    if (ca_cert && strlen(ca_cert) > 0) {
       r = SSL_CTX_load_verify_locations(g_sslCtx, ca_cert, NULL);
       if (!r) { printf("SSL_CTX_load_verify_locations failed\n"); ERR_print_errors_fp(stderr); return; }
 
@@ -64,21 +64,22 @@ TLSConnection::~TLSConnection()
   }
 }
 
-void TLSConnection::OnHandshake()
+bool TLSConnection::OnHandshake()
 {
-    //printf("[TLSConnection::OnHandshake]\n");
+    printf("[TLSConnection::OnHandshake begin] fd: %d\n", fd_);
+    int r = 0;
     if (ssl_ == NULL) {
         ssl_ = SSL_new(g_sslCtx);
         if (ssl_ == NULL) {
             printf("SSL_new failed errno %d errstr %s\n", errno, strerror(errno));
-            Disconnect();
-            return;
+            state_ = State::FAILED;
+            goto out;
         }
         int r = SSL_set_fd(ssl_, fd_);
         if (r == 0) {
             printf("SSL_set_fd failed errno %d errstr %s\n", errno, strerror(errno));
-            Disconnect();
-            return;
+            state_ = State::FAILED;
+            goto out;
         }
         if (IsClient()) {
             printf("SSL_set_connect_state for fd: %d\n", fd_);
@@ -88,9 +89,9 @@ void TLSConnection::OnHandshake()
             SSL_set_accept_state(ssl_);
         }
     }
-    int r = SSL_do_handshake(ssl_);
+    r = SSL_do_handshake(ssl_);
     if (r == 1) {
-        printf("ssl handshake success fd: %d\n", fd_);
+        printf("[TLSConnection::OnHandshake] ssl handshake success fd: %d\n", fd_);
         state_ = State::READY;
         OnReady();
     } else {
@@ -98,14 +99,19 @@ void TLSConnection::OnHandshake()
         if (err == SSL_ERROR_WANT_WRITE) {
             AddWriteEvent();
         } else if (err == SSL_ERROR_WANT_READ) {
-            AddReadEvent();
+            //AddReadEvent();
+            DeleteWriteEvent();
         } else {
             printf("SSL_do_handshake return %d error %d errno %d msg %s\n", r, err, errno, strerror(errno));
             ERR_print_errors_fp(stderr);
-            Disconnect();
+            state_ = State::FAILED;
+            goto out;
         }
     }
-    return;
+out:
+    bool success = (state_ != State::FAILED);
+    printf("[TLSConnection::OnHandshake end] success: %d\n", success);
+    return success;
 }
 
 int TLSConnection::OnRead(const void* buf, size_t bytes)
@@ -114,7 +120,7 @@ int TLSConnection::OnRead(const void* buf, size_t bytes)
     int rd = SSL_read(ssl_, (void*)buf, bytes);
     int ssle = SSL_get_error(ssl_, rd);
     if (rd < 0 && ssle != SSL_ERROR_WANT_READ) {
-        AddReadEvent();
+        //AddReadEvent();
         printf("SSL_read return %d error %d errno %d msg %s\n", rd, ssle, errno, strerror(errno));
         ERR_print_errors_fp(stderr);
     }
@@ -127,7 +133,7 @@ int TLSConnection::OnWrite(const void* buf, size_t bytes)
     int wd = SSL_write(ssl_, buf, bytes);
     int ssle = SSL_get_error(ssl_, wd);
     if (wd < 0 && ssle != SSL_ERROR_WANT_WRITE) {
-        AddWriteEvent();
+        //AddWriteEvent();
         printf("SSL_write return %d error %d errno %d msg %s\n", wd, ssle, errno, strerror(errno));
         ERR_print_errors_fp(stderr);
     }
