@@ -12,7 +12,9 @@ class TcpServer: public IOEvent
     ~TcpServer();
     void Destroy();
 
+    const IPAddress& GetAddress() const { return server_addr_; }
     TcpConnectionPtr GetConnectionByFD(int fd);
+    uint32_t GetConnectionNumber() const { return conn_map_.size(); }
 
     void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
     void SetNewClientCallback(const OnNewClientCallback& new_client_cb);
@@ -22,9 +24,9 @@ class TcpServer: public IOEvent
     virtual void InitAddress(const char* host, uint16_t port);
     virtual bool Start();
     virtual int AcceptClient(IPAddress& peer_addr);
-    virtual TcpConnectionPtr CreateClient(int fd, const IPAddress& local_addr, const IPAddress& peer_addr)
+    virtual TcpConnectionPtr CreateClient(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, const IPAddress& peer_real_addr)
     {
-        return std::make_shared<TcpConnection>(fd, server_addr_, peer_addr,
+        return std::make_shared<TcpConnection>(fd, server_addr_, peer_addr, peer_real_addr,
                 std::bind(&TcpServer::OnConnectionClosed, this, std::placeholders::_1), tcp_evt_cbs_);
     }
 
@@ -42,6 +44,7 @@ class TcpServer: public IOEvent
     OnServerErrorCallback   error_cb_;
     TcpCallbacksPtr         tcp_evt_cbs_;
 };
+typedef std::shared_ptr<TcpServer> TcpServerPtr;
 
 class TcpServer6: public TcpServer
 {
@@ -56,6 +59,7 @@ class TcpServer6: public TcpServer
     private:
     bool ipv6_only_;
 };
+typedef std::shared_ptr<TcpServer6> TcpServer6Ptr;
 
 }  // namespace evt_loop
 

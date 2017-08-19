@@ -48,9 +48,9 @@ void TLSConnection::setSSLCertKey(const char* cert, const char* key, const char*
     }
 }
 
-TLSConnection::TLSConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr,
+TLSConnection::TLSConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, const IPAddress& peer_real_addr,
             const OnClosedCallback& close_cb, TcpCallbacksPtr tcp_evt_cbs) :
-    TcpConnection(fd, local_addr, peer_addr, close_cb, tcp_evt_cbs), ssl_(NULL)
+    TcpConnection(fd, local_addr, peer_addr, peer_real_addr, close_cb, tcp_evt_cbs), ssl_(NULL)
 {
     safeSSLInit();
 }

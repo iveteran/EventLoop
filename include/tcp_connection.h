@@ -16,7 +16,7 @@ namespace evt_loop {
 class TcpConnection : public BufferIOEvent
 {
   public:
-    TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr,
+    TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, const IPAddress& peer_real_addr,
             const OnClosedCallback& close_cb, TcpCallbacksPtr tcp_evt_cbs = nullptr);
     ~TcpConnection();
 
@@ -35,6 +35,8 @@ class TcpConnection : public BufferIOEvent
 
     const IPAddress& GetLocalAddr() const;
     const IPAddress& GetPeerAddr() const;
+    const IPAddress& GetPeerRealAddr() const;
+    void SetPeerRealAddr(const IPAddress& addr) { peer_real_addr_ = addr; }
 
   protected:
     void Destroy();
@@ -54,6 +56,7 @@ class TcpConnection : public BufferIOEvent
     uint8_t         client_type_;
     IPAddress       local_addr_;
     IPAddress       peer_addr_;
+    IPAddress       peer_real_addr_;
     bool            active_closing_;
     bool            is_client_;
 

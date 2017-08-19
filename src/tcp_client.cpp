@@ -125,7 +125,7 @@ void TcpClient::SetErrorCallback(const OnClientErrorCallback& error_cb)
 
 void TcpClient::OnConnected(int fd, const IPAddress& local_addr)
 {
-    conn_ = CreateClient(fd, local_addr, server_addr_);
+    conn_ = CreateClient(fd, local_addr, server_addr_, server_addr_);
     conn_->SetMessageType(msg_type_);
     conn_->AsClient();
     conn_->SetReadyCallback(std::bind(&TcpClient::OnReady, this, std::placeholders::_1));

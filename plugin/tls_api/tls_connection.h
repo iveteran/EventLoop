@@ -9,7 +9,7 @@ namespace evt_loop {
 struct TLSConnection : public TcpConnection
 {
   public:
-   TLSConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr,
+   TLSConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, const IPAddress& peer_real_addr,
             const OnClosedCallback& close_cb, TcpCallbacksPtr tcp_evt_cbs = nullptr);
    ~TLSConnection();
    static void setSSLCertKey(const char* cert, const char* key, const char* ca_cert = NULL);

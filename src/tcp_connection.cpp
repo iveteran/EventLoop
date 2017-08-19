@@ -4,13 +4,13 @@
 
 namespace evt_loop {
 
-TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr,
+TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, const IPAddress& peer_real_addr,
     const OnClosedCallback& close_cb, TcpCallbacksPtr tcp_evt_cbs) :
-  BufferIOEvent(fd), id_(0), client_type_(0), local_addr_(local_addr), peer_addr_(peer_addr), active_closing_(false), is_client_(false),
-  creator_notification_cb_(close_cb), tcp_evt_cbs_(tcp_evt_cbs)
+  BufferIOEvent(fd), id_(0), client_type_(0), local_addr_(local_addr), peer_addr_(peer_addr), peer_real_addr_(peer_real_addr),
+  active_closing_(false), is_client_(false), creator_notification_cb_(close_cb), tcp_evt_cbs_(tcp_evt_cbs)
 {
-    printf("[TcpConnection::TcpConnection] local_addr: %s, peer_addr: %s\n",
-        local_addr_.ToString().c_str(), peer_addr_.ToString().c_str());
+    printf("[TcpConnection::TcpConnection] local_addr: %s, peer_addr: %s, peer_real_addr: %s\n",
+        local_addr_.ToString().c_str(), peer_addr_.ToString().c_str(), peer_real_addr_.ToString().c_str());
 }
 
 TcpConnection::~TcpConnection()
@@ -54,6 +54,11 @@ const IPAddress& TcpConnection::GetLocalAddr() const
 const IPAddress& TcpConnection::GetPeerAddr() const
 {
     return peer_addr_;
+}
+
+const IPAddress& TcpConnection::GetPeerRealAddr() const
+{
+    return peer_real_addr_;
 }
 
 void TcpConnection::OnReceived(const Message* msg)

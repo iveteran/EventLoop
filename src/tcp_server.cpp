@@ -132,11 +132,11 @@ int TcpServer::AcceptClient(IPAddress& peer_addr)
 
 void TcpServer::OnNewClient(int fd, const IPAddress& peer_addr)
 {
-    TcpConnectionPtr conn = CreateClient(fd, server_addr_, peer_addr);
+    printf("[TcpServer::OnNewClient] new connection, fd: %d\n", fd);
+    TcpConnectionPtr conn = CreateClient(fd, server_addr_, peer_addr, peer_addr);
     conn->SetMessageType(msg_type_);
     conn_map_.insert(std::make_pair(fd, conn));
     if (new_client_cb_) new_client_cb_(conn.get());
-    printf("[TcpServer::OnNewClient] new connection, fd: %d\n", fd);
 }
 
 void TcpServer::OnConnectionClosed(TcpConnection* conn)

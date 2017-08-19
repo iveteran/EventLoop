@@ -39,9 +39,9 @@ class TcpClient : public IOEvent
 
     virtual void InitAddress(const char* host, uint16_t port);
     virtual bool Connect_();
-    virtual TcpConnectionPtr CreateClient(int fd, const IPAddress& local_addr, const IPAddress& peer_addr)
+    virtual TcpConnectionPtr CreateClient(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, const IPAddress& peer_real_addr)
     {
-        return std::make_shared<TcpConnection>(fd, local_addr, server_addr_,
+        return std::make_shared<TcpConnection>(fd, local_addr, peer_addr, peer_real_addr,
                 std::bind(&TcpClient::OnConnectionClosed, this, std::placeholders::_1), tcp_evt_cbs_);
     }
     void Reconnect();
@@ -67,6 +67,7 @@ class TcpClient : public IOEvent
     OnClientErrorCallback   error_cb_;
     TcpCallbacksPtr         tcp_evt_cbs_;
 };
+typedef std::shared_ptr<TcpClient> TcpClientPtr;
 
 class TcpClient6 : public TcpClient
 {
@@ -78,6 +79,7 @@ class TcpClient6 : public TcpClient
     virtual void InitAddress(const char* host, uint16_t port);
     virtual bool Connect_();
 };
+typedef std::shared_ptr<TcpClient6> TcpClient6Ptr;
 
 }  // namespace evt_loop
 

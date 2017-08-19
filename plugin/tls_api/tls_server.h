@@ -13,9 +13,9 @@ class TLSServer : public TcpServer
     { }
 
     protected:
-    TcpConnectionPtr CreateClient(int fd, const IPAddress& local_addr, const IPAddress& peer_addr)
+    TcpConnectionPtr CreateClient(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, const IPAddress& peer_real_addr)
     {
-        return std::make_shared<TLSConnection>(fd, server_addr_, peer_addr,
+        return std::make_shared<TLSConnection>(fd, server_addr_, peer_addr, peer_real_addr,
                 std::bind(&TLSServer::OnConnectionClosed, this, std::placeholders::_1), tcp_evt_cbs_);
     }
 
@@ -24,6 +24,7 @@ class TLSServer : public TcpServer
         TcpServer::OnConnectionClosed(conn);
     }
 };
+typedef std::shared_ptr<TLSServer> TLSServerPtr;
 
 }  // ns evt_loop
 
