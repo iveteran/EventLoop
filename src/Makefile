@@ -1,6 +1,6 @@
 TARGET   = libel.a
 
-CPPFLAGS = -Wall -std=c++0x
+CPPFLAGS = -Wall -std=c++0x# -DUSE_SELECT
 #CPPFLAGS = -Wall -std=c++0x -D_BINARY_MSG_EXTEND_PACKAGING
 CXXFLAGS = -I../include \
 

@@ -1,4 +1,4 @@
-#if defined(__linux__)
+#if defined(__linux__) && !defined(USE_SELECT)
 #include <unistd.h>
 #include <sys/epoll.h>
 #include "poller.h"
@@ -11,6 +11,7 @@ static int ToEpollCtrl(PollerCtrl ctrl);
 
 Poller::Poller()
 {
+  printf("Poller: using epoll on linux platform\n");
   pfd_ = epoll_create(MAX_EVENTS);
 }
 

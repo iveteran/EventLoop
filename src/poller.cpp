@@ -1,7 +1,11 @@
-#if defined(__linux__)
-#include "poller_epoll.cpp"
-#elif defined(__OSX__) || defined(__DARWIN__) || defined(__APPLE__) || defined(__FREEBSD__)
-#include "poller_kqueue.cpp"
+#ifdef USE_SELECT
+    #include "poller_select.cpp"
 #else
-#error "platform unsupported"
+    #if defined(__linux__)
+        #include "poller_epoll.cpp"
+    #elif defined(__OSX__) || defined(__DARWIN__) || defined(__APPLE__) || defined(__FREEBSD__)
+        #include "poller_kqueue.cpp"
+    #else
+        #error "platform unsupported"
+    #endif
 #endif

@@ -29,6 +29,7 @@ int SetNonblocking(int fd) {
 
 // EventLoop implementation
 EventLoop::EventLoop() {
+  poller_ = std::make_shared<Poller>();
   timermanager_ = std::make_shared<TimerManager>();
   idle_events_ = std::make_shared<IdleEventManager>();
   now_.SetNow();
@@ -40,7 +41,7 @@ EventLoop::~EventLoop() {
 }
 
 int EventLoop::PollFileEvents(int timeout) {
-  return poller_.Poll(timeout, std::bind(&EventLoop::ProcessFileEvents, this,
+  return poller_->Poll(timeout, std::bind(&EventLoop::ProcessFileEvents, this,
               std::placeholders::_1, std::placeholders::_2));
 }
 
@@ -124,15 +125,15 @@ void EventLoop::StartLoop() {
 int EventLoop::AddEvent(IOEvent *e) {
   e->el_ = this;
   SetNonblocking(e->fd_);
-  return poller_.SetEvents(e->fd_, PollerCtrl::ADD, e->events_, e);
+  return poller_->SetEvents(e->fd_, PollerCtrl::ADD, e->events_, e);
 }
 
 int EventLoop::UpdateEvent(IOEvent *e) {
-  return poller_.SetEvents(e->fd_, PollerCtrl::UPDATE, e->events_, e);
+  return poller_->SetEvents(e->fd_, PollerCtrl::UPDATE, e->events_, e);
 }
 
 int EventLoop::DeleteEvent(IOEvent *e) {
-  return poller_.SetEvents(e->fd_, PollerCtrl::DELETE, e->events_);
+  return poller_->SetEvents(e->fd_, PollerCtrl::DELETE, e->events_);
 }
 
 int EventLoop::AddEvent(TimerEvent *e) {

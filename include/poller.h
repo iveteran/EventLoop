@@ -3,6 +3,11 @@
 
 #include <functional>
 
+#if defined(USE_SELECT)
+#include <sys/select.h>
+#include <map>
+#endif
+
 namespace evt_loop {
 
 enum FileEvent {
@@ -32,6 +37,12 @@ class Poller
 
   private:
   int pfd_;
+#if defined(USE_SELECT)
+  std::map<int, void*> m_fd_userdata_map;
+  int m_anfdmax;
+  fd_set* m_fd_set_ri;
+  fd_set* m_fd_set_wi;
+#endif
 };
 
 }  // ns evt_loop

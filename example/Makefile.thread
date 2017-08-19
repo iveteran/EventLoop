@@ -2,7 +2,7 @@ TARGET_1 = echoserver
 TARGET_2 = echoclient
 TARGET_3 = multiple_loop_test
 
-CPPFLAGS = -g -Wall -std=c++0x -DMULTIPLE_THREAD_SUPPORTS
+CPPFLAGS = -g -Wall -std=c++0x -DMULTIPLE_THREAD_SUPPORTS -DUSE_SELECT
 CXXFLAGS = -I../include
 
 LDFLAGS =

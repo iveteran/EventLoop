@@ -1,7 +1,7 @@
 TARGET_1 = echoserver
 TARGET_2 = echoclient
 
-CPPFLAGS = -g -Wall -std=c++0x
+CPPFLAGS = -g -Wall -std=c++0x# -DUSE_SELECT
 CXXFLAGS = -I../include
 
 LDFLAGS = 

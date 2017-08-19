@@ -62,7 +62,7 @@ class EventLoop {
   int DoTimeout();
 
  private:
-  Poller    poller_;
+  std::shared_ptr<Poller>   poller_;
 
   TimeVal   now_;
   bool      running_;
