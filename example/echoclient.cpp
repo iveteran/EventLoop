@@ -90,12 +90,16 @@ int main(int argc, char **argv) {
           EV_Singleton->StopLoop();
           });
 
-  IdleEvent idle_task([](IdleEvent* idle, void* udata) {
-          printf("trigger idle event(id: %d), udata: %p\n", idle->Id(), udata);
+  IdleEvent idle_task([](UserEvent* idle_event, void* udata) {
+          printf("[IdleEvent] Trigger idle event(id: %d), udata: %p\n", idle_event->Id(), udata);
           }, &biz_tester);
-  IdleEvent idle_task2([](IdleEvent* idle, void* udata) {
-          printf("trigger idle event(id: %d), udata: %p\n", idle->Id(), udata);
+  IdleEvent idle_task2([](UserEvent* idle_event, void* udata) {
+          printf("[IdleEvent] Trigger idle event(id: %d), udata: %p\n", idle_event->Id(), udata);
           }, NULL, 5);
+
+  TickEvent tick_task([](UserEvent* tick_event, void* udata) {
+          printf("[TickEvent] Trigger tick event(id: %d), udata: %p\n", tick_event->Id(), udata);
+          }, NULL, 10);
 
   EV_Singleton->StartLoop();
 

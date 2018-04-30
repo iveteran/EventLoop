@@ -14,7 +14,8 @@ class SignalEvent;
 class TimerEvent;
 class PeriodicTimerEvent;
 class IdleEvent;
-class IdleEventManager;
+class TickEvent;
+class UserEventManager;
 
 time_t Now();
 int SetNonblocking(int fd);
@@ -42,12 +43,9 @@ class EventLoop {
   int DeleteEvent(IdleEvent *e);
   int UpdateEvent(IdleEvent *e);
 
-  // do epoll_waite and collect events
-  int ProcessEvents(int timeout);
-  void ProcessFileEvents(void* evt, uint32_t events);
-  int ProcessIdleEvents();
-
-  int CalcNextTimeout();
+  int AddEvent(TickEvent *e);
+  int DeleteEvent(TickEvent *e);
+  int UpdateEvent(TickEvent *e);
 
   // event loop control
   void StartLoop();
@@ -58,8 +56,16 @@ class EventLoop {
   time_t UnixTime() const { return now_.Seconds(); }
 
  private:
-  int PollFileEvents(int timeout);
-  int DoTimeout();
+  // do epoll_waite and collect events
+  int ProcessEvents(int timeout);
+
+  int ProcessFileEvents(int timeout);
+  int ProcessTimeoutEvents();
+  int ProcessIdleEvents();
+  int ProcessTickEvents();
+  void _ProcessFileEvents(void* evt, uint32_t events);
+
+  int CalcNextTimeout();
 
  private:
   std::shared_ptr<Poller>   poller_;
@@ -68,7 +74,8 @@ class EventLoop {
   bool      running_;
 
   std::shared_ptr<TimerManager> timermanager_;
-  std::shared_ptr<IdleEventManager> idle_events_;
+  std::shared_ptr<UserEventManager> idle_events_;
+  std::shared_ptr<UserEventManager> tick_events_;
 };
 
 }  // ns evt_loop

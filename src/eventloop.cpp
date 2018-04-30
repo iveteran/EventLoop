@@ -6,7 +6,7 @@
 #include "timer_handler.h"
 #include "signal_handler.h"
 #include "fd_handler.h"
-#include "idle_handler.h"
+#include "user_event_handler.h"
 
 namespace evt_loop {
 
@@ -31,7 +31,8 @@ int SetNonblocking(int fd) {
 EventLoop::EventLoop() {
   poller_ = std::make_shared<Poller>();
   timermanager_ = std::make_shared<TimerManager>();
-  idle_events_ = std::make_shared<IdleEventManager>();
+  idle_events_ = std::make_shared<UserEventManager>();
+  tick_events_ = std::make_shared<UserEventManager>();
   now_.SetNow();
   running_ = false;
   signal(SIGPIPE, SIG_IGN);  // Ignore SIGPIPE, this signal will be received when write the socket that closed by peer
@@ -40,18 +41,18 @@ EventLoop::EventLoop() {
 EventLoop::~EventLoop() {
 }
 
-int EventLoop::PollFileEvents(int timeout) {
-  return poller_->Poll(timeout, std::bind(&EventLoop::ProcessFileEvents, this,
+int EventLoop::ProcessFileEvents(int timeout) {
+  return poller_->Poll(timeout, std::bind(&EventLoop::_ProcessFileEvents, this,
               std::placeholders::_1, std::placeholders::_2));
 }
 
-int EventLoop::DoTimeout() {
+int EventLoop::ProcessTimeoutEvents() {
   int n = 0;
   TimerManager::TimerMap& timers_map = timermanager_->timers_;
   TimerManager::TimerMap::iterator iter = timers_map.begin();
   while (iter != timers_map.end()) {
     TimeVal tv = iter->first;
-    //printf("EventLoop::DoTimeout, now: %d, tv: %d\n", now_.Seconds(), tv.Seconds());
+    //printf("EventLoop::ProcessTimeoutEvents, now: %d, tv: %d\n", now_.Seconds(), tv.Seconds());
     if (TimeVal::MsDiff(now_, tv) < 0) break;
     n++;
     TimerManager::TimerSet events_set = iter->second;
@@ -67,19 +68,22 @@ int EventLoop::DoTimeout() {
 }
 
 int EventLoop::ProcessEvents(int timeout) {
-  int nidle = 0;
   now_.SetNow();
-  int ntimeout = DoTimeout();
+  int timeout_events = ProcessTimeoutEvents();
 
-  int nfile = PollFileEvents(timeout);
-  if (nfile == 0) {
-    nidle = ProcessIdleEvents();
+  int file_events = ProcessFileEvents(timeout);
+
+  int idle_events = 0;
+  if (timeout_events == 0 && file_events == 0) {
+    idle_events = ProcessIdleEvents();
   }
 
-  return ntimeout + nfile + nidle;
+  int tick_events = ProcessTickEvents();
+
+  return timeout_events + file_events + idle_events + tick_events;
 }
 
-void EventLoop::ProcessFileEvents(void* evt, uint32_t events) {
+void EventLoop::_ProcessFileEvents(void* evt, uint32_t events) {
   IOEvent* e = (IOEvent*)evt;
   if (e && e->fd_ > 0) {
     e->OnEvents(events);
@@ -89,6 +93,11 @@ void EventLoop::ProcessFileEvents(void* evt, uint32_t events) {
 int EventLoop::ProcessIdleEvents()
 {
   return idle_events_->Process();
+}
+
+int EventLoop::ProcessTickEvents()
+{
+  return tick_events_->Process();
 }
 
 int EventLoop::CalcNextTimeout()
@@ -173,6 +182,19 @@ int EventLoop::UpdateEvent(IdleEvent *e) {
 
 int EventLoop::DeleteEvent(IdleEvent *e) {
   return idle_events_->DeleteEvent(e);
+}
+
+int EventLoop::AddEvent(TickEvent *e) {
+  e->el_ = this;
+  return tick_events_->AddEvent(e);
+}
+
+int EventLoop::UpdateEvent(TickEvent *e) {
+  return tick_events_->UpdateEvent(e);
+}
+
+int EventLoop::DeleteEvent(TickEvent *e) {
+  return tick_events_->DeleteEvent(e);
 }
 
 }   // ns evt_loop

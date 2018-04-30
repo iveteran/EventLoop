@@ -8,6 +8,6 @@
 #include "signal_handler.h"
 #include "session_mngr.h"
 #include "connection_mngr.h"
-#include "idle_handler.h"
+#include "user_event_handler.h"
 
 #endif  // _EL_H
