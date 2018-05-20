@@ -14,7 +14,8 @@ const char* ROUTING_KEY = "hola";
 class AMQPClientTest
 {
   public:
-    AMQPClientTest() : amqp_client_("amqp://guest:guest@localhost/"),
+    //AMQPClientTest() : amqp_client_("amqp://guest:guest@localhost/"),
+    AMQPClientTest() : amqp_client_("amqp://myuser:mypwd@localhost//mytest_vhost"),
       publish_timer(TimeVal(10, 0), std::bind(&AMQPClientTest::OnPushlishTimer, this, std::placeholders::_1))
     {
       AMQPCallbacksPtr amqp_cbs = std::make_shared<AMQPCallbacks>();
