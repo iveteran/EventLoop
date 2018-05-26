@@ -82,6 +82,7 @@ class MqttClient : public IOEvent {
     {
       mosquitto_destroy(mosq_);
       mosquitto_lib_cleanup();
+      delete mosq_loop_task_;
     }
 
     bool EnableTLS(const char* cafile, const char* capath, const char* certfile, const char* keyfile)
@@ -114,13 +115,6 @@ class MqttClient : public IOEvent {
       return success;
     }
 
-    void Reconnect()
-    {
-      //Disconnect();
-      if (!reconnect_timer_.IsRunning())
-        reconnect_timer_.Start();
-    }
-    
     bool Disconnect()
     {
       int status = mosquitto_disconnect(mosq_);
@@ -156,6 +150,13 @@ class MqttClient : public IOEvent {
         mosq_loop_task_ = new TickEvent(std::bind(&MqttClient::ProcessMosquittoLoop, this, std::placeholders::_1, std::placeholders::_2), this, 1);
       }
       return success;
+    }
+
+    void Reconnect()
+    {
+      //Disconnect();
+      if (!reconnect_timer_.IsRunning())
+        reconnect_timer_.Start();
     }
 
     void OnEvents(uint32_t events) override;
