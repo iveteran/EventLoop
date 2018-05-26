@@ -11,11 +11,13 @@ const char* EXCHANGE_NAME = "hello-exchange";
 const char* QUEUE_NAME = "hello-queue";
 const char* ROUTING_KEY = "hola";
 
+//const char* MQ_SERVER_ADDRESS = "amqp://guest:guest@localhost/" ;   // https://www.rabbitmq.com/uri-spec.html
+const char* MQ_SERVER_ADDRESS = "amqps://myuser:mypwd@localhost//mytest_vhost";   // NOTE: vhost: '/mytest_vhost'
+
 class AMQPClientTest
 {
   public:
-    //AMQPClientTest() : amqp_client_("amqp://guest:guest@localhost/"),
-    AMQPClientTest() : amqp_client_("amqp://myuser:mypwd@localhost//mytest_vhost"),
+    AMQPClientTest() : amqp_client_(MQ_SERVER_ADDRESS),
       publish_timer(TimeVal(10, 0), std::bind(&AMQPClientTest::OnPushlishTimer, this, std::placeholders::_1))
     {
       AMQPCallbacksPtr amqp_cbs = std::make_shared<AMQPCallbacks>();

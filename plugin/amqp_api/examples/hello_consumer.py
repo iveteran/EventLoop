@@ -14,7 +14,7 @@ def main():
   try:
     #credentials = pika.PlainCredentials("guest", "guest")
     credentials = pika.PlainCredentials("myuser", "mypwd")
-    conn_params = pika.ConnectionParameters("localhost", virtual_host = '/mytest_vhost', credentials = credentials, ssl=False)
+    conn_params = pika.ConnectionParameters("localhost", virtual_host = '/mytest_vhost', credentials = credentials, ssl=True)
 
     conn_broker = pika.BlockingConnection(conn_params)
     channel = conn_broker.channel()

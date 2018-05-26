@@ -1,0 +1,12 @@
+1) Ref: https://www.rabbitmq.com/ssl.html
+
+2) config file: /etc/rabbitmq/rabbitmq.config, add or uncomment:
+{ssl_listeners, [5671]},
+{ssl_options, [%{cacertfile,           "/path/to/testca/cacert.pem"},
+               {certfile,             "/etc/rabbitmq/cert.pem"},
+               {keyfile,              "/etc/rabbitmq/cert.pem"},
+               %{verify,               verify_peer},
+               {fail_if_no_peer_cert, false}
+              ]}
+
+3) ssl cert & key: /etc/rabbitmq/cert.pem
