@@ -16,7 +16,8 @@ class BusinessTester {
 
         echoclient_.SetNewClientCallback(std::bind(&BusinessTester::OnConnectionCreated, this, std::placeholders::_1));
         echoclient_.SetTcpCallbacks(echo_client_cbs);
-        echoclient_.EnableKeepAlive(true);
+        //echoclient_.EnableKeepAlive(true);
+        echoclient_.EnableHeartbeat();
 
         echoclient_.Connect();
         echoclient_.Send("hello world");

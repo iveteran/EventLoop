@@ -107,6 +107,12 @@ void TcpClient::EnableKeepAlive(bool enable)
     keepalive_ = enable;
 }
 
+void TcpClient::EnableHeartbeat(uint32_t idle_interval, uint32_t ping_interval, uint32_t ping_total)
+{
+    hb_tmp_params_ = std::make_shared<HeartbeatParams>(idle_interval, ping_interval, ping_total);
+    if (conn_) conn_->EnableHeartbeat(idle_interval, ping_interval, ping_total);
+}
+
 void TcpClient::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
 {
     tcp_evt_cbs_ = tcp_evt_cbs;
@@ -129,6 +135,9 @@ void TcpClient::OnConnected(int fd, const IPAddress& local_addr)
     conn_->SetMessageType(msg_type_);
     conn_->AsClient();
     conn_->SetReadyCallback(std::bind(&TcpClient::OnReady, this, std::placeholders::_1));
+    if (hb_tmp_params_) {
+        conn_->EnableHeartbeat(hb_tmp_params_->idle_interval, hb_tmp_params_->ping_interval, hb_tmp_params_->ping_total);
+    }
     if (new_client_cb_) new_client_cb_(conn_.get());
 }
 

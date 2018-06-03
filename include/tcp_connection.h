@@ -6,6 +6,7 @@
 
 #include "fd_handler.h"
 #include "tcp_callbacks.h"
+#include "tcp_heartbeat_handler.h"
 #include "utils.h"
 
 using std::map;
@@ -32,6 +33,11 @@ class TcpConnection : public BufferIOEvent
 
     void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
     void SetReadyCallback(const OnReadyCallback& cb);
+
+    void EnableHeartbeat(uint32_t idle_interval = TcpHeartbeatHandler::DFT_IDLE_INTERVAL,
+            uint32_t ping_interval = TcpHeartbeatHandler::DFT_PING_INTERVAL,
+            uint32_t ping_total = TcpHeartbeatHandler::DFT_PING_TOTAL);
+    void DisableHeartbeat();
 
     const IPAddress& GetLocalAddr() const;
     const IPAddress& GetPeerAddr() const;
@@ -63,6 +69,8 @@ class TcpConnection : public BufferIOEvent
     OnReadyCallback   on_conn_ready_cb_;
     OnClosedCallback  creator_notification_cb_;
     TcpCallbacksPtr   tcp_evt_cbs_;
+
+    TcpHeartbeatHandler heartbeat_handler_;
 };
 
 typedef shared_ptr<TcpConnection>          TcpConnectionPtr;

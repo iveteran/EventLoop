@@ -36,6 +36,16 @@ void TcpServer::InitAddress(const char* host, uint16_t port)
     }
 }
 
+void TcpServer::EnableHeartbeat(uint32_t idle_interval, uint32_t ping_interval, uint32_t ping_total)
+{
+    hb_tmp_params_ = std::make_shared<HeartbeatParams>(idle_interval, ping_interval, ping_total);
+
+    FdTcpConnMap::iterator iter;
+    for (iter = conn_map_.begin(); iter != conn_map_.end(); ++iter) {
+        iter->second->EnableHeartbeat(idle_interval, ping_interval, ping_total);
+    }
+}
+
 void TcpServer::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
 {
     tcp_evt_cbs_ = tcp_evt_cbs;
@@ -135,6 +145,9 @@ void TcpServer::OnNewClient(int fd, const IPAddress& peer_addr)
     printf("[TcpServer::OnNewClient] new connection, fd: %d\n", fd);
     TcpConnectionPtr conn = CreateClient(fd, server_addr_, peer_addr, peer_addr);
     conn->SetMessageType(msg_type_);
+    if (hb_tmp_params_) {
+        conn->EnableHeartbeat(hb_tmp_params_->idle_interval, hb_tmp_params_->ping_interval, hb_tmp_params_->ping_total);
+    }
     conn_map_.insert(std::make_pair(fd, conn));
     if (new_client_cb_) new_client_cb_(conn.get());
 }

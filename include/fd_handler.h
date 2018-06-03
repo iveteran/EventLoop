@@ -77,6 +77,7 @@ class BufferIOEvent : public IOEvent {
     tx_msg_mq_.Clear();
     tx_msg_mq_.SetMessageType(msg_type_);
   }
+  MessageType GetMessageType() const { return msg_type_; }
   void ClearBuff();
   bool TxBuffEmpty();
   void Send(const Message& msg);

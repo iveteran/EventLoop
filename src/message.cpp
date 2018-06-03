@@ -2,6 +2,18 @@
 
 namespace evt_loop {
 
+void Message::DumpHex(size_t max_bytes) const {
+  size_t bytes_to_dump = (max_bytes == 0 || max_bytes > data_.size()) ? data_.size() : max_bytes;
+  size_t i = 0;
+  for (; i < bytes_to_dump; i++) {
+      printf("%02X", data_[i]);
+      if (i != 0 && (i + 1) % 16 == 0) printf("\n");
+      else printf(" ");
+      if (i != 0 && (i + 1) % 8 == 0 && (i + 1) % 16 != 0) printf(" ");
+  }
+  if (i % 16 != 0) printf("\n");
+}
+
 const char* CRLFMessage::TERMINAL_LABEL = "\r\n";
 
 size_t CRLFMessage::AppendData(const char* data, uint32_t size) {

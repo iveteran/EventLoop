@@ -19,6 +19,9 @@ class TcpServer: public IOEvent
     void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
     void SetNewClientCallback(const OnNewClientCallback& new_client_cb);
     void SetErrorCallback(const OnServerErrorCallback& error_cb);
+    void EnableHeartbeat(uint32_t idle_interval = TcpHeartbeatHandler::DFT_IDLE_INTERVAL,
+            uint32_t ping_interval = TcpHeartbeatHandler::DFT_PING_INTERVAL,
+            uint32_t ping_total = TcpHeartbeatHandler::DFT_PING_TOTAL);
 
     protected:
     virtual void InitAddress(const char* host, uint16_t port);
@@ -43,6 +46,7 @@ class TcpServer: public IOEvent
     OnNewClientCallback     new_client_cb_;
     OnServerErrorCallback   error_cb_;
     TcpCallbacksPtr         tcp_evt_cbs_;
+    HeartbeatParamsPtr      hb_tmp_params_;
 };
 typedef std::shared_ptr<TcpServer> TcpServerPtr;
 

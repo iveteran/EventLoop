@@ -24,13 +24,17 @@ class BusinessTester {
         echo_client_cbs->on_conn_ready_cb = std::bind(&BusinessTester::OnConnectionReady, this, std::placeholders    ::_1);
 
         echoserver_binary_.SetTcpCallbacks(echo_svr_1_cbs);
+        //echoserver_binary_.EnableHeartbeat();
         echoclient_binary_.SetTcpCallbacks(echo_client_cbs);
+        //echoclient_binary_.EnableHeartbeat();
 
         echoserver_crlf_.SetTcpCallbacks(echo_svr_1_cbs);
         echoclient_crlf_.SetTcpCallbacks(echo_client_cbs);
+        echoclient_crlf_.EnableHeartbeat();
 
         echoserver_json_.SetTcpCallbacks(echo_svr_1_cbs);
         echoclient_json_.SetTcpCallbacks(echo_client_cbs);
+        echoclient_json_.EnableHeartbeat();
 
         echoclient_crlf_.Connect();
         echoclient_binary_.Connect();
@@ -52,6 +56,7 @@ class BusinessTester {
         TcpCallbacksPtr echo_svr_2_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_svr_2_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd_2, this, std::placeholders::_1, std::placeholders::_2);
         echoserver_binary2_.SetTcpCallbacks(echo_svr_2_cbs);
+        echoserver_binary2_.EnableHeartbeat();
 
         TcpCallbacksPtr echo_svr_ip6_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_svr_ip6_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd_ip6, this, std::placeholders::_1, std::placeholders::_2);

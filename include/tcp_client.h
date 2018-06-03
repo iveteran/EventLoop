@@ -22,6 +22,9 @@ class TcpClient : public IOEvent
     void Disconnect();
 
     void EnableKeepAlive(bool enable);
+    void EnableHeartbeat(uint32_t idle_interval = TcpHeartbeatHandler::DFT_IDLE_INTERVAL,
+            uint32_t ping_interval = TcpHeartbeatHandler::DFT_PING_INTERVAL,
+            uint32_t ping_total = TcpHeartbeatHandler::DFT_PING_TOTAL);
 
     void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
     void SetNewClientCallback(const OnNewClientCallback& new_client_cb);
@@ -66,6 +69,8 @@ class TcpClient : public IOEvent
     OnNewClientCallback     new_client_cb_;
     OnClientErrorCallback   error_cb_;
     TcpCallbacksPtr         tcp_evt_cbs_;
+
+    HeartbeatParamsPtr      hb_tmp_params_;
 };
 typedef std::shared_ptr<TcpClient> TcpClientPtr;
 
