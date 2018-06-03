@@ -9,7 +9,7 @@ using namespace mqtt_api;
 class MqttClientTest
 {
   public:
-    MqttClientTest() : mqtt_client_("localhost", 1883, "mqtt_test"),
+    MqttClientTest() : mqtt_client_("localhost", 8883, "mqtt_test"),
       publish_timer(TimeVal(10, 0), std::bind(&MqttClientTest::OnPushlishTimer, this, std::placeholders::_1))
     {
       MqttCallbacksPtr mqtt_cbs = std::make_shared<MqttCallbacks>();
@@ -22,12 +22,16 @@ class MqttClientTest
       mqtt_cbs->on_error_cb = std::bind(&MqttClientTest::OnMqttError, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
       mqtt_client_.SetCallbacks(mqtt_cbs);
 
+      mqtt_client_.EnableTLS("/tmp/ca.crt");
+
       bool success = mqtt_client_.Connect();
       if (success) {
         printf("mqtt client call connect success\n");
       } else {
         printf("mqtt client connect failed\n");
       }
+
+      mqtt_client_.SetClientUsernamePassword("my_mqtt_user", "123456");
     }
 
     struct mosquitto* MosquittoClient() { return (struct mosquitto*)mqtt_client_.MosquittoClient(); }
@@ -90,7 +94,7 @@ int main(int argc, char **argv)
   MqttClientTest mqtt_client_test;
 
 #if 1
-  EV_Singleton->StartLoop();
+  EV_Singleton->StartLoop();   // NOTE: not works in SSL mode
 #else
   mosquitto_loop_forever(mqtt_client_test.MosquittoClient(), -1, 1);
 #endif

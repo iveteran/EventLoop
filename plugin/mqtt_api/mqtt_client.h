@@ -85,7 +85,7 @@ class MqttClient : public IOEvent {
       delete mosq_loop_task_;
     }
 
-    bool EnableTLS(const char* cafile, const char* capath, const char* certfile, const char* keyfile)
+    bool EnableTLS(const char* cafile, const char* capath = NULL, const char* certfile = NULL, const char* keyfile = NULL)
     {
       int status = mosquitto_tls_set(mosq_, cafile, capath, certfile, keyfile, NULL);
       //status = mosquitto_tls_insecure_set(mosq_, true);
