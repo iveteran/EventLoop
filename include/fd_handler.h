@@ -80,11 +80,11 @@ class BufferIOEvent : public IOEvent {
   MessageType GetMessageType() const { return msg_type_; }
   void ClearBuff();
   bool TxBuffEmpty();
-  void Send(const Message& msg);
-  void Send(const string& data, bool bmsg_has_hdr = BinaryMessage::HAS_NO_HDR);
-  void Send(const char *data, uint32_t len, bool bmsg_has_hdr = BinaryMessage::HAS_NO_HDR);
-  void SendMore(const string& data);
-  void SendMore(const char *data, uint32_t len);
+  bool Send(const Message& msg);
+  bool Send(const string& data, bool bmsg_has_hdr = BinaryMessage::HAS_NO_HDR);
+  bool Send(const char *data, uint32_t len, bool bmsg_has_hdr = BinaryMessage::HAS_NO_HDR);
+  bool SendMore(const string& data);
+  bool SendMore(const char *data, uint32_t len);
   void SetCloseWait() { close_wait_ = true; }
 
  protected:
@@ -98,7 +98,7 @@ class BufferIOEvent : public IOEvent {
   void OnEvents(uint32_t events);
   int ReceiveData(uint32_t& events);
   int SendData(uint32_t& events);
-  void SendInner(const MessagePtr& msg);
+  bool SendInner(const MessagePtr& msg);
 
  protected:
   State         state_;

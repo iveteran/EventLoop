@@ -205,7 +205,7 @@ void BufferIOEvent::OnEvents(uint32_t events) {
   }
 }
 
-void BufferIOEvent::Send(const Message& msg) {
+bool BufferIOEvent::Send(const Message& msg) {
   MessagePtr msg_ptr = CreateMessage(msg);
   if (msg_ptr) {
 #ifdef _BINARY_MSG_EXTEND_PACKAGING
@@ -214,21 +214,22 @@ void BufferIOEvent::Send(const Message& msg) {
       bmsg->Header()->msg_id = ++msg_seq_;
     }
 #endif
-    SendInner(msg_ptr);
+    return SendInner(msg_ptr);
   } else {
     printf("[BufferIOEvent::Send] Create message failed");
+    return false;
   }
 }
 
-void BufferIOEvent::Send(const string& data, bool bmsg_has_hdr) {
-  Send(data.data(), data.size(), bmsg_has_hdr);
+bool BufferIOEvent::Send(const string& data, bool bmsg_has_hdr) {
+  return Send(data.data(), data.size(), bmsg_has_hdr);
 }
 
-void BufferIOEvent::SendMore(const string& data) {
-  SendMore(data.data(), data.size());
+bool BufferIOEvent::SendMore(const string& data) {
+  return SendMore(data.data(), data.size());
 }
 
-void BufferIOEvent::Send(const char *data, uint32_t len, bool bmsg_has_hdr) {
+bool BufferIOEvent::Send(const char *data, uint32_t len, bool bmsg_has_hdr) {
   MessagePtr msg_ptr = CreateMessage(msg_type_, data, len, bmsg_has_hdr);
   if (msg_ptr) {
     if (msg_type_ == MessageType::BINARY) {
@@ -239,27 +240,31 @@ void BufferIOEvent::Send(const char *data, uint32_t len, bool bmsg_has_hdr) {
       printf("[BufferIOEvent::Send] HDR: %s\n", bmsg->Header()->ToString().c_str());
     }
     printf("[BufferIOEvent::Send] message size: %ld\n", msg_ptr->Size());
-    SendInner(msg_ptr);
+    return SendInner(msg_ptr);
   } else {
     printf("[BufferIOEvent::Send] Create message failed");
+    return false;
   }
 }
 
-void BufferIOEvent::SendMore(const char *data, uint32_t len) {
+bool BufferIOEvent::SendMore(const char *data, uint32_t len) {
   MessagePtr msg_ptr = CreateMessage(msg_type_, data, len, BinaryMessage::HAS_HDR);
   if (msg_ptr) {
     printf("[BufferIOEvent::SendMore] message size: %ld\n", msg_ptr->Size());
-    SendInner(msg_ptr);
+    return SendInner(msg_ptr);
   } else {
     printf("[BufferIOEvent::SendMore] Create message failed");
+    return false;
   }
 }
 
-void BufferIOEvent::SendInner(const MessagePtr& msg) {
+bool BufferIOEvent::SendInner(const MessagePtr& msg) {
+  if (FD() < 0) return false;
   tx_msg_mq_.Push(msg);
   if (!(events_ & FileEvent::WRITE)) {
     AddWriteEvent();  // The output buffer has data now, then add writing event to epoll again if epoll has no writing event
   }
+  return true;
 }
 
 }  // namespace evt_loop
