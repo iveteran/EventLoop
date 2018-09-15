@@ -4,6 +4,7 @@
 #include <set>
 #include <map>
 #include <functional>
+#include <memory>
 #include "event.h"
 #include "utils.h"
 
@@ -17,6 +18,7 @@ class TimerEvent : public IEvent {
  public:
   TimerEvent();
   TimerEvent(const TimeVal& inter);
+  ~TimerEvent() { Stop(); }
 
   void SetTime(const TimeVal& tv) { time_ = tv; }
   const TimeVal& Time() const { return time_; }
@@ -61,6 +63,7 @@ class OneshotTimer : public PeriodicTimer {
  protected:
   void OnTimer() override { PeriodicTimer::OnTimer(); Stop(); }
 };
+typedef std::shared_ptr<PeriodicTimer>           PeriodicTimerPtr;
 
 class TimerManager {
  public:

@@ -46,6 +46,16 @@ void TcpServer::EnableHeartbeat(uint32_t idle_interval, uint32_t ping_interval, 
     }
 }
 
+void TcpServer::EnableIdleTimeout(uint32_t seconds, const OnIdleTimeoutCallback& cb)
+{
+    idle_timeout_params_ = std::make_shared<IdleTimeoutParams>(std::make_tuple(seconds, cb));
+
+    FdTcpConnMap::iterator iter;
+    for (iter = conn_map_.begin(); iter != conn_map_.end(); ++iter) {
+        iter->second->EnableIdleTimeout(seconds, cb);
+    }
+}
+
 void TcpServer::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
 {
     tcp_evt_cbs_ = tcp_evt_cbs;
@@ -147,6 +157,9 @@ void TcpServer::OnNewClient(int fd, const IPAddress& peer_addr)
     conn->SetMessageType(msg_type_);
     if (hb_tmp_params_) {
         conn->EnableHeartbeat(hb_tmp_params_->idle_interval, hb_tmp_params_->ping_interval, hb_tmp_params_->ping_total);
+    }
+    if (idle_timeout_params_) {
+        conn->EnableIdleTimeout(std::get<0>(*idle_timeout_params_), std::get<1>(*idle_timeout_params_));
     }
     conn_map_.insert(std::make_pair(fd, conn));
     if (new_client_cb_) new_client_cb_(conn.get());

@@ -21,12 +21,14 @@ class BusinessTester {
 
         TcpCallbacksPtr echo_client_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_client_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd_Client, this, std::placeholders::_1, std::placeholders::_2);
-        echo_client_cbs->on_conn_ready_cb = std::bind(&BusinessTester::OnConnectionReady, this, std::placeholders    ::_1);
+        echo_client_cbs->on_conn_ready_cb = std::bind(&BusinessTester::OnConnectionReady, this, std::placeholders::_1);
 
         echoserver_binary_.SetTcpCallbacks(echo_svr_1_cbs);
-        //echoserver_binary_.EnableHeartbeat();
+        echoclient_binary_.EnableHeartbeat(8, 1, 3);
+        echoserver_binary_.EnableIdleTimeout(10, std::bind(&BusinessTester::OnConnectionIdleTimeout, this, std::placeholders::_1, std::placeholders::_2));
         echoclient_binary_.SetTcpCallbacks(echo_client_cbs);
-        //echoclient_binary_.EnableHeartbeat();
+        echoclient_binary_.EnableIdleTimeout(15, std::bind(&BusinessTester::OnConnectionIdleTimeout, this, std::placeholders::_1, std::placeholders::_2));
+        //echoclient_binary_.EnableHeartbeat(8, 1, 3);
 
         echoserver_crlf_.SetTcpCallbacks(echo_svr_1_cbs);
         echoclient_crlf_.SetTcpCallbacks(echo_client_cbs);
@@ -74,6 +76,11 @@ class BusinessTester {
     {
         printf("[OnConnectionReady] fd: %d\n", conn->FD());
         conn->Send("hello china 2");
+    }
+    void OnConnectionIdleTimeout(TcpConnection* conn, uint32_t time)
+    {
+        printf("[OnConnectionIdleTimeout] fd: %d, now: %ld\n", conn->FD(), Now());
+        //conn->Disconnect();
     }
     void OnMessageRecvd_1(TcpConnection* conn, const Message* msg)
     {

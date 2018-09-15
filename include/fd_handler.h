@@ -87,6 +87,11 @@ class BufferIOEvent : public IOEvent {
   bool SendMore(const char *data, uint32_t len);
   void SetCloseWait() { close_wait_ = true; }
 
+  uint32_t StatsRxBytes() const     { return stats_rx_bytes_; };
+  time_t   StatsRxLastTime() const  { return stats_rx_last_time_; };
+  uint32_t StatsTxBytes() const     { return stats_tx_bytes_; };
+  time_t   StatsTxLastTime() const  { return stats_tx_last_time_; };
+
  protected:
   virtual void OnReceived(const Message* msg) { }
   virtual void OnSent(const Message* msg) { }
@@ -100,6 +105,9 @@ class BufferIOEvent : public IOEvent {
   int SendData(uint32_t& events);
   bool SendInner(const MessagePtr& msg);
 
+  void UpdateRxStats(uint32_t rx_bytes);
+  void UpdateTxStats(uint32_t tx_bytes);
+
  protected:
   State         state_;
 
@@ -111,6 +119,10 @@ class BufferIOEvent : public IOEvent {
   uint32_t      msg_seq_;
   bool          close_wait_;
 
+  uint32_t      stats_rx_bytes_;
+  time_t        stats_rx_last_time_;
+  uint32_t      stats_tx_bytes_;
+  time_t        stats_tx_last_time_;
 };
 
 }  // namespace evt_loop

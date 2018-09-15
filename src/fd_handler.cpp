@@ -137,8 +137,10 @@ int BufferIOEvent::ReceiveData(uint32_t& events) {
       break;
     } else {
       rx_msg_mq_.AppendData(buffer, len);
+      total_rx += len;
+
+      UpdateRxStats(len);
     }
-    total_rx += len;
   }
 
   if (rx_msg_mq_.FirstCompletion()) {
@@ -166,6 +168,9 @@ int BufferIOEvent::SendData(uint32_t& events) {
         break;
       }
     }
+
+    UpdateTxStats(len);
+
     sent_ += len;
     cur_sent += len;
     if (sent_ == tx_msg->Size()) {
@@ -265,6 +270,15 @@ bool BufferIOEvent::SendInner(const MessagePtr& msg) {
     AddWriteEvent();  // The output buffer has data now, then add writing event to epoll again if epoll has no writing event
   }
   return true;
+}
+
+void BufferIOEvent::UpdateRxStats(uint32_t rx_bytes) {
+  stats_rx_bytes_ += rx_bytes;
+  stats_rx_last_time_ = Now();
+}
+void BufferIOEvent::UpdateTxStats(uint32_t tx_bytes) {
+  stats_tx_bytes_ += tx_bytes;
+  stats_tx_last_time_ = Now();
 }
 
 }  // namespace evt_loop

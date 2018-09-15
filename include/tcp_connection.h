@@ -39,6 +39,8 @@ class TcpConnection : public BufferIOEvent
             uint32_t ping_total = TcpHeartbeatHandler::DFT_PING_TOTAL);
     void DisableHeartbeat();
 
+    void EnableIdleTimeout(uint32_t seconds, const OnIdleTimeoutCallback& cb);
+
     const IPAddress& GetLocalAddr() const { return local_addr_; }
     const IPAddress& GetPeerAddr() const { return peer_addr_; }
     const IPAddress& GetPeerRealAddr() const { return peer_real_addr_; }
@@ -56,6 +58,7 @@ class TcpConnection : public BufferIOEvent
         if (on_conn_ready_cb_) on_conn_ready_cb_(this);
         if (tcp_evt_cbs_) tcp_evt_cbs_->on_conn_ready_cb(this);
     }
+    void OnIdleTimeout(TimerEvent* timer);
 
   private:
     uint32_t        id_;
@@ -71,10 +74,15 @@ class TcpConnection : public BufferIOEvent
     TcpCallbacksPtr   tcp_evt_cbs_;
 
     TcpHeartbeatHandler heartbeat_handler_;
+
+    PeriodicTimerPtr  checking_idle_timer_;
 };
 
 typedef shared_ptr<TcpConnection>          TcpConnectionPtr;
 typedef map<int/*fd*/, TcpConnectionPtr>   FdTcpConnMap;
+
+typedef tuple<uint32_t, OnIdleTimeoutCallback>  IdleTimeoutParams;
+typedef shared_ptr<IdleTimeoutParams>           IdleTimeoutParamsPtr;
 
 }  // namespace evt_loop
 

@@ -38,6 +38,24 @@ void TcpConnection::DisableHeartbeat()
     heartbeat_handler_.DisablePing();
 }
 
+void TcpConnection::EnableIdleTimeout(uint32_t seconds, const OnIdleTimeoutCallback& cb)
+{
+    if (! tcp_evt_cbs_) return;
+    tcp_evt_cbs_->on_idle_timeout_cb = cb;
+    if (checking_idle_timer_ && checking_idle_timer_->IsRunning()) {
+        checking_idle_timer_->Stop();
+    }
+    TimeVal tv(seconds, 0);
+    checking_idle_timer_ = std::make_shared<PeriodicTimer>(tv, std::bind(&TcpConnection::OnIdleTimeout, this, std::placeholders::_1));
+    checking_idle_timer_->Start();
+}
+void TcpConnection::OnIdleTimeout(TimerEvent* timer)
+{
+    if (Now() - StatsRxLastTime() > 10) {
+        if (tcp_evt_cbs_) tcp_evt_cbs_->on_idle_timeout_cb(this, timer->GetInterval().Seconds());
+    }
+}
+
 void TcpConnection::Disconnect()
 {
     if (state_ == CLOSED) return;
