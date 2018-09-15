@@ -28,16 +28,6 @@ void TcpConnection::Destroy()
     }
 }
 
-void TcpConnection::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
-{
-    tcp_evt_cbs_ = tcp_evt_cbs;
-}
-
-void TcpConnection::SetReadyCallback(const OnReadyCallback& cb)
-{
-    on_conn_ready_cb_ = cb;
-}
-
 void TcpConnection::EnableHeartbeat(uint32_t idle_interval, uint32_t ping_interval, uint32_t ping_total)
 {
     heartbeat_handler_.EnablePing(idle_interval, ping_interval, ping_total);
@@ -57,21 +47,6 @@ void TcpConnection::Disconnect()
         OnClosed();
     else
         SetCloseWait();
-}
-
-const IPAddress& TcpConnection::GetLocalAddr() const
-{
-    return local_addr_;
-}
-
-const IPAddress& TcpConnection::GetPeerAddr() const
-{
-    return peer_addr_;
-}
-
-const IPAddress& TcpConnection::GetPeerRealAddr() const
-{
-    return peer_real_addr_;
 }
 
 void TcpConnection::OnReceived(const Message* msg)

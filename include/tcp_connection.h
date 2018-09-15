@@ -31,17 +31,17 @@ class TcpConnection : public BufferIOEvent
     bool IsClient() const { return is_client_; }
     void Disconnect();
 
-    void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
-    void SetReadyCallback(const OnReadyCallback& cb);
+    void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs) { tcp_evt_cbs_ = tcp_evt_cbs; }
+    void SetReadyCallback(const OnReadyCallback& cb) { on_conn_ready_cb_ = cb; }
 
     void EnableHeartbeat(uint32_t idle_interval = TcpHeartbeatHandler::DFT_IDLE_INTERVAL,
             uint32_t ping_interval = TcpHeartbeatHandler::DFT_PING_INTERVAL,
             uint32_t ping_total = TcpHeartbeatHandler::DFT_PING_TOTAL);
     void DisableHeartbeat();
 
-    const IPAddress& GetLocalAddr() const;
-    const IPAddress& GetPeerAddr() const;
-    const IPAddress& GetPeerRealAddr() const;
+    const IPAddress& GetLocalAddr() const { return local_addr_; }
+    const IPAddress& GetPeerAddr() const { return peer_addr_; }
+    const IPAddress& GetPeerRealAddr() const { return peer_real_addr_; }
     void SetPeerRealAddr(const IPAddress& addr) { peer_real_addr_ = addr; }
 
   protected:
