@@ -24,7 +24,7 @@ class TimerEvent : public IEvent {
   void SetInterval(const TimeVal& inter) { interval_ = inter; }
   const TimeVal& GetInterval() const { return interval_; }
 
-  void Start();
+  void Start(bool immediately = false);
   void Stop();
 
   bool IsRunning() { return running_; }

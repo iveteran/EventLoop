@@ -26,12 +26,15 @@ void TimerEvent::OnEvents(uint32_t events) {
   }
 }
 
-void TimerEvent::Start() {
+void TimerEvent::Start(bool immediately) {
   if (!el_) return;
   running_ = true;
   printf("[TimerEvent::Start] timeval: (%d.%d)\n", interval_.Seconds(), interval_.USeconds());
   SetTime(el_->Now() + interval_);
   el_->AddEvent(this);
+  if (immediately) {
+    OnEvents(0);
+  }
 }
 
 void TimerEvent::Stop() {
