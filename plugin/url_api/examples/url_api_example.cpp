@@ -29,6 +29,13 @@ int main()
     HTTPRequest* http_request_2 = url_reactor.NewHTTPRequest("www.cnbeta.com", on_result);
     http_request_2->EnableVerbose();
 
+    HTTPRequest* http_post = url_reactor.NewHTTPRequest("www.cnbeta.com", on_result);
+    http_post->SetPostFields("aa=11&bb=22");
+    KVMap header_map;
+    header_map.insert(std::make_pair("Myheader", "Myheader Value"));
+    http_post->SetHeaderFields(header_map);
+    http_post->EnableVerbose();
+
     SMTPRequest* smtp_request = url_reactor.NewSMTPRequest("smtp://smtp.163.com", on_result);
     smtp_request->SetLogin("you_test_examples_123@163.com", "test_123");
     smtp_request->SetMail("you_test_examples_123@163.com", "32111580@qq.com", "test by url_api", "test, mail content");

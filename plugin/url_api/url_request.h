@@ -18,6 +18,7 @@ enum { DEFAULT_TIMEOUT = 10/*seconds*/ };
 class URLRequest;
 class URLRequestReactor;
 
+typedef std::map<string, string> KVMap;
 typedef std::function<void (URLRequest*, int errcode)> CompletionCallback;
 typedef std::function<size_t (char* data, size_t size)> OnReadDataCallback;
 
@@ -58,10 +59,16 @@ class HTTPRequest : public URLRequest
 {
   public:
   HTTPRequest(URLRequestReactor* url_reactor);
+  ~HTTPRequest();
   bool Init(const char* url, const CompletionCallback& cb, uint32_t timeout = DEFAULT_TIMEOUT);
+  void SetPostFields(const char* post_fields);
+  void SetHeaderFields(const KVMap& header_fields);
 
   protected:
   static size_t WriteData_Callback(void *content, size_t size, size_t nmemb, void *userp);
+
+  private:
+  struct curl_slist* post_field_list_;
 };
 
 class SMTPRequest : public URLRequest

@@ -80,8 +80,12 @@ void URLRequest::OnEvents(uint32_t events)
 /**
  * HTTPRequest
  */
-HTTPRequest::HTTPRequest(URLRequestReactor* url_reactor) : URLRequest(url_reactor)
+HTTPRequest::HTTPRequest(URLRequestReactor* url_reactor) : URLRequest(url_reactor), post_field_list_(NULL)
 {
+}
+HTTPRequest::~HTTPRequest()
+{
+  curl_slist_free_all(post_field_list_);
 }
 bool HTTPRequest::Init(const char* url, const CompletionCallback& cb, uint32_t timeout)
 {
@@ -96,6 +100,22 @@ size_t HTTPRequest::WriteData_Callback(void *content, size_t size, size_t nmemb,
   size_t realsize = size * nmemb;
   url_request->result_data_.append((char*)content, realsize);
   return realsize;
+}
+void HTTPRequest::SetPostFields(const char* post_fields)
+{
+  curl_easy_setopt(curl_, CURLOPT_POSTFIELDS, post_fields);
+  curl_easy_setopt(curl_, CURLOPT_POSTFIELDSIZE, strlen(post_fields));
+}
+void HTTPRequest::SetHeaderFields(const KVMap& header_fields)
+{
+  for (auto iter = header_fields.begin(); iter != header_fields.end(); ++iter) {
+      string field_kv;
+      field_kv.append(iter->first);
+      field_kv.append(":");
+      field_kv.append(iter->second);
+      post_field_list_ = curl_slist_append(post_field_list_, field_kv.c_str());
+  }
+  curl_easy_setopt(curl_, CURLOPT_HTTPHEADER, post_field_list_);
 }
 
 /**
