@@ -17,8 +17,8 @@ class TcpServer: public IOEvent
     uint32_t GetConnectionNumber() const { return conn_map_.size(); }
 
     void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
-    void SetNewClientCallback(const OnNewClientCallback& new_client_cb);
-    void SetErrorCallback(const OnServerErrorCallback& error_cb);
+    void SetNewClientCallback(const OnNewClientCallback& new_client_cb) { new_client_cb_ = new_client_cb; }
+    void SetErrorCallback(const OnServerErrorCallback& error_cb) { error_cb_ = error_cb; }
     void EnableHeartbeat(uint32_t idle_interval = TcpHeartbeatHandler::DFT_IDLE_INTERVAL,
             uint32_t ping_interval = TcpHeartbeatHandler::DFT_PING_INTERVAL,
             uint32_t ping_total = TcpHeartbeatHandler::DFT_PING_TOTAL);

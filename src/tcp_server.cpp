@@ -66,16 +66,6 @@ void TcpServer::SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs)
     }
 }
 
-void TcpServer::SetNewClientCallback(const OnNewClientCallback& new_client_cb)
-{
-    new_client_cb_ = new_client_cb;
-}
-
-void TcpServer::SetErrorCallback(const OnServerErrorCallback& error_cb)
-{
-    error_cb_ = error_cb;
-}
-
 TcpConnectionPtr TcpServer::GetConnectionByFD(int fd)
 {
     FdTcpConnMap::iterator iter = conn_map_.find(fd);
