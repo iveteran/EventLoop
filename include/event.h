@@ -15,7 +15,7 @@ class IEvent {
 
  public:
   IEvent(uint32_t events = 0, EventLoop* el = NULL) : events_(events), el_(el) { }
-  virtual ~IEvent() {};
+  virtual ~IEvent() { events_ = 0; el_ = NULL; };
 
   virtual void OnEvents(uint32_t events) = 0;
   virtual void SetEvents(uint32_t events) { events_ = events; }
