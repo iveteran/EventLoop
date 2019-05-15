@@ -2,6 +2,8 @@
 #define _LUA_EVAL_H
 
 #include <string>
+#include <vector>
+#include <map>
 #include <exception>
 extern "C"  
 {  
@@ -33,17 +35,18 @@ class LuaEvalException : public std::exception
 class LuaEval
 {
   public:
-    LuaEval(const char* lua_file, const char* enter_func);
+    LuaEval(const char* lua_file);
     virtual ~LuaEval()
     {
       lua_close(lua_state_);
     }
 
-    int Enter(const string& i_udata, string& o_udata, string& errstr);
+    int Invoke(const char* func, const string& arg_udata, string& ret_udata, string& errstr);
+    int Invoke(const char* func, const std::vector<string>& arg_tuple, std::vector<string>& ret_tuple, string& errstr);
+    int Invoke(const char* func, const std::map<string, string>& args, std::map<string, string>& rets, string& errstr);
 
   private:
     string      lua_file_;
-    string      enter_func_;
     lua_State*  lua_state_;
 };
 
