@@ -315,6 +315,7 @@ bool PGClient::SendNextQueryAsync()
 {
   printf("PGClient::SendNextQueryAsync start\n");
   bool success = false;
+  m_dberror.Clear();
 
   if (!m_queryQueue.empty()) {
     QueryItem& qitem = m_queryQueue.front();
@@ -624,6 +625,7 @@ void PGClient::OnEvents(uint32_t events)
   }
   if (m_dberror.GetError()) {
     OnError(-1, m_dberror.GetMessage());
+    m_dberror.Clear();
   }
 }
 
