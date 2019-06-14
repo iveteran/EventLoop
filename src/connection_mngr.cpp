@@ -52,10 +52,17 @@ CM_ENUM ConnectionManager::CheckConnectionExists(ClientID cid, TcpConnection* co
 void ConnectionManager::AddConnection(TcpConnection* conn)
 {
     printf("[ConnectionManager::AddConnection] cid: %u, fd: %d\n", conn->ID(), conn->FD());
-    if (m_client_map.find(conn->ID()) != m_client_map.end())
+    CM_ENUM cm_status = CheckConnectionExists(conn->ID(), conn);
+    if (cm_status == CONNECTION_EXISTS_SAME)
     {
-        printf("[ConnectionManager::AddConnection] client (cid: %u) is exists, dosn't add again!\n", conn->ID());
+        printf("[ConnectionManager::AddConnection] client (cid: %u, fd: %d) is exists, dosn't add again!\n", conn->ID(), conn->FD());
         return;
+    }
+    else if (cm_status == CONNECTION_EXISTS_ANOTHER)
+    {
+        printf("[ConnectionManager::AddConnection] replace the aged client for new client (cid: %u, fd: %d)\n", conn->ID(), conn->FD());
+        const bool close_old = true;
+        RemoveConnection(conn->ID(), close_old);
     }
     ConnectionContextPtr conn_ctx = std::make_shared<ConnectionContext>(conn);
     m_client_map.insert(std::make_pair(conn->ID(), conn_ctx));
@@ -85,12 +92,12 @@ void ConnectionManager::RemoveConnection(ClientID cid, bool close_connection)
     if (iter != m_client_map.end())
     {
         auto& conn_ctx = iter->second;
+        printf("[ConnectionManager::RemoveConnection] cid: %u, fd: %d\n", conn_ctx->conn->ID(),conn_ctx->conn->FD());
         if (close_connection)
             conn_ctx->conn->Disconnect();
         //m_activity_map.erase(conn_ctx->act_time);
         m_activity_map.Erase(conn_ctx->act_time, cid);
         m_client_map.erase(iter);
-        printf("[ConnectionManager::RemoveConnection] cid: %u, fd: %d\n", conn_ctx->conn->ID(),conn_ctx->conn->FD());
 
         //if (m_activity_map.empty() && m_inactivity_checker.IsRunning())
         if (m_activity_map.Empty() && m_inactivity_checker.IsRunning())
