@@ -23,6 +23,8 @@ TcpConnection::~TcpConnection()
 void TcpConnection::Destroy()
 {
     printf("[TcpConnection::Destroy] id: %d, fd: %d\n", id_, fd_);
+    DisableIdleTimeout();
+    DisableHeartbeat();
     if (fd_ >= 0) {
         close(fd_);
         SetFD(-1);
@@ -43,17 +45,26 @@ void TcpConnection::EnableIdleTimeout(uint32_t seconds, const OnIdleTimeoutCallb
 {
     if (! tcp_evt_cbs_) return;
     tcp_evt_cbs_->on_idle_timeout_cb = cb;
-    if (checking_idle_timer_ && checking_idle_timer_->IsRunning()) {
-        checking_idle_timer_->Stop();
-    }
+
+    DisableIdleTimeout();
+
     TimeVal tv(seconds, 0);
     checking_idle_timer_ = std::make_shared<PeriodicTimer>(tv, std::bind(&TcpConnection::OnIdleTimeout, this, std::placeholders::_1));
     checking_idle_timer_->Start();
 }
+void TcpConnection::DisableIdleTimeout()
+{
+    if (checking_idle_timer_ && checking_idle_timer_->IsRunning()) {
+        printf("[TcpConnection::DisableIdleTimeout] fd: %d\n", fd_);
+        checking_idle_timer_->Stop();
+    }
+}
 void TcpConnection::OnIdleTimeout(TimerEvent* timer)
 {
-    if (Now() - StatsRxLastTime() > 10) {
-        if (tcp_evt_cbs_) tcp_evt_cbs_->on_idle_timeout_cb(this, timer->GetInterval().Seconds());
+    printf("[TcpConnection::OnIdleTimeout] fd: %d now: %ld, stats_rx_last_time: %ld, timer interval: %d\n",
+            fd_, Now(), StatsRxLastTime(), timer->GetInterval().Seconds());
+    if (Now() - StatsRxLastTime() > timer->GetInterval().Seconds()) {
+        if (tcp_evt_cbs_) tcp_evt_cbs_->on_idle_timeout_cb(this, StatsRxLastTime());
     }
 }
 

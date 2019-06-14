@@ -40,6 +40,7 @@ class TcpConnection : public BufferIOEvent
     void DisableHeartbeat();
 
     void EnableIdleTimeout(uint32_t seconds, const OnIdleTimeoutCallback& cb);
+    void DisableIdleTimeout();
 
     const IPAddress& GetLocalAddr() const { return local_addr_; }
     const IPAddress& GetPeerAddr() const { return peer_addr_; }

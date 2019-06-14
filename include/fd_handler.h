@@ -65,7 +65,8 @@ class BufferIOEvent : public IOEvent {
 
  public:
   BufferIOEvent(int fd, uint32_t events = FileEvent::READ | FileEvent::WRITE | FileEvent::ERROR)
-    : IOEvent(fd, events), state_(CONNECTED), sent_(0), msg_seq_(0), close_wait_(false) {
+    : IOEvent(fd, events), state_(CONNECTED), sent_(0), msg_seq_(0), close_wait_(false),
+    stats_rx_bytes_(0), stats_rx_last_time_(0), stats_tx_bytes_(0), stats_tx_last_time_(0) {
   }
 
   State GetState() const { return state_; }
