@@ -19,17 +19,12 @@ namespace evt_loop
 
 class IOEvent : public IEvent {
   friend class EventLoop;
-  /*
- public:
-  static const uint32_t  READ = 1 << 0;
-  static const uint32_t  WRITE = 1 << 1;
-  static const uint32_t  ERROR = 1 << 2;
-  static const uint32_t  CREATE = 1 << 3;
-  static const uint32_t  CLOSED = 1 << 4;
-  */
 
  public:
-  IOEvent(int fd = -1, uint32_t events = FileEvent::READ | FileEvent::ERROR);
+  enum IOType { NONE, TCP_CLIENT, TCP_SERVER, TCP_CONNECTION, COUNT };
+
+ public:
+  IOEvent(IOType type = IOType::NONE, int fd = -1, uint32_t events = FileEvent::READ | FileEvent::ERROR);
   virtual ~IOEvent();
 
  public:
@@ -56,6 +51,7 @@ class IOEvent : public IEvent {
   virtual int OnWrite(const void* buf, size_t bytes) { return send(fd_, buf, bytes, MSG_NOSIGNAL); }
 
  protected:
+  IOType type_;
   int fd_;
 };
 
@@ -64,8 +60,8 @@ class BufferIOEvent : public IOEvent {
   enum State { CLOSED, CONNECTED, READY, HANDSHAKING, FAILED, COUNT };
 
  public:
-  BufferIOEvent(int fd, uint32_t events = FileEvent::READ | FileEvent::WRITE | FileEvent::ERROR)
-    : IOEvent(fd, events), state_(CONNECTED), sent_(0), msg_seq_(0), close_wait_(false),
+  BufferIOEvent(IOType io_type, int fd, uint32_t events = FileEvent::READ | FileEvent::WRITE | FileEvent::ERROR)
+    : IOEvent(io_type, fd, events), state_(CONNECTED), sent_(0), msg_seq_(0), close_wait_(false),
     stats_rx_bytes_(0), stats_rx_last_time_(0), stats_tx_bytes_(0), stats_tx_last_time_(0) {
   }
   virtual ~BufferIOEvent() { state_ = CLOSED; }

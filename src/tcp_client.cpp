@@ -36,7 +36,8 @@ bool SetTcpKeepAlive(int fd, bool enable, int idle, int interval, int count)
 }
 
 TcpClient::TcpClient(const char *host, uint16_t port, MessageType msg_type, bool auto_reconnect, TcpCallbacksPtr tcp_evt_cbs)
-    : msg_type_(msg_type), keepalive_(false), auto_reconnect_(auto_reconnect), conn_(nullptr),
+    : IOEvent(IOType::TCP_CLIENT),
+    msg_type_(msg_type), keepalive_(false), auto_reconnect_(auto_reconnect), conn_(nullptr),
     reconnect_timer_(std::bind(&TcpClient::OnReconnectTimer, this, std::placeholders::_1)),
     tcp_evt_cbs_(tcp_evt_cbs)
 {

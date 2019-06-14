@@ -7,7 +7,7 @@ namespace evt_loop {
 
 TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, const IPAddress& peer_real_addr,
     const OnClosedCallback& close_cb, TcpCallbacksPtr tcp_evt_cbs) :
-  BufferIOEvent(fd), id_(0), client_type_(0), local_addr_(local_addr), peer_addr_(peer_addr), peer_real_addr_(peer_real_addr),
+  BufferIOEvent(IOType::TCP_CONNECTION, fd), id_(0), client_type_(0), local_addr_(local_addr), peer_addr_(peer_addr), peer_real_addr_(peer_real_addr),
   active_closing_(false), is_client_(false), creator_notification_cb_(close_cb), tcp_evt_cbs_(tcp_evt_cbs),
   heartbeat_handler_(this), checking_idle_timer_(nullptr)
 {

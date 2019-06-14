@@ -7,7 +7,7 @@
 namespace evt_loop {
 
 TcpServer::TcpServer(const char *host, uint16_t port, MessageType msg_type, TcpCallbacksPtr tcp_evt_cbs)
-    : msg_type_(msg_type), tcp_evt_cbs_(tcp_evt_cbs)
+    : IOEvent(IOType::TCP_SERVER), msg_type_(msg_type), tcp_evt_cbs_(tcp_evt_cbs)
 {
     InitAddress(host, port);
     Start();

@@ -11,8 +11,8 @@ bool ValidFD(int fd) {
   return fd >= 0;
 }
 
-IOEvent::IOEvent(int fd, uint32_t events) :
-  IEvent(events), fd_(fd)
+IOEvent::IOEvent(IOType type, int fd, uint32_t events) :
+  IEvent(events), type_(type), fd_(fd)
 {
   if (ValidFD(fd_)) {
     EV_Singleton->AddEvent(this);
