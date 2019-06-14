@@ -61,7 +61,7 @@ class OneshotTimer : public PeriodicTimer {
   OneshotTimer(const TimeVal& inter, const OnTimerCallback& cb) : PeriodicTimer(inter, cb) { }
 
  protected:
-  void OnTimer() override { PeriodicTimer::OnTimer(); Stop(); }
+  void OnTimer() override { Stop(); PeriodicTimer::OnTimer(); }
 };
 typedef std::shared_ptr<PeriodicTimer>           PeriodicTimerPtr;
 
