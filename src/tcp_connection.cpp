@@ -9,7 +9,7 @@ TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddres
     const OnClosedCallback& close_cb, TcpCallbacksPtr tcp_evt_cbs) :
   BufferIOEvent(fd), id_(0), client_type_(0), local_addr_(local_addr), peer_addr_(peer_addr), peer_real_addr_(peer_real_addr),
   active_closing_(false), is_client_(false), creator_notification_cb_(close_cb), tcp_evt_cbs_(tcp_evt_cbs),
-  heartbeat_handler_(this)
+  heartbeat_handler_(this), checking_idle_timer_(nullptr)
 {
     printf("[TcpConnection::TcpConnection] local_addr: %s, peer_addr: %s, peer_real_addr: %s\n",
         local_addr_.ToString().c_str(), peer_addr_.ToString().c_str(), peer_real_addr_.ToString().c_str());
@@ -56,6 +56,8 @@ void TcpConnection::EnableIdleTimeout(uint32_t seconds, const OnIdleTimeoutCallb
 }
 void TcpConnection::DisableIdleTimeout()
 {
+    if (state_ >= COUNT) return;    // Invalid connection
+
     if (checking_idle_timer_ && checking_idle_timer_->IsRunning()) {
         printf("[TcpConnection::DisableIdleTimeout] fd: %d\n", fd_);
         checking_idle_timer_->Stop();
@@ -89,7 +91,14 @@ void TcpConnection::OnReceived(const Message* msg)
     } else if (heartbeat_handler_.IsHeartbeatResponse(msg)) {
         heartbeat_handler_.OnHeartbeatResponseReceived(msg);
     } else if (tcp_evt_cbs_) {
-        tcp_evt_cbs_->on_msg_recvd_cb(this, msg);
+        if (state_ >= CLOSED && state_ < COUNT)     // Guard condition
+        {
+            tcp_evt_cbs_->on_msg_recvd_cb(this, msg);
+        }
+        else
+        {
+            printf("[TcpConnection::OnReceived] Invalid connection: %s\n", ToString().c_str());
+        }
     }
 }
 

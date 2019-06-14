@@ -21,6 +21,7 @@ IOEvent::IOEvent(int fd, uint32_t events) :
 IOEvent::~IOEvent() {
   if (ValidFD(fd_)) {
     EV_Singleton->DeleteEvent(this);
+    fd_ = -1;
   }
 }
 void IOEvent::SetFD(int fd) {
