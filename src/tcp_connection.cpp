@@ -1,6 +1,7 @@
 #include "eventloop.h"
 #include "tcp_connection.h"
 #include <unistd.h>
+#include <sstream>
 
 namespace evt_loop {
 
@@ -108,6 +109,22 @@ void TcpConnection::OnError(int errcode, const char* errstr)
     if (tcp_evt_cbs_) tcp_evt_cbs_->on_error_cb(this, errcode, errstr);
     //Disconnect();
     state_ = FAILED;
+}
+
+string TcpConnection::ToString() const
+{
+    std::stringstream ss;
+    ss << "{ "
+        << "fd: " << fd_ << ", "
+        << "id: " << id_ << ", "
+        << "client_type: " << client_type_ << ", "
+        << "local_addr: " << local_addr_.ToString() << ", "
+        << "peer_addr: " << peer_addr_.ToString() << ", "
+        << "peer_real_addr: " << peer_real_addr_.ToString() << ", "
+        << "active_closing: " << active_closing_ << ", "
+        << "is_client: " << is_client_
+        << " }";
+    return ss.str();
 }
 
 }  // namespace evt_loop

@@ -46,6 +46,8 @@ class TcpConnection : public BufferIOEvent
     const IPAddress& GetPeerRealAddr() const { return peer_real_addr_; }
     void SetPeerRealAddr(const IPAddress& addr) { peer_real_addr_ = addr; }
 
+    string ToString() const;
+
   protected:
     void Destroy();
     void OnReceived(const Message* buffer);
