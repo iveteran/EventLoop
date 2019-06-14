@@ -27,10 +27,6 @@ void TcpConnection::Destroy()
 
     DisableIdleTimeout();
     DisableHeartbeat();
-    if (fd_ >= 0) {
-        close(fd_);
-        SetFD(-1);
-    }
 }
 
 void TcpConnection::EnableHeartbeat(uint32_t idle_interval, uint32_t ping_interval, uint32_t ping_total)
