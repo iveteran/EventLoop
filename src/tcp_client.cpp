@@ -175,6 +175,12 @@ bool TcpClient::Connect_()
         return false;
     }
 
+    int qlen = 5;
+    if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen)) == -1)
+    {
+        printf("(setsockopt) Ignore error of enabling TFO: %s(errno: %d)\n", strerror(errno), errno);
+    }
+
     if (keepalive_) {
         bool success = SetTcpKeepAlive(fd, true, 60, 5, 3);
         if (!success) {

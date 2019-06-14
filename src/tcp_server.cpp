@@ -2,6 +2,7 @@
 #include "tcp_server.h"
 #include <unistd.h>
 #include <errno.h>
+#include <netinet/tcp.h>
 
 namespace evt_loop {
 
@@ -79,6 +80,7 @@ bool TcpServer::Start()
         OnError(errno, strerror(errno));
         return false;
     }
+
     int reuseaddr = 1;
     if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1)
     {
@@ -87,8 +89,11 @@ bool TcpServer::Start()
         return false;
     }
 
-    int on = 1;
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
+    int qlen = 5;
+    if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen)) == -1)
+    {
+        printf("(setsockopt) Ignore error of enabling TFO: %s(errno: %d)\n", strerror(errno), errno);
+    }
 
     sockaddr_in sock_addr;
     memset(&sock_addr, 0, sizeof(sock_addr));
@@ -207,6 +212,7 @@ bool TcpServer6::Start()
         OnError(errno, strerror(errno));
         return false;
     }
+
     int reuseaddr = 1;
     if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1)
     {
@@ -215,8 +221,11 @@ bool TcpServer6::Start()
         return false;
     }
 
-    int on = 1;
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
+    int qlen = 5;
+    if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen)) == -1)
+    {
+        printf("(setsockopt) Ignore error of enabling TFO: %s(errno: %d)\n", strerror(errno), errno);
+    }
 
     sockaddr_in6 sock_addr;
     memset(&sock_addr, 0, sizeof(sock_addr));
