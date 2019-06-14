@@ -27,6 +27,8 @@ void TcpConnection::Destroy()
 
     DisableIdleTimeout();
     DisableHeartbeat();
+    id_ = 0;
+    checking_idle_timer_ = nullptr;
 }
 
 void TcpConnection::EnableHeartbeat(uint32_t idle_interval, uint32_t ping_interval, uint32_t ping_total)
