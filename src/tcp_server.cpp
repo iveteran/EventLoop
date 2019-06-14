@@ -163,11 +163,7 @@ void TcpServer::OnNewClient(int fd, const IPAddress& peer_addr)
 void TcpServer::OnConnectionClosed(TcpConnection* conn)
 {
     printf("[TcpServer::OnConnectionClosed] Erase connection, fd: %d\n", conn->FD());
-    FdTcpConnMap::iterator iter = conn_map_.find(conn->FD());
-    if (iter != conn_map_.end()) {
-        //delete iter->second;
-        conn_map_.erase(iter);
-    }
+    conn_map_.erase(conn->FD());
 }
 
 void TcpServer::OnError(int errcode, const char* errstr)

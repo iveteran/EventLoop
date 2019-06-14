@@ -61,7 +61,7 @@ class IOEvent : public IEvent {
 
 class BufferIOEvent : public IOEvent {
  public:
-  enum State { CLOSED, CONNECTED, READY, HANDSHAKING, FAILED };
+  enum State { CLOSED, CONNECTED, READY, HANDSHAKING, FAILED, COUNT };
 
  public:
   BufferIOEvent(int fd, uint32_t events = FileEvent::READ | FileEvent::WRITE | FileEvent::ERROR)

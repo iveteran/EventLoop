@@ -23,6 +23,8 @@ TcpConnection::~TcpConnection()
 void TcpConnection::Destroy()
 {
     printf("[TcpConnection::Destroy] id: %d, fd: %d\n", id_, fd_);
+    if (state_ >= COUNT) return;    // Invalid connection
+
     DisableIdleTimeout();
     DisableHeartbeat();
     if (fd_ >= 0) {
@@ -70,7 +72,8 @@ void TcpConnection::OnIdleTimeout(TimerEvent* timer)
 
 void TcpConnection::Disconnect()
 {
-    if (state_ == CLOSED) return;
+    printf("[TcpConnection::Disconnect] fd: %d, state: %d\n", fd_, state_);
+    if (state_ == CLOSED || state_ >= COUNT) return;    // Invalid connection
 
     active_closing_ = true;
     if (TxBuffEmpty())
@@ -103,13 +106,15 @@ void TcpConnection::OnSent(const Message* msg)
 
 void TcpConnection::OnClosed()
 {
-    printf("[TcpConnection::OnClosed] client leave, fd: %d\n", fd_);
+    printf("[TcpConnection::OnClosed] fd: %d, state: %d, active_closing: %d\n", fd_, state_, active_closing_);
+    if (state_ == CLOSED || state_ >= COUNT) return;    // Invalid connection
+
     if (active_closing_) {
-        creator_notification_cb_(this);  // NOTE: MUST run this line before Destroy()
+        creator_notification_cb_(this);  // NOTE: acitve closing mode, MUST run this line before Destroy()
         Destroy();
     } else {
         if (tcp_evt_cbs_) tcp_evt_cbs_->on_closed_cb(this);
-        creator_notification_cb_(this);  // NOTE: MUST run this line after close callback
+        creator_notification_cb_(this);  // NOTE: passivity closing mode, MUST run this line after close callback
     }
     state_ = CLOSED;
 }
@@ -124,11 +129,13 @@ void TcpConnection::OnError(int errcode, const char* errstr)
 
 string TcpConnection::ToString() const
 {
+    if (state_ >= COUNT) return "{ Invalid Connection }";
+
     std::stringstream ss;
     ss << "{ "
         << "fd: " << fd_ << ", "
         << "id: " << id_ << ", "
-        << "client_type: " << client_type_ << ", "
+        << "client_type: " << int(client_type_) << ", "
         << "local_addr: " << local_addr_.ToString() << ", "
         << "peer_addr: " << peer_addr_.ToString() << ", "
         << "peer_real_addr: " << peer_real_addr_.ToString() << ", "

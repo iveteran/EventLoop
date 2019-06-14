@@ -227,7 +227,8 @@ void TcpClient::OnReconnectTimer(TimerEvent* timer)
         if (success) {
             timer->Stop();
         } else {
-            printf("[TcpClient::OnReconnectTimer] Reconnect failed, retry %u seconds later...\n", timer->GetInterval().Seconds());
+            printf("[TcpClient::OnReconnectTimer] Reconnect %s failed, retry %u seconds later...\n",
+                   server_addr_.ToString().c_str(), timer->GetInterval().Seconds());
         }
     } else {
         timer->Stop();
