@@ -2,6 +2,12 @@
 
 namespace evt_loop {
 
+static bool
+is_visable_char(char c)
+{
+    return c >= 0x20 && c <= 0x7e;
+}
+
 void Message::DumpHex(size_t max_bytes) const {
   size_t bytes_to_dump = (max_bytes == 0 || max_bytes > data_.size()) ? data_.size() : max_bytes;
   size_t i = 0;
@@ -12,6 +18,41 @@ void Message::DumpHex(size_t max_bytes) const {
       if (i != 0 && (i + 1) % 8 == 0 && (i + 1) % 16 != 0) printf(" ");
   }
   if (i % 16 != 0) printf("\n");
+}
+
+void Message::DumpHex(const char* tag, size_t max_bytes) const {
+  printf("%s: \n", tag);
+  size_t bytes_to_dump = (max_bytes == 0 || max_bytes > data_.size()) ? data_.size() : max_bytes;
+  size_t i = 0;
+  size_t j = 0;
+  size_t k = 0;
+  const size_t LINE_BYTES = 16;
+  for (; i < bytes_to_dump; i+=j) {
+    size_t rest_bytes = bytes_to_dump-i;
+    for (j=0; j<rest_bytes && j<LINE_BYTES; j++) {
+      printf("%02X ", data_[i+j]);
+    }
+    printf("  ");
+    if (rest_bytes < LINE_BYTES) {
+      for (size_t n=0; n<LINE_BYTES-rest_bytes; n++) {
+        printf("   "); // print 3 blanks
+      }
+    }
+
+    for (k=0; k<rest_bytes && k<LINE_BYTES; k++) {
+      int pos = i+k;
+      if (is_visable_char(data_[pos])) {
+        printf("%c", data_[pos]);
+      } else if (data_[pos] == '\n') {
+        printf("\\n");
+      } else if (data_[pos] == '\r') {
+        printf("\\r");
+      } else {
+        printf(".");
+      }
+    }
+    printf("\n");
+  }
 }
 
 const char* CRLFMessage::TERMINAL_LABEL = "\r\n";

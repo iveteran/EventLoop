@@ -34,6 +34,7 @@ class Message {
   bool Empty() const              { return data_.empty(); }
 
   void DumpHex(size_t max_bytes = 0) const;
+  void DumpHex(const char* tag, size_t max_bytes = 0) const;
 
   virtual void Clear()                    { data_.clear(); }
   virtual const char* Payload() const     { return data_.data(); }
