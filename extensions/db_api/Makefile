@@ -2,7 +2,7 @@ TARGET = libdb_api.a
 
 CPPFLAGS = -g -Wall -std=c++0x
 CXXFLAGS = -I../../include \
-           -I/usr/pgsql-9.5/include
+           -I/usr/pgsql-12/include
 
 CXX      = g++
 RM       = rm -f
