@@ -200,7 +200,7 @@ void TcpHeartbeatHandler::SendHeartbeatRequest(TcpConnection* conn)
         case MessageType::CRLF:
             SendCRLFHeartbeatRequest(conn); break;
         default:
-            printf("[TcpHeartbeatHandler::SendHeartbeatRequest] Unknown connection message type: %d", conn->GetMessageType());
+            printf("[TcpHeartbeatHandler::SendHeartbeatRequest] Unknown connection message type: %d\n", conn->GetMessageType());
             break;
     }
 }
@@ -229,7 +229,7 @@ void TcpHeartbeatHandler::SendHeartbeatResponse(TcpConnection* conn)
         case MessageType::CRLF:
             SendCRLFHeartbeatResponse(conn); break;
         default:
-            printf("[TcpHeartbeatHandler::SendHeartbeatResponse] Unknown connection message type: %d", conn->GetMessageType());
+            printf("[TcpHeartbeatHandler::SendHeartbeatResponse] Unknown connection message type: %d\n", conn->GetMessageType());
             break;
     }
 }

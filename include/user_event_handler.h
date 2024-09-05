@@ -29,6 +29,8 @@ class UserEvent : public IEvent {
   OnUserEventCallback user_event_cb_;
   void*     user_data_;
   int32_t   repeat_;
+  bool      soft_deleting_enabled_;
+  bool      soft_deleted_;
   //OnFinishCallback  finish_cb_;
 };
 
