@@ -1,5 +1,6 @@
 #if defined(__linux__) && !defined(USE_SELECT)
 #include <unistd.h>
+#include <cstdio>
 #include <sys/epoll.h>
 #include "poller.h"
 

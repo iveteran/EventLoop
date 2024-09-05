@@ -1,6 +1,7 @@
 #ifndef _SIGNAL_HANDLER_H
 #define _SIGNAL_HANDLER_H
 
+#include <cstdio>
 #include <signal.h>
 #include <set>
 #include <map>
