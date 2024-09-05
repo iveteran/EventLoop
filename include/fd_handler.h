@@ -68,14 +68,17 @@ class BufferIOEvent : public IOEvent {
 
   State GetState() const { return state_; }
 
-  void SetMessageType(const MessageType& msg_type) {
+  void SetMessageType(const MessageType& msg_type, const HeaderDescriptionPtr& msg_hdr_desc) {
     msg_type_ = msg_type;
+    msg_hdr_desc_ = msg_hdr_desc;
     rx_msg_mq_.Clear();
-    rx_msg_mq_.SetMessageType(msg_type_);
+    rx_msg_mq_.SetMessageType(msg_type_, msg_hdr_desc_);
     tx_msg_mq_.Clear();
-    tx_msg_mq_.SetMessageType(msg_type_);
+    tx_msg_mq_.SetMessageType(msg_type_, msg_hdr_desc_);
   }
   MessageType GetMessageType() const { return msg_type_; }
+  const HeaderDescriptionPtr& GetMessageHeaderDescription() const { return msg_hdr_desc_; }
+
   void ClearBuff();
   bool TxBuffEmpty();
   bool Send(const Message& msg);
@@ -116,6 +119,8 @@ class BufferIOEvent : public IOEvent {
   uint32_t      sent_;
   uint32_t      msg_seq_;
   bool          close_wait_;
+
+  HeaderDescriptionPtr  msg_hdr_desc_;
 
   uint32_t      stats_rx_bytes_;
   time_t        stats_rx_last_time_;

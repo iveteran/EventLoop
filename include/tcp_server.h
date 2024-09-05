@@ -16,6 +16,13 @@ class TcpServer: public IOEvent
     TcpConnectionPtr GetConnectionByFD(int fd);
     uint32_t GetConnectionNumber() const { return conn_map_.size(); }
 
+    void SetMessageHeaderDescription(const HeaderDescriptionPtr& msg_hdr_desc) {
+        msg_hdr_desc_ = msg_hdr_desc;
+    }
+    const HeaderDescriptionPtr& GetMessageHeaderDescription() const {
+      return msg_hdr_desc_;
+    }
+
     void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
     void SetNewClientCallback(const OnNewClientCallback& new_client_cb) { new_client_cb_ = new_client_cb; }
     void SetErrorCallback(const OnServerErrorCallback& error_cb) { error_cb_ = error_cb; }
@@ -43,6 +50,8 @@ class TcpServer: public IOEvent
     IPAddress       server_addr_;
     MessageType     msg_type_;
     FdTcpConnMap    conn_map_;
+
+    HeaderDescriptionPtr    msg_hdr_desc_;
 
     OnNewClientCallback     new_client_cb_;
     OnServerErrorCallback   error_cb_;

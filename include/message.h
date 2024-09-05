@@ -17,11 +17,43 @@ enum MessageType {
   CRLF,
   JSON,
   TLV,  // Tag, Length, Value
+  CUSTOM,
 };
+
+struct HeaderDescription {
+  // pre-defined fields
+  uint32_t          hdr_len;
+  uint32_t          payload_len_offset;
+  uint32_t          payload_len_bytes;
+  bool              is_payload_len_including_self;
+
+  // be decode fields
+  const char*       hdr_ptr;
+  const char*       payload_ptr;
+  uint32_t          payload_len;
+
+  HeaderDescription() { memset(this, 0, sizeof(*this)); }
+  std::string ToString() const {
+    char buffer[256];
+    snprintf(buffer, sizeof(buffer), "{ hdr_len: %u, payload_len_offset: %u, payload_len_bytes: %u, "
+            "is_payload_len_including_self: %u, hdr_ptr: 0x%p, payload_ptr: 0x%p, payload_len: %u }",
+        hdr_len, payload_len_offset, payload_len_bytes,
+        is_payload_len_including_self, hdr_ptr, payload_ptr, payload_len);
+    return buffer;
+  }
+};
+typedef std::shared_ptr<HeaderDescription> HeaderDescriptionPtr;
 
 class Message {
   public:
-  Message(MessageType type) : type_(type) { }
+  Message(MessageType type, const HeaderDescriptionPtr& hdr_desc = nullptr) : type_(type), hdr_desc_(hdr_desc) { }
+
+  void SetHeaderDescription(const HeaderDescriptionPtr& hdr_desc) {
+    hdr_desc_ = hdr_desc;
+  }
+  const HeaderDescriptionPtr& GetHeaderDescription() const {
+    return hdr_desc_;
+  }
 
   virtual size_t MoreSize() const = 0;
   virtual bool Completion() const = 0;
@@ -33,6 +65,8 @@ class Message {
   size_t Size() const             { return data_.size(); }
   bool Empty() const              { return data_.empty(); }
 
+  HeaderDescriptionPtr HeaderDescription() const { return hdr_desc_; }
+
   void DumpHex(size_t max_bytes = 0) const;
   void DumpHex(const char* tag, size_t max_bytes = 0) const;
 
@@ -43,6 +77,7 @@ class Message {
   protected:
   MessageType   type_;
   std::string   data_;
+  HeaderDescriptionPtr  hdr_desc_;
 };
 typedef std::shared_ptr<Message>  MessagePtr;
 
@@ -152,15 +187,19 @@ class BinaryMessage : public Message {
   HDR*          hdr_;
 };
 
-MessagePtr CreateMessage(MessageType msg_type);
-MessagePtr CreateMessage(MessageType msg_type, const char* data, size_t length, bool bmsg_has_no_hdr = BinaryMessage::HAS_NO_HDR);
+MessagePtr CreateMessage(MessageType msg_type, const HeaderDescriptionPtr& hdr_desc = nullptr);
+MessagePtr CreateMessage(MessageType msg_type, const char* data, size_t length,
+        bool bmsg_has_no_hdr = BinaryMessage::HAS_NO_HDR, const HeaderDescriptionPtr& hdr_desc = nullptr);
 MessagePtr CreateMessage(const Message& msg);
 
 class MessageMQ {
   public:
   typedef std::function<void (const Message*) > MessageDispatcher;
 
-  void SetMessageType(const MessageType& msg_type) { msg_type_ = msg_type; }
+  void SetMessageType(const MessageType& msg_type, const HeaderDescriptionPtr& msg_hdr_desc) {
+      msg_type_ = msg_type;
+      msg_hdr_desc_ = msg_hdr_desc;
+  }
   size_t Size() const { return mq_.size(); }
   bool Empty() const { return mq_.empty(); }
   void Clear() { while (!mq_.empty()) { mq_.pop(); } }
@@ -178,6 +217,7 @@ class MessageMQ {
 
   private:
   MessageType msg_type_;
+  HeaderDescriptionPtr msg_hdr_desc_;
   std::queue<MessagePtr> mq_;
 };
 

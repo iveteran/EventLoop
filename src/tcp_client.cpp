@@ -39,6 +39,7 @@ TcpClient::TcpClient(const char *host, uint16_t port, MessageType msg_type, bool
     : IOEvent(IOType::TCP_CLIENT),
     msg_type_(msg_type), keepalive_(false), auto_reconnect_(auto_reconnect), conn_(nullptr),
     reconnect_timer_(std::bind(&TcpClient::OnReconnectTimer, this, std::placeholders::_1)),
+    msg_hdr_desc_(nullptr),
     tcp_evt_cbs_(tcp_evt_cbs)
 {
     InitAddress(host, port);
@@ -103,6 +104,18 @@ bool TcpClient::Send(const string& msg)
     return success;
 }
 
+bool TcpClient::Send(const char* msg, size_t size)
+{
+    bool success = true;
+    if (conn_ && conn_->GetState() == BufferIOEvent::READY) {
+        conn_->Send(msg, size);
+    } else {
+        string tmp_msg(msg, size);
+        tmp_sendbuf_list_.push_back(tmp_msg);
+    }
+    return success;
+}
+
 void TcpClient::EnableKeepAlive(bool enable)
 {
     keepalive_ = enable;
@@ -139,7 +152,7 @@ void TcpClient::SetErrorCallback(const OnClientErrorCallback& error_cb)
 void TcpClient::OnConnected(int fd, const IPAddress& local_addr)
 {
     conn_ = CreateClient(fd, local_addr, server_addr_, server_addr_);
-    conn_->SetMessageType(msg_type_);
+    conn_->SetMessageType(msg_type_, msg_hdr_desc_);
     conn_->AsClient();
     conn_->SetReadyCallback(std::bind(&TcpClient::OnReady, this, std::placeholders::_1));
     if (hb_tmp_params_) {

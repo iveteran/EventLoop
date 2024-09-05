@@ -1,4 +1,5 @@
 #include "message.h"
+#include "custom_message.h"
 #include "utils.h"
 
 namespace evt_loop {
@@ -128,7 +129,7 @@ size_t BinaryMessage::MoreSize() const {
   return more_size;
 }
 
-MessagePtr CreateMessage(MessageType msg_type) {
+MessagePtr CreateMessage(MessageType msg_type, const HeaderDescriptionPtr& msg_hdr_desc) {
   MessagePtr msg_ptr;
   switch (msg_type) {
     case MessageType::CRLF:
@@ -140,13 +141,18 @@ MessagePtr CreateMessage(MessageType msg_type) {
     case MessageType::BINARY:
       msg_ptr = std::make_shared<BinaryMessage>();
       break;
+    case MessageType::CUSTOM:
+      msg_ptr = std::make_shared<CustomMessage>(msg_hdr_desc);
+      break;
     default:
+      fprintf(stderr, "[CreateMessage] Unknown message type: %d\n", msg_type);
       break;
   }
   return msg_ptr;
 }
 
-MessagePtr CreateMessage(MessageType msg_type, const char* data, size_t length, bool bmsg_has_no_hdr) {
+MessagePtr CreateMessage(MessageType msg_type, const char* data, size_t length,
+        bool bmsg_has_no_hdr, const HeaderDescriptionPtr& msg_hdr_desc) {
   MessagePtr msg_ptr;
   switch (msg_type) {
     case MessageType::CRLF:
@@ -158,7 +164,11 @@ MessagePtr CreateMessage(MessageType msg_type, const char* data, size_t length, 
     case MessageType::BINARY:
       msg_ptr = std::make_shared<BinaryMessage>(data, length, bmsg_has_no_hdr);
       break;
+    case MessageType::CUSTOM:
+      msg_ptr = std::make_shared<CustomMessage>(msg_hdr_desc, data, length);
+      break;
     default:
+      fprintf(stderr, "[CreateMessage] Unknown message type: %d\n", msg_type);
       break;
   }
   return msg_ptr;
@@ -176,7 +186,11 @@ MessagePtr CreateMessage(const Message& msg) {
     case MessageType::BINARY:
       msg_ptr = std::make_shared<BinaryMessage>(dynamic_cast<const BinaryMessage&>(msg));
       break;
+    case MessageType::CUSTOM:
+      msg_ptr = std::make_shared<CustomMessage>(dynamic_cast<const CustomMessage&>(msg));
+      break;
     default:
+      fprintf(stderr, "[CreateMessage] Unknown message type: %d\n", msg.Type());
       break;
   }
   return msg_ptr;
@@ -184,13 +198,13 @@ MessagePtr CreateMessage(const Message& msg) {
 
 MessagePtr& MessageMQ::Last() {
   if (mq_.empty()) {
-    mq_.push(CreateMessage(msg_type_));
+    mq_.push(CreateMessage(msg_type_, msg_hdr_desc_));
   }
   return mq_.back();
 }
 MessagePtr& MessageMQ::First() {
   if (mq_.empty()) {
-    mq_.push(CreateMessage(msg_type_));
+    mq_.push(CreateMessage(msg_type_, msg_hdr_desc_));
   }
   return mq_.front();
 }
@@ -198,7 +212,7 @@ void MessageMQ::AppendData(const char* data, uint32_t size) {
   size_t feeds = 0;
   while (feeds < size) {
     if (Last()->Completion()) {
-      mq_.push(CreateMessage(msg_type_));
+      mq_.push(CreateMessage(msg_type_, msg_hdr_desc_));
     }
     feeds += Last()->AppendData(&data[feeds], size - feeds);
     if (Last()->Completion()) {

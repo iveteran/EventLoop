@@ -27,6 +27,13 @@ class TcpClient : public IOEvent
             uint32_t ping_total = TcpHeartbeatHandler::DFT_PING_TOTAL);
     void EnableIdleTimeout(uint32_t seconds, const OnIdleTimeoutCallback& cb);
 
+    void SetMessageHeaderDescription(const HeaderDescriptionPtr& msg_hdr_desc) {
+        msg_hdr_desc_ = msg_hdr_desc;
+    }
+    const HeaderDescriptionPtr& GetMessageHeaderDescription() const {
+      return msg_hdr_desc_;
+    }
+
     void SetTcpCallbacks(const TcpCallbacksPtr& tcp_evt_cbs);
     void SetNewClientCallback(const OnNewClientCallback& new_client_cb);
     void SetErrorCallback(const OnClientErrorCallback& error_cb);
@@ -36,6 +43,7 @@ class TcpClient : public IOEvent
     bool IsConnected() const { return conn_ != nullptr; }
 
     bool Send(const string& msg);
+    bool Send(const char* msg, size_t size);
     
     protected:
     void OnEvents(uint32_t events) {}
@@ -66,6 +74,8 @@ class TcpClient : public IOEvent
     TcpConnectionPtr    conn_;
     list<string>        tmp_sendbuf_list_;
     PeriodicTimer       reconnect_timer_;
+
+    HeaderDescriptionPtr    msg_hdr_desc_;
 
     OnNewClientCallback     new_client_cb_;
     OnClientErrorCallback   error_cb_;

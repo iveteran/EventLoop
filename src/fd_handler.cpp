@@ -238,7 +238,7 @@ bool BufferIOEvent::SendMore(const string& data) {
 }
 
 bool BufferIOEvent::Send(const char *data, uint32_t len, bool bmsg_has_hdr) {
-  MessagePtr msg_ptr = CreateMessage(msg_type_, data, len, bmsg_has_hdr);
+  MessagePtr msg_ptr = CreateMessage(msg_type_, data, len, bmsg_has_hdr, msg_hdr_desc_);
   if (msg_ptr) {
     if (msg_type_ == MessageType::BINARY) {
       BinaryMessage* bmsg = static_cast<BinaryMessage*>(msg_ptr.get());
@@ -256,7 +256,7 @@ bool BufferIOEvent::Send(const char *data, uint32_t len, bool bmsg_has_hdr) {
 }
 
 bool BufferIOEvent::SendMore(const char *data, uint32_t len) {
-  MessagePtr msg_ptr = CreateMessage(msg_type_, data, len, BinaryMessage::HAS_HDR);
+  MessagePtr msg_ptr = CreateMessage(msg_type_, data, len, BinaryMessage::HAS_HDR, msg_hdr_desc_);
   if (msg_ptr) {
     printf("[BufferIOEvent::SendMore] message size: %ld\n", msg_ptr->Size());
     return SendInner(msg_ptr);

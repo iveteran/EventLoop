@@ -7,7 +7,7 @@
 namespace evt_loop {
 
 TcpServer::TcpServer(const char *host, uint16_t port, MessageType msg_type, TcpCallbacksPtr tcp_evt_cbs)
-    : IOEvent(IOType::TCP_SERVER), msg_type_(msg_type), tcp_evt_cbs_(tcp_evt_cbs)
+    : IOEvent(IOType::TCP_SERVER), msg_type_(msg_type), msg_hdr_desc_(nullptr), tcp_evt_cbs_(tcp_evt_cbs)
 {
     InitAddress(host, port);
     Start();
@@ -149,7 +149,7 @@ void TcpServer::OnNewClient(int fd, const IPAddress& peer_addr)
 {
     printf("[TcpServer::OnNewClient] new connection, fd: %d\n", fd);
     TcpConnectionPtr conn = CreateClient(fd, server_addr_, peer_addr, peer_addr);
-    conn->SetMessageType(msg_type_);
+    conn->SetMessageType(msg_type_, msg_hdr_desc_);
     if (hb_tmp_params_) {
         conn->EnableHeartbeat(hb_tmp_params_->idle_interval, hb_tmp_params_->ping_interval, hb_tmp_params_->ping_total);
     }
