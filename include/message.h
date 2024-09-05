@@ -16,7 +16,7 @@ enum MessageType {
   BINARY,
   CRLF,
   JSON,
-  TLV,
+  TLV,  // Tag, Length, Value
 };
 
 class Message {
@@ -44,6 +44,7 @@ class Message {
   MessageType   type_;
   std::string   data_;
 };
+typedef std::shared_ptr<Message>  MessagePtr;
 
 class CRLFMessage : public Message {
   public:
@@ -142,16 +143,14 @@ class BinaryMessage : public Message {
   size_t MoreSize() const;
 
   BinaryMessage::HDR* Header() const    { return hdr_; }
-  const char* Payload() const     { return (char*)(hdr_->payload); }
-  size_t PayloadSize() const      { return hdr_ == NULL ? 0 : hdr_->length - sizeof(HDR); }
+  const char* Payload() const     { return hdr_ ? (const char*)(hdr_->payload) : NULL; }
+  size_t PayloadSize() const      { return hdr_ ? hdr_->length - sizeof(HDR) : 0; }
   bool Completion() const         { return hdr_ && hdr_->length == data_.size(); }
   void Clear()                    { Message::Clear(); hdr_ = NULL; }
 
   private:
   HDR*          hdr_;
 };
-
-typedef std::shared_ptr<Message>  MessagePtr;
 
 MessagePtr CreateMessage(MessageType msg_type);
 MessagePtr CreateMessage(MessageType msg_type, const char* data, size_t length, bool bmsg_has_no_hdr = BinaryMessage::HAS_NO_HDR);
