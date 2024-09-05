@@ -62,6 +62,9 @@ typedef std::vector<IPAddress> IPAddressList;
 void SocketAddrToIPAddress(const struct sockaddr_in& sock_addr, IPAddress& ip_addr);
 void SocketAddrToIPAddress(const struct sockaddr_in6& sock_addr, IPAddress& ip_addr);
 
+void DumpHex(const string& data, size_t max_bytes = 0);
+void DumpHex(const string& data, const char* tag, size_t max_bytes = 0);
+
 }  // namespace evt_loop
 
 #endif  // _UTILS_H

@@ -82,4 +82,58 @@ void SocketAddrToIPAddress(const struct sockaddr_in6& sock_addr, IPAddress& ip_a
   ip_addr.port_ = sock_addr.sin6_port;
 }
 
+bool is_visable_char(char c)
+{
+    return c >= 0x20 && c <= 0x7e;
+}
+
+void DumpHex(const string& data, size_t max_bytes)
+{
+  size_t bytes_to_dump = (max_bytes == 0 || max_bytes > data.size()) ? data.size() : max_bytes;
+  size_t i = 0;
+  for (; i < bytes_to_dump; i++) {
+      printf("%02X", data[i]);
+      if (i != 0 && (i + 1) % 16 == 0) printf("\n");
+      else printf(" ");
+      if (i != 0 && (i + 1) % 8 == 0 && (i + 1) % 16 != 0) printf(" ");
+  }
+  if (i % 16 != 0) printf("\n");
+}
+
+void DumpHex(const string& data, const char* tag, size_t max_bytes)
+{
+  printf("%s: \n", tag);
+  size_t bytes_to_dump = (max_bytes == 0 || max_bytes > data.size()) ? data.size() : max_bytes;
+  size_t i = 0;
+  size_t j = 0;
+  size_t k = 0;
+  const size_t LINE_BYTES = 16;
+  for (; i < bytes_to_dump; i+=j) {
+    size_t rest_bytes = bytes_to_dump-i;
+    for (j=0; j<rest_bytes && j<LINE_BYTES; j++) {
+      printf("%02X ", data[i+j]);
+    }
+    printf("  ");
+    if (rest_bytes < LINE_BYTES) {
+      for (size_t n=0; n<LINE_BYTES-rest_bytes; n++) {
+        printf("   "); // print 3 blanks
+      }
+    }
+
+    for (k=0; k<rest_bytes && k<LINE_BYTES; k++) {
+      int pos = i+k;
+      if (is_visable_char(data[pos])) {
+        printf("%c", data[pos]);
+      } else if (data[pos] == '\n') {
+        printf("\\n");
+      } else if (data[pos] == '\r') {
+        printf("\\r");
+      } else {
+        printf(".");
+      }
+    }
+    printf("\n");
+  }
+}
+
 }  // namespace evt_loop
