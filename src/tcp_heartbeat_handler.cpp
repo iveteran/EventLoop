@@ -117,7 +117,11 @@ bool TcpHeartbeatHandler::IsHeartbeatRequest(const Message* msg)
             retval = IsJsonHeartbeatRequest(msg); break;
         case MessageType::CRLF:
             retval = IsCRLFHeartbeatRequest(msg); break;
+        case MessageType::CUSTOM:
+            // Do nothing
+            break;
         default:
+            printf("[TcpHeartbeatHandler::IsHeartbeatRequest] Unknown message type: %d\n", msg->Type());
             break;
     }
     return retval;
@@ -134,7 +138,11 @@ bool TcpHeartbeatHandler::IsHeartbeatResponse(const Message* msg)
             retval = IsJsonHeartbeatResponse(msg); break;
         case MessageType::CRLF:
             retval = IsCRLFHeartbeatResponse(msg); break;
+        case MessageType::CUSTOM:
+            // Do nothing
+            break;
         default:
+            printf("[TcpHeartbeatHandler::IsHeartbeatResponse] Unknown message type: %d\n", msg->Type());
             break;
     }
     return retval;
@@ -199,6 +207,9 @@ void TcpHeartbeatHandler::SendHeartbeatRequest(TcpConnection* conn)
             SendJsonHeartbeatRequest(conn); break;
         case MessageType::CRLF:
             SendCRLFHeartbeatRequest(conn); break;
+        case MessageType::CUSTOM:
+            // Do nothing
+            break;
         default:
             printf("[TcpHeartbeatHandler::SendHeartbeatRequest] Unknown connection message type: %d\n", conn->GetMessageType());
             break;
@@ -228,6 +239,9 @@ void TcpHeartbeatHandler::SendHeartbeatResponse(TcpConnection* conn)
             SendJsonHeartbeatResponse(conn); break;
         case MessageType::CRLF:
             SendCRLFHeartbeatResponse(conn); break;
+        case MessageType::CUSTOM:
+            // Do nothing
+            break;
         default:
             printf("[TcpHeartbeatHandler::SendHeartbeatResponse] Unknown connection message type: %d\n", conn->GetMessageType());
             break;
