@@ -1,59 +1,19 @@
 #ifndef _FD_HANDLER_H
 #define _FD_HANDLER_H
 
+#include <string>
+#include <sys/socket.h>
+#include "io_event.h"
+#include "message.h"
+
 #if defined(__OSX__) || defined(__DARWIN__) || defined(__APPLE__) || defined(__FREEBSD__)
 #define MSG_NOSIGNAL MSG_HAVEMORE
 #endif
-
-#include <string>
-#include <unistd.h>
-#include <sys/socket.h>
-#include "event.h"
-#include "message.h"
-#include "poller.h"
 
 using std::string;
 
 namespace evt_loop
 {
-
-class IOEvent : public IEvent {
-  friend class EventLoop;
-
- public:
-  enum IOType { NONE, TCP_CLIENT, TCP_SERVER, TCP_CONNECTION, COUNT };
-
- public:
-  IOEvent(IOType type = IOType::NONE, int fd = -1, uint32_t events = FileEvent::READ | FileEvent::ERROR);
-  virtual ~IOEvent();
-
- public:
-  void SetFD(int fd);
-  int FD() const { return fd_; }
-  void WatchEvents(int fd, uint32_t events = FileEvent::READ | FileEvent::ERROR);
-  void UpdateEvents(uint32_t events);
-
-  void AddReadEvent();
-  void DeleteReadEvent();
-  void AddWriteEvent();
-  void DeleteWriteEvent();
-  void AddErrorEvent();
-  void DeleteErrorEvent();
-  void ClearAllEvents();
-
- protected:
-  virtual void OnCreated(int fd) {};
-  virtual void OnClosed() {};
-  virtual void OnError(int errcode, const char* errstr) {};
-
-  virtual void OnEvents(uint32_t events) = 0;
-  virtual int OnRead(const void* buf, size_t bytes) { return read(fd_, (void*)buf, bytes); }
-  virtual int OnWrite(const void* buf, size_t bytes) { return send(fd_, buf, bytes, MSG_NOSIGNAL); }
-
- protected:
-  IOType type_;
-  int fd_;
-};
 
 class BufferIOEvent : public IOEvent {
  public:
@@ -101,6 +61,9 @@ class BufferIOEvent : public IOEvent {
   virtual bool OnHandshake() { printf("BufferIOEvent::OnHandshake\n"); state_ = READY; OnReady(); return true; }
 
  private:
+  // MSG_NOSIGNAL: Don't generate a SIGPIPE signal if the peer on a stream-oriented socket has closed the connection
+  virtual int OnWrite(const void* buf, size_t bytes) { return send(fd_, buf, bytes, MSG_NOSIGNAL); }
+
   void OnEvents(uint32_t events);
   int ReceiveData(uint32_t& events);
   int SendData(uint32_t& events);
