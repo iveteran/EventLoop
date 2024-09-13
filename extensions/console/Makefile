@@ -13,9 +13,10 @@ SOURCES  = $(foreach d,$(SRCDIRS),$(wildcard $(addprefix $(d)/*,$(SRCEXTS))))
 OBJS     = $(foreach x,$(SRCEXTS), $(patsubst %$(x),%.o,$(filter %$(x),$(SOURCES))))
 DEPS     = $(patsubst %.o,%.d,$(OBJS))
 
-.PHONY : all clean cleanall rebuild examples
+.PHONY : all clean cleanall rebuild example
 
 $(TARGET) : $(OBJS)
+	$(RM) $(TARGET)
 	$(AR) $(TARGET) $(OBJS)
 
 %.d : %.cpp
@@ -32,11 +33,11 @@ rebuild: clean all
 
 clean:
 	@$(RM) *.o *.d
-	make -C examples clean
+	make -C example clean
 
 cleanall: clean
 	@$(RM) *.a
-	make -C examples cleanall
+	make -C example cleanall
 
-examples:
-	make -C examples
+example:
+	make -C example
