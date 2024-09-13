@@ -17,6 +17,7 @@ class BusinessTester {
       echoserver_ip6_("::", 30000, MessageType::BINARY)
     {
         TcpCallbacksPtr echo_svr_1_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
+        echo_svr_1_cbs->on_conn_ready_cb = std::bind(&BusinessTester::OnNewConnection, this, std::placeholders::_1);
         echo_svr_1_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd_1, this, std::placeholders::_1, std::placeholders::_2);
 
         TcpCallbacksPtr echo_client_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
@@ -72,6 +73,10 @@ class BusinessTester {
     }
 
     private:
+    void OnNewConnection(TcpConnection* conn)
+    {
+        printf("[OnNewConnection] fd: %d\n", conn->FD());
+    }
     void OnConnectionReady(TcpConnection* conn)
     {
         printf("[OnConnectionReady] fd: %d\n", conn->FD());

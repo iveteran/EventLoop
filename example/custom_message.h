@@ -4,8 +4,8 @@
 #pragma pack(1)
 struct CommandMessage {
     uint8_t cmd;
-    uint32_t payload_len;
-    char payload[0];
+    uint32_t payload_len;   // payload_len supports including self size
+    char payload[0];        // placehoder field
 };
 #pragma pack() 
 

@@ -26,6 +26,7 @@ class TcpClient : public IOEvent
             uint32_t ping_interval = TcpHeartbeatHandler::DFT_PING_INTERVAL,
             uint32_t ping_total = TcpHeartbeatHandler::DFT_PING_TOTAL);
     void EnableIdleTimeout(uint32_t seconds, const OnIdleTimeoutCallback& cb);
+    void SetAutoReconnect(bool value = true) { auto_reconnect_ = value; }
 
     void SetMessageHeaderDescription(const HeaderDescriptionPtr& msg_hdr_desc) {
         msg_hdr_desc_ = msg_hdr_desc;
