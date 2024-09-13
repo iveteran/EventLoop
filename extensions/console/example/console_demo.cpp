@@ -20,11 +20,12 @@ class ConsoleDemo {
         echoserver_crlf_.SetTcpCallbacks(svr_cbs);
         echoserver_crlf_.EnableIdleTimeout(10, std::bind(&ConsoleDemo::OnConnectionIdleTimeout, this, std::placeholders::_1, std::placeholders::_2));
 
-        console_.registerCommand("clients", "Show number of connected clients", std::bind(&ConsoleDemo::handleClientsCommand, this, std::placeholders::_1));
+        Console::Instance()->registerCommand("clients", "Show number of connected clients", std::bind(&ConsoleDemo::handleClientsCommand, this, std::placeholders::_1));
     }
     void OnSignal(SignalHandler* sh, uint32_t signo)
     {
         printf("Shutdown\n");
+        Console::Instance()->destory(); // XXX: MUST call destory of Console manually, otherwise the terminal will be silently always
         EV_Singleton->StopLoop();
     }
 
@@ -32,7 +33,7 @@ class ConsoleDemo {
     void OnConnectionReady(TcpConnection* conn)
     {
         printf("[OnConnectionReady] fd: %d\n", conn->FD());
-        conn->Send("hello console");
+        conn->Send("hello console\n");
     }
     void OnConnectionIdleTimeout(TcpConnection* conn, uint32_t time)
     {
@@ -48,14 +49,12 @@ class ConsoleDemo {
 
     int handleClientsCommand(const vector<string>& argv)
     {
-        //console_.output("");
         cout << "clients: " << echoserver_crlf_.GetConnectionNumber() << endl;
         return 0;
     }
 
     private:
     TcpServer echoserver_crlf_;
-    Console console_;
 };
 
 }  // ns evt_loop

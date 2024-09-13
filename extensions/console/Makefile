@@ -1,6 +1,6 @@
 TARGET = libconsole.a
 
-CPPFLAGS = -g -Wall -std=c++20
+CPPFLAGS = -g -Wall -std=c++20 -D SUPPORTS_READLINE
 CXXFLAGS = -I../../include
 
 CXX      = g++

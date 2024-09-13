@@ -10,6 +10,8 @@ DEP_LIBS += \
            ../../../src/libel.a \
            ../libconsole.a
 
+DEP_LIBS += -lreadline
+
 CXX      = g++
 RM       = rm -f
 

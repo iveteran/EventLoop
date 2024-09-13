@@ -1,5 +1,9 @@
 #include <errno.h>
 #include <iostream>
+#if defined(__linux__) && defined(SUPPORTS_READLINE)
+    #include <readline/readline.h>
+    #include <readline/history.h>
+#endif
 #include "console.h"
 
 using namespace std;
@@ -25,14 +29,52 @@ size_t get_max_size_of_words(const map<string, ConsoleCommandPtr>& cmds) {
     return max_size;
 }
 
+#if defined(__linux__) && defined(SUPPORTS_READLINE)
+void cb_line_handler(char *line) {
+    if (line) {
+        if (strlen(line) > 0) {
+            add_history(line);
+            Console::Instance()->handleInput(line);
+        }
+        free(line);
+    } else {
+        Console::Instance()->handleCtrl_D();
+    }
+}
+#endif
+
+Console *Console::instance_ = NULL;
+
+void Console::init() {
+#if defined(__linux__) && defined(SUPPORTS_READLINE)
+    rl_callback_handler_install(prompt_.c_str(), cb_line_handler);
+#endif
+}
+
+void Console::destory() {
+#if defined(__linux__) && defined(SUPPORTS_READLINE)
+    rl_callback_handler_remove();
+#endif
+}
+
 void Console::OnEvents(uint32_t events) {
     if (events & FileEvent::READ) {
+#if defined(__linux__) && defined(SUPPORTS_READLINE)
+        rl_callback_read_char();
+#else
         GetLine();
+#endif
     }
 
     if (events & FileEvent::CLOSED) {
+#if defined(__linux__) && defined(SUPPORTS_READLINE)
+        rl_callback_handler_remove();
+#endif
         OnClosed();
     } else if ((events & FileEvent::ERROR)) {
+#if defined(__linux__) && defined(SUPPORTS_READLINE)
+        rl_callback_handler_remove();
+#endif
         OnError(errno, strerror(errno));
     }
 }
@@ -52,8 +94,12 @@ size_t Console::GetLine() {
 
 void Console::handleCtrl_D() {
     cout << "Pressed Ctrl-D" << endl;
+#if defined(__linux__) && defined(SUPPORTS_READLINE)
+    //rl_callback_handler_remove();
+#else
     cin.clear();
     clearerr(stdin);   // 重置输入流的状态
+#endif
 }
 
 void Console::put_line(const string& text) {
@@ -189,6 +235,10 @@ int Console::handleCommandEcho(const vector<string>& argv) {
 }
 
 int Console::handleCommandChangePrompt(const vector<string>& argv) {
+#if defined(SUPPORTS_READLINE)
+    cout << "Unsupport in GNU readline mode" << endl;
+    return 0;
+#endif
     if (argv.size() > 1) {
         auto new_prompt = argv[1];
         if (prompt_ != new_prompt) {

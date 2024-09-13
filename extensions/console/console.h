@@ -15,6 +15,10 @@ using std::vector;
 namespace evt_loop
 {
 
+#if defined(__linux__) && defined(SUPPORTS_READLINE)
+void cb_line_handler(char *line);
+#endif
+
 class Console;
 
 using CommandCallback = std::function<int (const vector<string>&)>;
@@ -31,14 +35,27 @@ struct ConsoleCommand {
 using ConsoleCommandPtr = std::shared_ptr<ConsoleCommand>;
 
 class Console : public IOEvent {
- public:
+  friend void cb_line_handler(char *line);
+  private:
   Console(const char* prompt = "> ")
     : IOEvent(IOType::STDIN, STDIN_FILENO, FileEvent::READ | FileEvent::ERROR),
       prompt_(prompt) {
+    init();
     registerInnerCommand();
   }
-  virtual ~Console() { }
 
+  public:
+  static Console *Instance() {
+    if (!instance_) {
+      instance_ = new Console();
+    }
+    return instance_;
+  }
+
+  virtual ~Console() { destory(); }
+
+  void init();
+  void destory();
   int registerCommand(const char* cmd, const char* desc, const CommandCallback& cb);
 
   void put_line(const string& text);
@@ -62,6 +79,8 @@ class Console : public IOEvent {
  private:
   string prompt_;
   map<string, ConsoleCommandPtr> cmd_callbacks_;
+
+  static Console* instance_;
 };
 
 }  // namespace evt_loop
