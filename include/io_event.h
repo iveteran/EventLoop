@@ -12,7 +12,7 @@ class IOEvent : public IEvent {
   friend class EventLoop;
 
  public:
-  enum IOType { NONE, TCP_CLIENT, TCP_SERVER, TCP_CONNECTION, COUNT };
+  enum IOType { NONE, TCP_CLIENT, TCP_SERVER, TCP_CONNECTION, STDIN, COUNT };
 
  public:
   IOEvent(IOType type = IOType::NONE, int fd = -1, uint32_t events = FileEvent::READ | FileEvent::ERROR);

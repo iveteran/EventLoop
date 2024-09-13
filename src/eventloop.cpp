@@ -85,7 +85,7 @@ int EventLoop::ProcessEvents(int timeout) {
 
 void EventLoop::_ProcessFileEvents(void* evt, uint32_t events) {
   IOEvent* e = (IOEvent*)evt;
-  if (e && e->fd_ > 0) {
+  if (e && e->fd_ >= 0) {
     e->OnEvents(events);
   }
 }
