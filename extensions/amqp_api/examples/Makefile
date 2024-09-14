@@ -1,14 +1,18 @@
 TARGET = amqp_client_example
 
-AMQP_LIB_PATH = ../../../../../AMQP-CPP
+ROOT = ../../..
 
-CPPFLAGS = -g -Wall -std=c++0x
-CXXFLAGS = -I../../../include \
-					 -I $(AMQP_LIB_PATH)/include \
-					 -I..
+# git clone https://github.com/CopernicaMarketingSoftware/AMQP-CPP.git
+# cd AMQP-CPP && make build && cd build && cmake -DAMQP-CPP_LINUX_TCP=ON ..
+AMQP_LIB_PATH = $(ROOT)/../third_party/AMQP-CPP
+
+CPPFLAGS = -g -Wall -std=c++17
+CXXFLAGS = -I$(ROOT)/include \
+		   -I $(AMQP_LIB_PATH)/include \
+		   -I..
 
 CXXLDFLAGS = -L../ -lamqp_api \
-			 -L../../../src -lel \
+			 -L$(ROOT)/core -lel \
 			 $(AMQP_LIB_PATH)/build/bin/libamqpcpp.a \
 			 -lssl -ldl
 

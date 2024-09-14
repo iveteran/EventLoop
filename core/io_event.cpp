@@ -16,7 +16,7 @@ IOEvent::IOEvent(IOType type, int fd, uint32_t events) :
   }
 }
 IOEvent::~IOEvent() {
-  printf("[IOEvent::~IOEvent] addr: %p, type: %d, fd: %d\n", this, type_, fd_);
+  //printf("[IOEvent::~IOEvent] addr: %p, type: %d, fd: %d\n", this, type_, fd_);
   if (ValidFD(fd_)) {
     EV_Singleton->DeleteEvent(this);
     close(fd_);

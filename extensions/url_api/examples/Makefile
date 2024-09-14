@@ -1,11 +1,14 @@
 TARGET = url_api_example
 
+ROOT = ../../..
+
 CPPFLAGS = -g -Wall -std=c++0x
-CXXFLAGS = -I../../../include \
+CXXFLAGS = -I$(ROOT)/include \
+		   -I$(ROOT)/core \
 		   -I..
 
 CXXLDFLAGS = -L../ -lurl_api \
-			 -L../../../src -lel \
+			 -L$(ROOT)/core -lel \
 			 -lcurl \
 
 CXX      = g++

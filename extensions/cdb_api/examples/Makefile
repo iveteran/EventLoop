@@ -1,14 +1,17 @@
 TARGET = hiredis_example
 
-HIREDIS_LIB = ../../../../../hiredis-ext
+ROOT = ../../..
+
+HIREDIS_LIB = $(ROOT)/../third_party/hiredis-ext
 
 CPPFLAGS = -g -Wall -std=c++0x
-CXXFLAGS = -I../../../include \
-					 -I $(HIREDIS_LIB) \
-					 -I..
+CXXFLAGS = -I$(ROOT)/include \
+		   -I$(ROOT)/core \
+		   -I $(HIREDIS_LIB) \
+		   -I..
 
 CXXLDFLAGS = -L../ -lcdb_api \
-			 -L../../../src -lel \
+			 $(ROOT)/core/libel.a \
 			 $(HIREDIS_LIB)/libhiredis.a
 			 #-L $(HIREDIS_LIB) -lhiredis
 

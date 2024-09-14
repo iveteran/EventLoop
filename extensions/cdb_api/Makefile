@@ -1,9 +1,14 @@
 TARGET = libcdb_api.a
 
-REDIS_SDK_PATH = ../../../../hiredis-ext
+ROOT = ../..
+
+# git clone https://github.com/iveteran/hiredis-ext.git
+# cd hiredis-ext && make
+REDIS_SDK_PATH = $(ROOT)/../third_party/hiredis-ext
 
 CPPFLAGS = -Wall -std=c++0x
 CXXFLAGS = -I../../include \
+		   -I../../core \
            -I$(REDIS_SDK_PATH)
 
 CXX      = g++

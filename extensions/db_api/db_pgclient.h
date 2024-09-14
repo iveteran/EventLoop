@@ -2,7 +2,7 @@
 #define _DB_PGCLIENT_H
 
 #include <queue>
-#include <libpq-fe.h>
+#include <postgresql/libpq-fe.h>
 #include "el.h"
 #include "db_client.h"
 

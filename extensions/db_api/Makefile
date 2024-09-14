@@ -1,8 +1,11 @@
 TARGET = libdb_api.a
 
+ROOT = ../..
+
 CPPFLAGS = -g -Wall -std=c++0x
-CXXFLAGS = -I../../include \
-           -I/usr/pgsql-12/include
+CXXFLAGS = -I$(ROOT)/include \
+
+# Dependencies: Install(Debian): apt install libpq-dev
 
 CXX      = g++
 RM       = rm -f

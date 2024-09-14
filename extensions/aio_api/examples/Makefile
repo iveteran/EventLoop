@@ -1,14 +1,17 @@
 TARGET = aio_api_example
 
+ROOT = ../../..
+
 CPPFLAGS = -g -Wall -std=c++0x
-CXXFLAGS = -I../../../include \
+CXXFLAGS = -I$(ROOT)/include \
+		   -I$(ROOT)/core \
 		   -I../
 
 LDFLAGS =
 
 DEP_LIBS += \
            ../libaio_api.a \
-           ../../../src/libel.a \
+           $(ROOT)/core/libel.a \
            -laio
 
 CXX      = g++

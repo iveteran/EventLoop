@@ -1,7 +1,9 @@
 TARGET = libconsole.a
 
+ROOT = ../..
+
 CPPFLAGS = -g -Wall -std=c++20 -D SUPPORTS_READLINE
-CXXFLAGS = -I../../include
+CXXFLAGS = -I$(ROOT)/core
 
 CXX      = g++
 RM       = rm -f

@@ -1,7 +1,11 @@
 TARGET = liblua_eval.a
 
+ROOT = ../..
+
 CPPFLAGS = -g -Wall -std=c++0x
-CXXFLAGS = -I../../include
+CXXFLAGS = -I$(ROOT)/include
+
+# Dependencies: liblua5.4-dev(Debian)
 
 CXX      = g++
 RM       = rm -f

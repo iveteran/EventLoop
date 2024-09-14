@@ -1,15 +1,17 @@
 TARGET = lua_eval_example
 
+ROOT = ../../..
+
 CPPFLAGS = -g -Wall -std=c++0x
-CXXFLAGS = -I../../../include \
+CXXFLAGS = -I$(ROOT)/include \
 		   -I../
 
 LDFLAGS =
 
 DEP_LIBS += \
            ../liblua_eval.a \
-           ../../../src/libel.a \
-           -llua
+           $(ROOT)/core/libel.a \
+           -llua5.4
 
 CXX      = g++
 RM       = rm -f

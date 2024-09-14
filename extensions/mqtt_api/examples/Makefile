@@ -1,15 +1,14 @@
 TARGET = mqtt_client_example
 
-MQTT_LIB_PATH = ../../../../../mosquitto
+ROOT = ../../..
 
 CPPFLAGS = -g -Wall -std=c++0x
-CXXFLAGS = -I../../../include \
-					 -I $(MQTT_LIB_PATH)/lib \
-					 -I..
+CXXFLAGS = -I$(ROOT)/include \
+		   -I..
 
 CXXLDFLAGS = -L../ -lmqtt_api \
-			 -L../../../src -lel \
-			 $(MQTT_LIB_PATH)/build/lib/libmosquitto.so
+			 -L$(ROOT)/core -lel \
+			 -lmosquitto
 
 CXX      = g++
 RM       = rm -f

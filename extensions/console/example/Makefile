@@ -1,13 +1,16 @@
 TARGET = console_demo
 
+ROOT = ../../..
+
 CPPFLAGS = -g -Wall -std=c++20
-CXXFLAGS = -I../../../include \
+CXXFLAGS = -I$(ROOT)/include \
+		   -I$(ROOT)/core \
 		   -I../
 
 LDFLAGS =
 
 DEP_LIBS += \
-           ../../../src/libel.a \
+           $(ROOT)/core/libel.a \
            ../libconsole.a
 
 DEP_LIBS += -lreadline

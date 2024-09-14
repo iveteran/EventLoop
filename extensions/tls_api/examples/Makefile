@@ -1,14 +1,17 @@
 TARGET_1 = tls_echoserver
 TARGET_2 = tls_echoclient
 
+ROOT = ../../..
+
 CPPFLAGS = -g -Wall -std=c++0x
-CXXFLAGS = -I../../../include \
+CXXFLAGS = -I$(ROOT)/include \
+		   -I$(ROOT)/core \
 		   -I../
 
 LDFLAGS =
 
 DEP_LIBS += \
-           ../../../src/libel.a \
+           $(ROOT)/core/libel.a \
            ../libtls_api.a \
            -lssl -lcrypto
 

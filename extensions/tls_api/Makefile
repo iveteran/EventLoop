@@ -1,7 +1,9 @@
 TARGET = libtls_api.a
 
+ROOT = ../..
+
 CPPFLAGS = -g -Wall -std=c++0x
-CXXFLAGS = -I../../include
+CXXFLAGS = -I$(ROOT)/core
 
 CXX      = g++
 RM       = rm -f

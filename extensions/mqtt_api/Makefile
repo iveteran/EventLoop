@@ -1,10 +1,9 @@
 TARGET = libmqtt_api.a
 
-MQTT_LIB_PATH = ../../../../mosquitto
-
 CPPFLAGS = -Wall -std=c++0x
-CXXFLAGS = -I../../include \
-           -I$(MQTT_LIB_PATH)/lib
+CXXFLAGS = -I../../include
+
+# Dependencies: libmosquitto-dev(Debian)
 
 CXX      = g++
 RM       = rm -f

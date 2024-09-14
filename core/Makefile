@@ -2,7 +2,7 @@ TARGET   = libel.a
 
 CPPFLAGS = -g -Wall -std=c++20# -DUSE_SELECT
 #CPPFLAGS = -Wall -std=c++20 -D_BINARY_MSG_EXTEND_PACKAGING
-CXXFLAGS = -I../include \
+CXXFLAGS = #-I../include \
 
 CXX      = g++
 RM       = rm -f
@@ -10,7 +10,7 @@ AR       = ar -r
 
 SRCDIRS  = .
 ifdef ENABLE_CDB_API
-	SRCDIRS += ../plugin/cdb_api
+	SRCDIRS += ../extensions/cdb_api
 endif
 SRCEXTS  = .cpp
 SOURCES  = $(foreach d,$(SRCDIRS),$(wildcard $(addprefix $(d)/*,$(SRCEXTS))))
@@ -20,6 +20,7 @@ DEPS     = $(patsubst %.o,%.d,$(OBJS))
 .PHONY : all clean cleanall rebuild
 
 $(TARGET) : $(OBJS)
+	$(RM) $(TARGET)
 	$(AR) $(TARGET) $(OBJS)
 
 %.d : %.cpp
