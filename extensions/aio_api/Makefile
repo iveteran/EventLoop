@@ -1,6 +1,6 @@
 TARGET = libaio_api.a
 
-CPPFLAGS = -g -Wall -std=c++0x
+CPPFLAGS = -g -Wall -std=c++20
 CXXFLAGS = -I../../core
 
 # Dependencies: libaio - Install(Debain): apt install libaio-dev

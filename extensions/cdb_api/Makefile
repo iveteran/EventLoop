@@ -6,7 +6,7 @@ ROOT = ../..
 # cd hiredis-ext && make
 REDIS_SDK_PATH = $(ROOT)/../third_party/hiredis-ext
 
-CPPFLAGS = -Wall -std=c++0x
+CPPFLAGS = -Wall -std=c++20
 CXXFLAGS = -I../../include \
 		   -I../../core \
            -I$(REDIS_SDK_PATH)

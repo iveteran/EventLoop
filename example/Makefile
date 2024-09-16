@@ -3,7 +3,7 @@ TARGET_2 = echoclient
 TARGET_3 = custom_message_server
 TARGET_4 = custom_message_client
 
-CPPFLAGS = -g -Wall -std=c++0x# -DUSE_SELECT
+CPPFLAGS = -g -Wall -std=c++20 # -DUSE_SELECT
 CXXFLAGS = -I../include
 
 LDFLAGS = 

@@ -2,7 +2,7 @@ TARGET = libdb_api.a
 
 ROOT = ../..
 
-CPPFLAGS = -g -Wall -std=c++0x
+CPPFLAGS = -g -Wall -std=c++20
 CXXFLAGS = -I$(ROOT)/include \
 
 # Dependencies: Install(Debian): apt install libpq-dev
