@@ -1,5 +1,6 @@
 #include "url_request.h"
-#include "core/logger.h"
+#include "eventloop/eventloop.h"
+#include "eventloop/logger.h"
 
 namespace url_api {
 

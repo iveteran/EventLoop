@@ -1,7 +1,8 @@
 #ifndef _AMQP_EVENT_HANDLER_H
 #define _AMQP_EVENT_HANDLER_H 
 
-#include "el.h"
+#include "eventloop/io_event.h"
+#include "eventloop/timer_handler.h"
 #include "amqpcpp.h"
 #include "amqpcpp/linux_tcp.h"
 

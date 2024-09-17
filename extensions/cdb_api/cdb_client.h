@@ -1,8 +1,8 @@
 #ifndef _CDB_CLIENT_H
 #define _CDB_CLIENT_H
 
-#include "el.h"
-#include "core/utils.h"
+#include "eventloop/timer_handler.h"
+#include "eventloop/utils.h"
 #include "cdb_callbacks.h"
 
 using namespace evt_loop;

@@ -1,7 +1,7 @@
 #include <sstream>
 #include <stdarg.h>
 #include "db_pgclient.h"
-#include "core/logger.h"
+#include "eventloop/logger.h"
 
 namespace db_api {
 
@@ -634,7 +634,7 @@ void PGClient::RemoveFDHandler()
 {
   if (FD() > 0) {
     el_logger->debug("PGClient::Disconnect removed database socket(fd: {}) from event handler", FD());
-    EV_Singleton->DeleteEvent(this);
+    ClearAllEvents();
     SetFD(-1);
   }
 }

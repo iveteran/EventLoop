@@ -4,6 +4,7 @@
 #include <async.h>
 #include <hiredis.h>
 #include "cdb_client.h"
+#include "eventloop/io_event.h"
 
 #define ERR_CONNECTION_NOT_READY    "RedisClient: client is not connected"
 

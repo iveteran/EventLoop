@@ -8,7 +8,6 @@ AMQP_LIB_PATH = $(ROOT)/../third_party/AMQP-CPP
 
 CPPFLAGS = -Wall -std=c++20
 CXXFLAGS = -I$(ROOT)/include \
-		   -I$(ROOT) \
            -I$(AMQP_LIB_PATH)/include
 
 CXX      = g++

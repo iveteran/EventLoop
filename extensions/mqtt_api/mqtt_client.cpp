@@ -1,5 +1,6 @@
 #include "mqtt_client.h"
-#include "core/logger.h"
+#include "eventloop/logger.h"
+#include "eventloop/user_event_handler.h"
 
 namespace mqtt_api {
 

@@ -6,7 +6,6 @@ HIREDIS_LIB = $(ROOT)/../third_party/hiredis-ext
 
 CPPFLAGS = -g -Wall -std=c++20
 CXXFLAGS = -I$(ROOT)/include \
-		   -I$(ROOT) \
 		   -I $(HIREDIS_LIB) \
 		   -I..
 

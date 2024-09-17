@@ -1,5 +1,6 @@
 #include <iostream>
 #include "url_request.h"
+#include "eventloop/eventloop.h"
 
 using namespace std;
 using namespace url_api;

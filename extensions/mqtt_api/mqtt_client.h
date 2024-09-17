@@ -2,11 +2,16 @@
 #define __MQTT_mosq_H
 
 #include <mosquitto.h>
-#include "el.h"
+#include "eventloop/io_event.h"
+#include "eventloop/timer_handler.h"
 #include "mqtt_callbacks.h"
 
 #define MOSQ_MAX_PACKETS 1
 
+namespace evt_loop {
+    class TickEvent;
+    class UserEvent;
+};
 using namespace evt_loop;
 
 namespace mqtt_api {

@@ -7,8 +7,7 @@ ROOT = ../..
 REDIS_SDK_PATH = $(ROOT)/../third_party/hiredis-ext
 
 CPPFLAGS = -Wall -std=c++20
-CXXFLAGS = -I../../include \
-		   -I../.. \
+CXXFLAGS = -I$(ROOT)/include \
            -I$(REDIS_SDK_PATH)
 
 CXX      = g++

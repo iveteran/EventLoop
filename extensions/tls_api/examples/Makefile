@@ -5,8 +5,7 @@ ROOT = ../../..
 
 CPPFLAGS = -g -Wall -std=c++20
 CXXFLAGS = -I$(ROOT)/include \
-		   -I$(ROOT) \
-		   -I../
+		   -I..
 
 LDFLAGS =
 

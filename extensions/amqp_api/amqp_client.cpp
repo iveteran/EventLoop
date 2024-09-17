@@ -1,6 +1,6 @@
 #include <openssl/ssl.h>
 #include "amqp_client.h"
-#include "core/logger.h"
+#include "eventloop/logger.h"
 
 namespace amqp_api
 {

@@ -1,6 +1,8 @@
 #include "cdb_redis.h"
 #include "cdb_redis_cluster.h"
-#include "core/logger.h"
+#include "eventloop/logger.h"
+
+#define UNUSED (void)
 
 namespace cdb_api {
 

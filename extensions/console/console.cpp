@@ -5,7 +5,7 @@
     #include <readline/history.h>
 #endif
 #include "console.h"
-#include "core/logger.h"
+#include "eventloop/logger.h"
 
 using namespace std;
 

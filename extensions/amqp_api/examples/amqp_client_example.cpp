@@ -1,6 +1,7 @@
 #include <stdio.h>
 
-#include "el.h"
+#include "eventloop/timer_handler.h"
+#include "eventloop/eventloop.h"
 #include "amqp_client.h"
 #include "amqp_callbacks.h"
 

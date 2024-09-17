@@ -4,7 +4,6 @@ ROOT = ../..
 
 CPPFLAGS = -Wall -std=c++20
 CXXFLAGS = -I$(ROOT)/include \
-		   -I$(ROOT)
 
 # Dependencies: libmosquitto-dev(Debian)
 

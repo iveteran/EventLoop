@@ -2,9 +2,11 @@
 #define _URL_REQUEST_H
 
 #include <map>
+#include <queue>
+#include <list>
 #include <curl/curl.h>
-#include "core/io_event.h"
-#include "el.h"
+#include "eventloop/io_event.h"
+#include "eventloop/timer_handler.h"
 
 using namespace evt_loop;
 

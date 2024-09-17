@@ -8,5 +8,7 @@
 #include "../core/signal_handler.h"
 #include "../core/user_event_handler.h"
 #include "../core/logger.h"
+#include "../core/singleton_tmpl.h"
+#include "../core/utils.h"
 
 #endif  // _EL_H
