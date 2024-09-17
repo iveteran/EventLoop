@@ -137,4 +137,49 @@ void MqttClient::OnReconnectTimer(TimerEvent* timer)
   }
 }
 
+bool MqttClient::Connect()
+{
+  int status = mosquitto_connect(mosq_, host_.c_str(), port_, keepalive_);
+  bool success = (status == MOSQ_ERR_SUCCESS);
+  if (!success && auto_reconnect_) {
+    Reconnect();
+  } else {
+    CreateMosqLoopTask();
+  }
+  return success;
+}
+
+bool MqttClient::Reconnect_()
+{
+  int status = mosquitto_reconnect(mosq_);
+  bool success = (status == MOSQ_ERR_SUCCESS);
+  if (success ) {
+    CreateMosqLoopTask();
+  }
+  return success;
+}
+
+void MqttClient::CreateMosqLoopTask() {
+    delete mosq_loop_task_;
+    mosq_loop_task_ = new TickEvent(std::bind(&MqttClient::ProcessMosquittoLoop, this, std::placeholders::_1, std::placeholders::_2), this, 1);
+}
+
+void MqttClient::HandleConnect()
+{
+  connected_ = true;
+  int fd = mosquitto_socket(mosq_);
+  SetFD(fd);
+
+  delete mosq_loop_task_;
+  mosq_loop_task_ = NULL;
+  //DeleteWriteEvent();
+}
+
+MqttClient::~MqttClient()
+{
+  mosquitto_destroy(mosq_);
+  mosquitto_lib_cleanup();
+  delete mosq_loop_task_;
+}
+
 }  // namespace mqtt_api

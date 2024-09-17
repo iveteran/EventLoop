@@ -78,12 +78,7 @@ class MqttClient : public IOEvent {
 
     void SetCallbacks(const MqttCallbacksPtr& callbacks) { mqtt_callbacks_ = callbacks; }
 
-    virtual ~MqttClient()
-    {
-      mosquitto_destroy(mosq_);
-      mosquitto_lib_cleanup();
-      delete mosq_loop_task_;
-    }
+    virtual ~MqttClient();
 
     bool EnableTLS(const char* cafile, const char* capath = NULL, const char* certfile = NULL, const char* keyfile = NULL)
     {
@@ -102,18 +97,7 @@ class MqttClient : public IOEvent {
 
     bool IsReady() const { return connected_; }
 
-    bool Connect()
-    {
-      int status = mosquitto_connect(mosq_, host_.c_str(), port_, keepalive_);
-      bool success = (status == MOSQ_ERR_SUCCESS);
-      if (!success && auto_reconnect_) {
-        Reconnect();
-      } else {
-        delete mosq_loop_task_;
-        mosq_loop_task_ = new TickEvent(std::bind(&MqttClient::ProcessMosquittoLoop, this, std::placeholders::_1, std::placeholders::_2), this, 1);
-      }
-      return success;
-    }
+    bool Connect();
 
     bool Disconnect()
     {
@@ -141,16 +125,7 @@ class MqttClient : public IOEvent {
     }
 
   protected:
-    bool Reconnect_()
-    {
-      int status = mosquitto_reconnect(mosq_);
-      bool success = (status == MOSQ_ERR_SUCCESS);
-      if (success ) {
-        delete mosq_loop_task_;
-        mosq_loop_task_ = new TickEvent(std::bind(&MqttClient::ProcessMosquittoLoop, this, std::placeholders::_1, std::placeholders::_2), this, 1);
-      }
-      return success;
-    }
+    bool Reconnect_();
 
     void Reconnect()
     {
@@ -201,16 +176,7 @@ class MqttClient : public IOEvent {
       mqtt_callbacks_->on_message_cb(this, mqtt_msg);
     }
 
-    void HandleConnect()
-    {
-      connected_ = true;
-      int fd = mosquitto_socket(mosq_);
-      SetFD(fd);
-
-      delete mosq_loop_task_;
-      mosq_loop_task_ = NULL;
-      //DeleteWriteEvent();
-    }
+    void HandleConnect();
 
     void HandleDisconnect()
     {
@@ -221,6 +187,7 @@ class MqttClient : public IOEvent {
   private:
     void ProcessMosquittoLoop(UserEvent* tick_events, void* udata);
     void OnReconnectTimer(TimerEvent* timer);
+    void CreateMosqLoopTask();
 
   private:
     struct mosquitto* mosq_;
