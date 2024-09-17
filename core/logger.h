@@ -242,9 +242,6 @@ public:
     template<typename T, typename... Args>
     void log(LogLevel level, std::string_view fmt_str, const T& x, Args... args) throw()
     {
-        if (disabled_ || ! os_) {
-            return;
-        }
         _print_prefix(level);
         _mprintf(fmt_str, x, args...);
         *os_ << endl;
@@ -253,9 +250,6 @@ public:
     template<typename T>
     void log(LogLevel level, std::string_view fmt_str, const T& x) throw()
     {
-        if (disabled_ || ! os_) {
-            return;
-        }
         _print_prefix(level);
         _mprintf(fmt_str, x);
         *os_ << endl;
@@ -263,9 +257,6 @@ public:
 
     inline void log(LogLevel level, std::string_view fmt_str) throw()
     {
-        if (disabled_ || ! os_) {
-            return;
-        }
         _print_prefix(level);
         _mprintf(fmt_str);
         *os_ << endl;
@@ -275,6 +266,9 @@ private:
     template<typename T, typename... Args>
     void _mprintf(std::string_view fmt_str, const T& x, Args... args) throw()
     {
+        if (disabled_ || ! os_) {
+            return;
+        }
         size_t pos = _mprintf_item(fmt_str, x);
         _mprintf(&fmt_str[pos+2], args...);
     }
@@ -282,6 +276,9 @@ private:
     template<typename T>
     void _mprintf(std::string_view fmt_str, const T& x) throw()
     {
+        if (disabled_ || ! os_) {
+            return;
+        }
         size_t pos = _mprintf_item(fmt_str, x);
         // print the rest of the stirng
         *os_ << &fmt_str[pos+2];
@@ -289,6 +286,9 @@ private:
 
     inline void _mprintf(std::string_view str) throw()
     {
+        if (disabled_ || ! os_) {
+            return;
+        }
         *os_ << str;
     }
 
