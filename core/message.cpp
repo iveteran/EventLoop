@@ -5,12 +5,12 @@
 
 namespace evt_loop {
 
-void Message::DumpHex(size_t max_bytes) const {
-  evt_loop::DumpHex(data_, max_bytes);
+string Message::DumpHex(size_t max_bytes) const {
+  return evt_loop::DumpHex(data_, max_bytes);
 }
 
-void Message::DumpHex(const char* tag, size_t max_bytes) const {
-  evt_loop::DumpHex(data_, tag, max_bytes);
+string Message::DumpHex(const char* tag, size_t max_bytes) const {
+  return evt_loop::DumpHex(data_, tag, max_bytes);
 }
 
 const char* CRLFMessage::TERMINAL_LABEL = "\r\n";

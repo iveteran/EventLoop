@@ -67,8 +67,8 @@ class Message {
 
   HeaderDescriptionPtr HeaderDescription() const { return hdr_desc_; }
 
-  void DumpHex(size_t max_bytes = 0) const;
-  void DumpHex(const char* tag, size_t max_bytes = 0) const;
+  std::string DumpHex(size_t max_bytes = 0) const;
+  std::string DumpHex(const char* tag, size_t max_bytes = 0) const;
 
   virtual void Clear()                    { data_.clear(); }
   virtual const char* Payload() const     { return data_.data(); }
