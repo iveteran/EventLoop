@@ -205,6 +205,11 @@ void Console::registerInnerCommand() {
             "change console prompt, example: .change_prompt \"$ \"",
             std::bind(&Console::handleCommandChangePrompt, this, std::placeholders::_1)
             );
+    registerCommand(
+            ".log",
+            "set log options",
+            std::bind(&Console::handleCommandLog, this, std::placeholders::_1)
+            );
 }
 
 int Console::handleCommandHelp(const vector<string>& argv) {
@@ -242,6 +247,87 @@ int Console::handleCommandChangePrompt(const vector<string>& argv) {
         }
     } else {
         put_line("Invalid parameter");
+    }
+    return 0;
+}
+
+int Console::handleCommandLog(const vector<string>& argv) {
+    map<string, string> cmd_usages;
+    cmd_usages["info"] = ".log info, show log info";
+    cmd_usages["on"] = ".log on, enable log";
+    cmd_usages["off"] = ".log off, disable log";
+    cmd_usages["flush"] = ".log flush, flush log immediately";
+    cmd_usages["color"] = ".log color <on|off>, enable or disable color for log level";
+    cmd_usages["stdout"] = ".log stdout, output log to STDOUT";
+    cmd_usages["file"] = ".log file <FILENAME>, change log file to FILENAME";
+    cmd_usages["help"] = ".log help, show this help";
+
+    auto show_help = [this, cmd_usages]() {
+        auto twice_spaces = std::string(2, ' ');
+        put_line("Usage of command: log");
+        for (auto [subcmd, usage] : cmd_usages) {
+            put_line(twice_spaces, usage);
+        }
+    };
+    auto is_logfilename_valid = [this](const string& filename) -> bool {
+        // NOTE: the filename must is NOT a path, in other words it is a file at work directory of program
+        return filename.find('/') == string::npos;  // Is be not includes '/'
+    };
+
+    if (argv.size() < 2) {
+        put_line("Miss sub command.");
+        show_help();
+        return 1;
+    }
+
+    auto subcmd = argv[1];
+
+    if (subcmd == "info") {
+        auto info = el_logger->get_info();
+        put_line(info);
+    } else if (subcmd == "on") {
+        if (! el_logger->is_disabled()) {
+            put_line("The logger is already On");
+        } else {
+            el_logger->disable(false);
+        }
+    } else if (subcmd == "off") {
+        if (el_logger->is_disabled()) {
+            put_line("The logger is already Off");
+        } else {
+            el_logger->disable();
+        }
+    } else if (subcmd == "flush") {
+        el_logger->flush();
+    } else if (subcmd == "stdout") {
+        el_logger->switch_to_stdout();
+    } else if (subcmd == "file") {
+        if (argv.size() > 2) {
+            auto new_logfile = argv[2];
+            if (is_logfilename_valid(new_logfile)) {
+                el_logger->switch_to_file(new_logfile);
+            } else {
+                put_line("Invalid filename, the filename can not including path(with '/')");
+            }
+        } else {
+            put_line("Invalid parameter.\nUsage: ", cmd_usages[subcmd]);
+        }
+    } else if (subcmd == "color") {
+        if (argv.size() > 2 && (argv[2] == "on" || argv[2] == "off")) {
+            bool on = argv[2] == "on" ? true : false;
+            if (on == el_logger->is_colorful()) {
+                put_line("The coloful is already ", (on ? "On" : "Off"));
+            } else {
+                el_logger->enable_colorful(on);
+            }
+        } else {
+            put_line("Invalid parameter.\nUsage: ", cmd_usages[subcmd]);
+        }
+    } else if (subcmd == "help") {
+        show_help();
+    } else {
+        put_line("Invalid sub command: ", subcmd);
+        show_help();
     }
     return 0;
 }

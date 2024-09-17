@@ -84,6 +84,7 @@ class Console : public IOEvent {
   int handleCommandHelp(const vector<string>& argv);
   int handleCommandEcho(const vector<string>& argv);
   int handleCommandChangePrompt(const vector<string>& argv);
+  int handleCommandLog(const vector<string>& argv);
 
  private:
   void OnEvents(uint32_t events);
