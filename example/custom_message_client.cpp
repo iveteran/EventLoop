@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 #include "eventloop/el.h"
+#include "eventloop/logger.h"
 #include "custom_message.h"
 
 using namespace evt_loop;
@@ -32,8 +33,8 @@ class CustomMessageClient {
         size_t msg_length = sizeof(msg) + strlen(content);
         printf("hdr size: %ld\n", sizeof(msg));
         printf("msg size: %ld\n", msg_length);
-        printf("msg bytes:\n");
-        DumpHex(msg_bytes);
+        el_logger->debug("msg bytes:");
+        el_logger->debug(DumpHex(msg_bytes));
 
         client_.Send((char*)&msg, sizeof(msg));
         client_.Send(content);
@@ -44,8 +45,8 @@ class CustomMessageClient {
     {
         printf("[OnMessageRecvd] received message, fd: %d, message: %s, length: %lu\n", conn->FD(), msg->Payload(), msg->PayloadSize());
         printf("[client] msg size: %lu\n", msg->Size());
-        printf("[client] msg bytes:\n");
-        msg->DumpHex();
+        el_logger->debug("[client] msg bytes:");
+        el_logger->debug(msg->DumpHex());
 
         CommandMessage* cmdMsg = (CommandMessage*)(msg->Data().data());
         cmdMsg->payload_len = ntohl(cmdMsg->payload_len);
@@ -63,9 +64,9 @@ class CustomMessageClient {
         msg.cmd = 2;
         msg.payload_len = htonl(msg_payload_len);
 
-        printf("hdr bytes:\n");
         string hdr_bytes((char*)&msg, sizeof(msg));
-        DumpHex(hdr_bytes);
+        el_logger->debug("hdr bytes:");
+        el_logger->debug(DumpHex(hdr_bytes));
 
         client_.Send((char*)&msg, sizeof(msg));
         client_.Send(content);

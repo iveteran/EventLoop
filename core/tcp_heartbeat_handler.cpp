@@ -25,10 +25,11 @@ static const string dft_crlf_heartbeat_response = "heartbeat_response\r\n";
 
 void PrintMessage(const Message* msg)
 {
+    const char* log_fmt = "[TcpHeartbeatHandler] heartbeat message: {}";
     if (msg->Type() == MessageType::BINARY) {
-        msg->DumpHex();
+        el_logger->debug(log_fmt, msg->DumpHex());
     } else {
-        el_logger->debug(msg->Data());
+        el_logger->debug(log_fmt, msg->Data());
     }
 
 }

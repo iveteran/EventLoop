@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "eventloop/el.h"
+#include "eventloop/logger.h"
 #include "custom_message.h"
 
 using namespace evt_loop;
@@ -42,8 +43,8 @@ class CustomMessageServer {
     {
         printf("[server] fd: %d, message: %s, length: %lu\n", conn->FD(), msg->Payload(), msg->PayloadSize());
         printf("[server] msg size: %lu\n", msg->Size());
-        printf("received msg bytes:\n");
-        msg->DumpHex();
+        el_logger->debug("received msg bytes:");
+        el_logger->debug(msg->DumpHex());
 
         conn->Send(*msg);
 

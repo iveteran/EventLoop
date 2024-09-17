@@ -38,7 +38,8 @@ size_t CustomMessage::AppendData(const char* data, uint32_t length) {
 
   if (data_.size() >= HeaderSize()) {
     DecodeHeader();
-    DumpHex(hdr_desc_->hdr_len);
+    string hex_data = DumpHex(hdr_desc_->hdr_len);
+    el_logger->debug("[CustomMessage::AppendData] message header bytes: {}", hex_data);
     el_logger->debug("[CustomMessage::AppendData] HDR: {}", hdr_desc_->ToString());
     if (data_.capacity() < MessageSize()) {
       data_.reserve(MessageSize());
