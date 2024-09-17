@@ -168,6 +168,12 @@ public:
     {
         return log(LogLevel::CRITICAL, fmt_str, x, args...);
     }
+    template<typename T, typename... Args>
+    Logger& output(std::string_view fmt_str, const T& x, Args... args) throw()
+    {
+        _mprintf(fmt_str, x, args...);
+        return *this;
+    }
 
     template<typename T>
     void info(std::string_view fmt_str, const T& x) throw()
@@ -194,6 +200,12 @@ public:
     {
         return log(LogLevel::CRITICAL, fmt_str, x);
     }
+    template<typename T>
+    Logger& output(std::string_view fmt_str, const T& x) throw()
+    {
+        _mprintf(fmt_str, x);
+        return *this;
+    }
 
     inline void info(std::string_view fmt_str) throw()
     {
@@ -214,6 +226,17 @@ public:
     inline void critical(std::string_view fmt_str) throw()
     {
         log(LogLevel::CRITICAL, fmt_str);
+    }
+    inline Logger& output(std::string_view fmt_str) throw()
+    {
+        _mprintf(fmt_str);
+        return *this;
+    }
+
+    inline Logger& eol() throw()
+    {
+        *os_ << endl;
+        return *this;
     }
 
     template<typename T, typename... Args>
