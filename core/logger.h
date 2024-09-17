@@ -144,27 +144,27 @@ public:
     }
 
     template<typename T, typename... Args>
-    void info(std::string_view fmt_str, const T& x, Args... args) throw()
+    Logger& info(std::string_view fmt_str, const T& x, Args... args) throw()
     {
         return log(LogLevel::INFO, fmt_str, x, args...);
     }
     template<typename T, typename... Args>
-    void debug(std::string_view fmt_str, const T& x, Args... args) throw()
+    Logger& debug(std::string_view fmt_str, const T& x, Args... args) throw()
     {
         return log(LogLevel::DEBUG, fmt_str, x, args...);
     }
     template<typename T, typename... Args>
-    void warn(std::string_view fmt_str, const T& x, Args... args) throw()
+    Logger& warn(std::string_view fmt_str, const T& x, Args... args) throw()
     {
         return log(LogLevel::WARN, fmt_str, x, args...);
     }
     template<typename T, typename... Args>
-    void error(std::string_view fmt_str, const T& x, Args... args) throw()
+    Logger& error(std::string_view fmt_str, const T& x, Args... args) throw()
     {
         return log(LogLevel::ERROR, fmt_str, x, args...);
     }
     template<typename T, typename... Args>
-    void critical(std::string_view fmt_str, const T& x, Args... args) throw()
+    Logger& critical(std::string_view fmt_str, const T& x, Args... args) throw()
     {
         return log(LogLevel::CRITICAL, fmt_str, x, args...);
     }
@@ -176,27 +176,27 @@ public:
     }
 
     template<typename T>
-    void info(std::string_view fmt_str, const T& x) throw()
+    Logger& info(std::string_view fmt_str, const T& x) throw()
     {
         return log(LogLevel::INFO, fmt_str, x);
     }
     template<typename T>
-    void debug(std::string_view fmt_str, const T& x) throw()
+    Logger& debug(std::string_view fmt_str, const T& x) throw()
     {
         return log(LogLevel::DEBUG, fmt_str, x);
     }
     template<typename T>
-    void warn(std::string_view fmt_str, const T& x) throw()
+    Logger& warn(std::string_view fmt_str, const T& x) throw()
     {
         return log(LogLevel::WARN, fmt_str, x);
     }
     template<typename T>
-    void error(std::string_view fmt_str, const T& x) throw()
+    Logger& error(std::string_view fmt_str, const T& x) throw()
     {
         return log(LogLevel::ERROR, fmt_str, x);
     }
     template<typename T>
-    void critical(std::string_view fmt_str, const T& x) throw()
+    Logger& critical(std::string_view fmt_str, const T& x) throw()
     {
         return log(LogLevel::CRITICAL, fmt_str, x);
     }
@@ -207,25 +207,25 @@ public:
         return *this;
     }
 
-    inline void info(std::string_view fmt_str) throw()
+    inline Logger& info(std::string_view fmt_str) throw()
     {
-        log(LogLevel::INFO, fmt_str);
+        return log(LogLevel::INFO, fmt_str);
     }
-    inline void debug(std::string_view fmt_str) throw()
+    inline Logger& debug(std::string_view fmt_str) throw()
     {
-        log(LogLevel::DEBUG, fmt_str);
+        return log(LogLevel::DEBUG, fmt_str);
     }
-    inline void warn(std::string_view fmt_str) throw()
+    inline Logger& warn(std::string_view fmt_str) throw()
     {
-        log(LogLevel::WARN, fmt_str);
+        return log(LogLevel::WARN, fmt_str);
     }
-    inline void error(std::string_view fmt_str) throw()
+    inline Logger& error(std::string_view fmt_str) throw()
     {
-        log(LogLevel::ERROR, fmt_str);
+        return log(LogLevel::ERROR, fmt_str);
     }
-    inline void critical(std::string_view fmt_str) throw()
+    inline Logger& critical(std::string_view fmt_str) throw()
     {
-        log(LogLevel::CRITICAL, fmt_str);
+        return log(LogLevel::CRITICAL, fmt_str);
     }
     inline Logger& output(std::string_view fmt_str) throw()
     {
@@ -240,26 +240,29 @@ public:
     }
 
     template<typename T, typename... Args>
-    void log(LogLevel level, std::string_view fmt_str, const T& x, Args... args) throw()
+    Logger& log(LogLevel level, std::string_view fmt_str, const T& x, Args... args) throw()
     {
         _print_prefix(level);
         _mprintf(fmt_str, x, args...);
         *os_ << endl;
+        return *this;
     }
 
     template<typename T>
-    void log(LogLevel level, std::string_view fmt_str, const T& x) throw()
+    Logger& log(LogLevel level, std::string_view fmt_str, const T& x) throw()
     {
         _print_prefix(level);
         _mprintf(fmt_str, x);
         *os_ << endl;
+        return *this;
     }
 
-    inline void log(LogLevel level, std::string_view fmt_str) throw()
+    inline Logger& log(LogLevel level, std::string_view fmt_str) throw()
     {
         _print_prefix(level);
         _mprintf(fmt_str);
         *os_ << endl;
+        return *this;
     }
 
 private:
