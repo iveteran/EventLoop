@@ -39,7 +39,7 @@ class Console : public IOEvent {
   private:
   Console(const char* prompt = "> ")
     : IOEvent(IOType::STDIN, STDIN_FILENO, FileEvent::READ | FileEvent::ERROR),
-      prompt_(prompt) {
+      prompt_(prompt), os_(std::cout) {
     init();
     registerInnerCommand();
   }
@@ -58,7 +58,25 @@ class Console : public IOEvent {
   void destory();
   int registerCommand(const char* cmd, const char* desc, const CommandCallback& cb);
 
-  void put_line(const string& text);
+  template<typename T, typename... Args>
+  inline void put_line(const T& x, Args... args) {
+      output(x);
+      output(args...);
+      os_ << std::endl;
+  }
+  template<typename T>
+  inline void put_line(const T& x) {
+      os_ << x << std::endl;
+  }
+  template<typename T, typename... Args>
+  inline void output(const T& x, Args... args) {
+      output(x);
+      output(args...);
+  }
+  template<typename T>
+  inline void output(const T& x) {
+      os_ << x;
+  }
 
  protected:
   int handleCommand(const vector<string>& argv);
@@ -79,6 +97,7 @@ class Console : public IOEvent {
  private:
   string prompt_;
   map<string, ConsoleCommandPtr> cmd_callbacks_;
+  std::ostream& os_;
 
   static Console* instance_;
 };

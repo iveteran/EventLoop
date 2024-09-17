@@ -49,7 +49,7 @@ class ConsoleDemo {
 
     int handleClientsCommand(const vector<string>& argv)
     {
-        cout << "clients: " << echoserver_crlf_.GetConnectionNumber() << endl;
+        Console::Instance()->put_line("clients: ", echoserver_crlf_.GetConnectionNumber());
         return 0;
     }
 

@@ -89,23 +89,18 @@ size_t Console::GetLine() {
     } else {
         handleCtrl_D();
     }
-    cout << prompt_ << flush;
+    os_ << prompt_ << flush;
     return input.size();
 }
 
 void Console::handleCtrl_D() {
-    cout << "Pressed Ctrl-D" << endl;
+    os_ << "Pressed Ctrl-D" << endl;
 #if defined(__linux__) && defined(SUPPORTS_READLINE)
     //rl_callback_handler_remove();
 #else
     cin.clear();
     clearerr(stdin);   // 重置输入流的状态
 #endif
-}
-
-void Console::put_line(const string& text) {
-  //cout << prompt_ << text << endl;
-  cout << text << endl;
 }
 
 int Console::registerCommand(const char* cmd, const char* desc, const CommandCallback& cb) {
@@ -215,29 +210,29 @@ void Console::registerInnerCommand() {
 int Console::handleCommandHelp(const vector<string>& argv) {
     size_t max_size_of_cmd_name = get_max_size_of_words(cmd_callbacks_);
     auto twice_spaces = std::string(2, ' ');
-    cout << "Commands: " << endl;
+    put_line("Commands: ");
     for (auto [cmd_name, cmd_obj] : cmd_callbacks_) {
         size_t space_times = max_size_of_cmd_name - cmd_name.size() + 2;
         auto some_spaces = std::string(space_times, ' ');
-        cout << twice_spaces << cmd_name << some_spaces << cmd_obj->desc << endl;
+        put_line(twice_spaces, cmd_name, some_spaces, cmd_obj->desc);
     }
     return 0;
 }
 
 int Console::handleCommandEcho(const vector<string>& argv) {
     for (size_t i=1; i<argv.size(); i++) {
-        cout << argv[i];
+        output(argv[i]);
         if (i < argv.size() - 1) {
-            cout << ' ';
+            output(' ');
         }
     }
-    cout << endl;
+    output('\n');
     return 0;
 }
 
 int Console::handleCommandChangePrompt(const vector<string>& argv) {
 #if defined(SUPPORTS_READLINE)
-    cout << "Unsupport in GNU readline mode" << endl;
+    put_line("Unsupport in GNU readline mode");
     return 0;
 #endif
     if (argv.size() > 1) {
@@ -246,7 +241,7 @@ int Console::handleCommandChangePrompt(const vector<string>& argv) {
             prompt_ = new_prompt;
         }
     } else {
-        cout << "Invalid parameter" << endl;
+        put_line("Invalid parameter");
     }
     return 0;
 }
