@@ -6,7 +6,7 @@ ROOT = ../../..
 # cd AMQP-CPP && make build && cd build && cmake -DAMQP-CPP_LINUX_TCP=ON ..
 AMQP_LIB_PATH = $(ROOT)/../third_party/AMQP-CPP
 
-CPPFLAGS = -g -Wall -std=c++17
+CPPFLAGS = -g -Wall -std=c++20
 CXXFLAGS = -I$(ROOT)/include \
 		   -I $(AMQP_LIB_PATH)/include \
 		   -I..

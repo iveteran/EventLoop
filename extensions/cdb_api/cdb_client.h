@@ -2,7 +2,7 @@
 #define _CDB_CLIENT_H
 
 #include "el.h"
-#include "utils.h"
+#include "core/utils.h"
 #include "cdb_callbacks.h"
 
 using namespace evt_loop;

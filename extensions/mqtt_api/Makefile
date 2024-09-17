@@ -1,7 +1,10 @@
 TARGET = libmqtt_api.a
 
+ROOT = ../..
+
 CPPFLAGS = -Wall -std=c++20
-CXXFLAGS = -I../../include
+CXXFLAGS = -I$(ROOT)/include \
+		   -I$(ROOT)
 
 # Dependencies: libmosquitto-dev(Debian)
 

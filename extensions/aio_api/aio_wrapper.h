@@ -9,9 +9,8 @@
 #include <string>
 #include <map>
 #include <functional>
-#include "fd_handler.h"
-
-#include <sys/epoll.h>
+#include <memory>
+#include "core/io_event.h"
 
 using std::string;
 using std::map;
