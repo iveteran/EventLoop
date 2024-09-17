@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <sys/epoll.h>
 #include "poller.h"
+#include "logger.h"
 
 namespace evt_loop {
 
@@ -12,7 +13,7 @@ static int ToEpollCtrl(PollerCtrl ctrl);
 
 Poller::Poller()
 {
-  printf("Poller: using epoll on linux platform\n");
+  el_logger->info("Poller: using epoll on linux platform");
   pfd_ = epoll_create(MAX_EVENTS);
 }
 

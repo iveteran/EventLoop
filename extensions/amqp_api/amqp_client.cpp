@@ -1,5 +1,6 @@
 #include <openssl/ssl.h>
 #include "amqp_client.h"
+#include "core/logger.h"
 
 namespace amqp_api
 {
@@ -85,7 +86,7 @@ void AMQPClient::StopReconnectTimer()
 
 void AMQPClient::OnReconnectTimer(TimerEvent* timer)
 {
-  printf("[OnReconnectTimer begin] is ready: %d\n", IsReady());
+  el_logger->debug("[OnReconnectTimer begin] is ready: {}", IsReady());
   if (!IsReady()) {  // if the connection is not created, then reconnect
     Reconnect();
   } else {
@@ -95,18 +96,18 @@ void AMQPClient::OnReconnectTimer(TimerEvent* timer)
 
 uint16_t AMQPClient::onNegotiate(AMQP::TcpConnection *connection, uint16_t interval)
 {
-  printf("[AMQPClient::onNegotiate]\n");
+  el_logger->debug("[AMQPClient::onNegotiate]");
   return 0;
 }
 
 void AMQPClient::onHeartbeat(AMQP::TcpConnection* connection)
 {
-  printf("[AMQPClient::onHeartbeat]\n");
+  el_logger->debug("[AMQPClient::onHeartbeat]");
 }
 
 void AMQPClient::onConnected(AMQP::TcpConnection *connection)
 {
-  printf("[AMQPClient::onConnected]\n");
+  el_logger->info("[AMQPClient::onConnected]");
   if (auto_reconnect_) {
     StopReconnectTimer();
   }
@@ -115,7 +116,7 @@ void AMQPClient::onConnected(AMQP::TcpConnection *connection)
 
 void AMQPClient::onClosed(AMQP::TcpConnection* connection)
 {
-  printf("[AMQPClient::onClosed]\n");
+  el_logger->info("[AMQPClient::onClosed]");
   amqp_callbacks_->on_disconnected_cb(this);
   if (auto_reconnect_) {
     StartReconnectTimer();
@@ -124,7 +125,7 @@ void AMQPClient::onClosed(AMQP::TcpConnection* connection)
 
 void AMQPClient::onError(AMQP::TcpConnection* connection, const char* errmsg)
 {
-  printf("[AMQPClient::onError] %s\n", errmsg);
+  el_logger->error("[AMQPClient::onError] {}", errmsg);
   if (connection->fileno() < 0)
   {
     onClosed(connection);
@@ -137,37 +138,38 @@ void AMQPClient::onError(AMQP::TcpConnection* connection, const char* errmsg)
 
 void AMQPClient::onBindQueueSuccess()
 {
-  printf("[AMQPClient::onBindQueueSuccess]\n");
+  el_logger->debug("[AMQPClient::onBindQueueSuccess]");
 }
 
 void AMQPClient::onBindQueueError(const char* errmsg)
 {
-  printf("[AMQPClient::onBindQueueError] errmsg: %s\n", errmsg);
+  el_logger->debug("[AMQPClient::onBindQueueError] errmsg: {}", errmsg);
 }
 
 void AMQPClient::onDeclareExchangeSuccess()
 {
-  printf("[AMQPClient::onDeclareExchangeSuccess]\n");
+  el_logger->debug("[AMQPClient::onDeclareExchangeSuccess]");
 }
 
 void AMQPClient::onDeclareExchangeError(const char* errmsg)
 {
-  printf("[AMQPClient::onDeclareExchangeError] errmsg: %s\n", errmsg);
+  el_logger->error("[AMQPClient::onDeclareExchangeError] errmsg: {}", errmsg);
 }
 
 void AMQPClient::onDeclareQueueSuccess(const std::string &queue_name, uint32_t msg_count, uint32_t consumer_count)
 {
-  printf("[AMQPClient::onDeclareQueueSuccess] queue_name: %s, msg_count: %d, consumer_count: %d\n", queue_name.c_str(), msg_count, consumer_count);
+  el_logger->debug("[AMQPClient::onDeclareQueueSuccess] queue_name: {}, msg_count: {}, consumer_count: {}",
+          queue_name, msg_count, consumer_count);
 }
 
 void AMQPClient::onConsumeSuccess(const std::string &tag)
 {
-  printf("[AMQPClient::onConsumeSuccess] tag: %s\n", tag.c_str());
+  el_logger->debug("[AMQPClient::onConsumeSuccess] tag: {}", tag);
 }
 
 void AMQPClient::onConsumeMessage(const AMQP::Message &message, uint64_t deliveryTag, bool redelivered)
 {
-  printf("[AMQPClient::onConsumeMessage] deliveryTag: %ld\n", deliveryTag);
+  el_logger->debug("[AMQPClient::onConsumeMessage] deliveryTag: {}", deliveryTag);
   AMQPMessage amqp_msg(&message);
   amqp_callbacks_->on_message_cb(this, &amqp_msg);
   channel_->ack(deliveryTag);

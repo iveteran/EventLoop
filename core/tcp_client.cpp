@@ -5,6 +5,7 @@
 #if defined(__linux__)
 #include <linux/tcp.h>
 #endif
+#include "logger.h"
 
 namespace evt_loop {
 
@@ -192,7 +193,7 @@ bool TcpClient::Connect_()
     int qlen = 5;
     if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen)) == -1)
     {
-        printf("(setsockopt) Ignore error of enabling TFO: %s(errno: %d)\n", strerror(errno), errno);
+        el_logger->warn("(setsockopt) Ignore error of enabling TFO: {}(errno: {})", strerror(errno), errno);
     }
 
     if (keepalive_) {
@@ -218,13 +219,13 @@ bool TcpClient::Connect_()
 
 void TcpClient::OnError(int errcode, const char* errstr)
 {
-    printf("[TcpClient::OnError] error code: %d, error string: %s\n", errcode, errstr);
+    el_logger->error("[TcpClient::OnError] error code: {}, error string: {}", errcode, errstr);
     if (error_cb_) error_cb_(this, errcode, errstr);
 }
 
 void TcpClient::SendTempBuffer()
 {
-    printf("[TcpClient::SendTempBuffer] backlogged messages: %ld\n", tmp_sendbuf_list_.size());
+    el_logger->debug("[TcpClient::SendTempBuffer] backlogged messages: {}", tmp_sendbuf_list_.size());
     if (conn_ == NULL) return;
 
     while (!tmp_sendbuf_list_.empty()) {
@@ -241,7 +242,7 @@ void TcpClient::OnReconnectTimer(TimerEvent* timer)
         if (success) {
             timer->Stop();
         } else {
-            printf("[TcpClient::OnReconnectTimer] Reconnect %s failed, retry %u seconds later...\n",
+            el_logger->warn("[TcpClient::OnReconnectTimer] Reconnect {} failed, retry {} seconds later...",
                    server_addr_.ToString().c_str(), timer->GetInterval().Seconds());
         }
     } else {

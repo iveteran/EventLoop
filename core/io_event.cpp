@@ -1,5 +1,6 @@
 #include "io_event.h"
 #include "eventloop.h"
+//#include "logger.h"
 
 namespace evt_loop
 {
@@ -16,7 +17,7 @@ IOEvent::IOEvent(IOType type, int fd, uint32_t events) :
   }
 }
 IOEvent::~IOEvent() {
-  //printf("[IOEvent::~IOEvent] addr: %p, type: %d, fd: %d\n", this, type_, fd_);
+  //el_logger->debug("[IOEvent::~IOEvent] addr: {}, type: {}, fd: {}", this, type_, fd_);
   if (ValidFD(fd_)) {
     EV_Singleton->DeleteEvent(this);
     close(fd_);

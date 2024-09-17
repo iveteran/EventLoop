@@ -1,11 +1,19 @@
 #include <errno.h>
 #include "fd_handler.h"
 #include "eventloop.h"
+#include "logger.h"
 
 #define MAX_BYTES_RECEIVE       4096
 
 namespace evt_loop
 {
+
+bool BufferIOEvent::OnHandshake() {
+    el_logger->debug("BufferIOEvent::OnHandshake");
+    state_ = READY;
+    OnReady();
+    return true;
+}
 
 // BufferIOEvent implementation
 void BufferIOEvent::ClearBuff() {
@@ -24,7 +32,8 @@ int BufferIOEvent::ReceiveData(uint32_t& events) {
     if (read_bytes == 0) break;
 
     int len = OnRead(buffer, read_bytes);
-    printf("[BufferIOEvent::ReceiveData] ts: %ld, fd [%d] to read bytes: %d, got: %d\n", Now(), fd_, read_bytes, len);
+    el_logger->debug("[BufferIOEvent::ReceiveData] ts: {}, fd [{}] to read bytes: {}, got: {}",
+            Now(), fd_, read_bytes, len);
     if (len < 0) {
       if (errno == EINTR) {
         continue;
@@ -59,7 +68,8 @@ int BufferIOEvent::SendData(uint32_t& events) {
     uint32_t tosend = tx_msg->Size() - sent_;
 
     int len = OnWrite(tx_msg->Data().data() + sent_, tosend);
-    printf("[BufferIOEvent::SendData] ts: %ld, fd [%d] to send bytes: %d, sent: %d\n", Now(), fd_, tosend, len);
+    el_logger->debug("[BufferIOEvent::SendData] ts: {}, fd [{}] to send bytes: {}, sent: {}",
+            Now(), fd_, tosend, len);
     if (len < 0) {
       if (errno == EINTR) {
         continue;
@@ -123,7 +133,7 @@ bool BufferIOEvent::Send(const Message& msg) {
 #endif
     return SendInner(msg_ptr);
   } else {
-    printf("[BufferIOEvent::Send] Create message failed");
+    el_logger->debug("[BufferIOEvent::Send] Create message failed");
     return false;
   }
 }
@@ -144,12 +154,12 @@ bool BufferIOEvent::Send(const char *data, uint32_t len, bool bmsg_has_hdr) {
 #ifdef _BINARY_MSG_EXTEND_PACKAGING
       bmsg->Header()->msg_id = ++msg_seq_;
 #endif
-      printf("[BufferIOEvent::Send] HDR: %s\n", bmsg->Header()->ToString().c_str());
+      el_logger->debug("[BufferIOEvent::Send] HDR: {}", bmsg->Header()->ToString());
     }
-    printf("[BufferIOEvent::Send] message size: %ld\n", msg_ptr->Size());
+    el_logger->debug("[BufferIOEvent::Send] message size: {}", msg_ptr->Size());
     return SendInner(msg_ptr);
   } else {
-    printf("[BufferIOEvent::Send] Create message failed");
+    el_logger->debug("[BufferIOEvent::Send] Create message failed");
     return false;
   }
 }
@@ -157,10 +167,10 @@ bool BufferIOEvent::Send(const char *data, uint32_t len, bool bmsg_has_hdr) {
 bool BufferIOEvent::SendMore(const char *data, uint32_t len) {
   MessagePtr msg_ptr = CreateMessage(msg_type_, data, len, BinaryMessage::HAS_HDR, msg_hdr_desc_);
   if (msg_ptr) {
-    printf("[BufferIOEvent::SendMore] message size: %ld\n", msg_ptr->Size());
+    el_logger->debug("[BufferIOEvent::SendMore] message size: {}", msg_ptr->Size());
     return SendInner(msg_ptr);
   } else {
-    printf("[BufferIOEvent::SendMore] Create message failed");
+    el_logger->debug("[BufferIOEvent::SendMore] Create message failed");
     return false;
   }
 }

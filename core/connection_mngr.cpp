@@ -1,4 +1,5 @@
 #include "connection_mngr.h"
+#include "logger.h"
 #include <functional>
 
 namespace evt_loop {
@@ -13,7 +14,7 @@ ConnectionManager::ConnectionManager(const ConnectionIdleTimeoutCallback& timeou
 {
     uint32_t adj_timeout = (timeout == 0 ? 0 : std::max(timeout, MIN_TIMEOUT));
     SetupInactivityChecker(adj_timeout);
-    printf("[ConnectionManager] timeout caller giving: %d, automated adjustment: %d\n", timeout, adj_timeout);
+    el_logger->info("[ConnectionManager] timeout caller giving: {}, automated adjustment: {}", timeout, adj_timeout);
 }
 
 void ConnectionManager::SetupInactivityChecker(uint32_t timeout)
@@ -51,16 +52,16 @@ CM_ENUM ConnectionManager::CheckConnectionExists(ClientID cid, TcpConnection* co
 }
 void ConnectionManager::AddConnection(TcpConnection* conn)
 {
-    printf("[ConnectionManager::AddConnection] cid: %u, fd: %d\n", conn->ID(), conn->FD());
+    el_logger->info("[ConnectionManager::AddConnection] cid: {}, fd: {}", conn->ID(), conn->FD());
     CM_ENUM cm_status = CheckConnectionExists(conn->ID(), conn);
     if (cm_status == CONNECTION_EXISTS_SAME)
     {
-        printf("[ConnectionManager::AddConnection] client (cid: %u, fd: %d) is exists, dosn't add again!\n", conn->ID(), conn->FD());
+        el_logger->info("[ConnectionManager::AddConnection] client (cid: {}, fd: {}) is exists, dosn't add again!", conn->ID(), conn->FD());
         return;
     }
     else if (cm_status == CONNECTION_EXISTS_ANOTHER)
     {
-        printf("[ConnectionManager::AddConnection] replace the aged client for new client (cid: %u, fd: %d)\n", conn->ID(), conn->FD());
+        el_logger->info("[ConnectionManager::AddConnection] replace the aged client for new client (cid: {}, fd: {})", conn->ID(), conn->FD());
         const bool close_old = true;
         RemoveConnection(conn->ID(), close_old);
     }
@@ -73,7 +74,7 @@ void ConnectionManager::AddConnection(TcpConnection* conn)
 }
 void ConnectionManager::ReplaceConnection(TcpConnection* conn, bool close_old)
 {
-    printf("[ConnectionManager::ReplaceConnection] new connection: { cid: %u, fd: %d }\n", conn->ID(), conn->FD());
+    el_logger->info("[ConnectionManager::ReplaceConnection] new connection: { cid: {}, fd: {} }", conn->ID(), conn->FD());
     RemoveConnection(conn->ID(), close_old);
     AddConnection(conn);
 }
@@ -92,7 +93,7 @@ void ConnectionManager::RemoveConnection(ClientID cid, bool close_connection)
     if (iter != m_client_map.end())
     {
         auto& conn_ctx = iter->second;
-        printf("[ConnectionManager::RemoveConnection] cid: %u, fd: %d\n", conn_ctx->conn->ID(),conn_ctx->conn->FD());
+        el_logger->info("[ConnectionManager::RemoveConnection] cid: {}, fd: {}", conn_ctx->conn->ID(),conn_ctx->conn->FD());
         if (close_connection)
             conn_ctx->conn->Disconnect();
         //m_activity_map.erase(conn_ctx->act_time);
@@ -106,7 +107,7 @@ void ConnectionManager::RemoveConnection(ClientID cid, bool close_connection)
 }
 void ConnectionManager::UpdateConnectionctivityTime(ClientID cid)
 {
-    printf("[ConnectionManager::UpdateConnectionctivityTime] cid: %u, now: %lu\n", cid, Now());
+    el_logger->info("[ConnectionManager::UpdateConnectionctivityTime] cid: {}, now: {}", cid, Now());
     auto iter = m_client_map.find(cid);
     if (iter != m_client_map.end())
     {
@@ -121,7 +122,7 @@ void ConnectionManager::UpdateConnectionctivityTime(ClientID cid)
 }
 void ConnectionManager::OnConnectionInactivityCb(TimerEvent* timer)
 {
-    printf("[ConnectionManager::OnConnectionInactivityCb] Inactivity checking on timer, activity map size: %lu, activity element count: %lu, now: %lu\n",
+    el_logger->info("[ConnectionManager::OnConnectionInactivityCb] Inactivity checking on timer, activity map size: {}, activity element count: {}, now: {}",
             m_activity_map.Size(), m_activity_map.ElementCount(), Now());
     for (auto iter = m_activity_map.Begin(); iter != m_activity_map.End();)
     {
@@ -130,20 +131,20 @@ void ConnectionManager::OnConnectionInactivityCb(TimerEvent* timer)
         uint32_t elapse = now - act_time;
         if (elapse >= m_timeout)
         {
-            printf("[ConnectionManager::OnConnectionInactivityCb] Connection inactively in %u seconds, last activity time: %lu, now: %lu\n", elapse, act_time, now);
+            el_logger->debug("[ConnectionManager::OnConnectionInactivityCb] Connection inactively in {} seconds, last activity time: {}, now: {}", elapse, act_time, now);
             auto& sub_map = iter->second;
             for (auto iter2 = sub_map.begin(); iter2 != sub_map.end(); ++iter2)
             {
                 TcpConnection* conn = iter2->second->conn;
                 m_client_map.erase(conn->ID());
-                printf("[ConnectionManager::OnConnectionInactivityCb] Remove inactivity connection, conn id: %u\n", conn->ID());
+                el_logger->debug("[ConnectionManager::OnConnectionInactivityCb] Remove inactivity connection, conn id: {}", conn->ID());
 
                 m_conn_timeout_cb(conn, elapse);
             }
 
             auto iter_rm = iter++;
             m_activity_map.Erase(iter_rm);
-            printf("[ConnectionManager::OnConnectionInactivityCb] Remove inactivity connection, activity map size: %lu, activity element count: %lu, client map size: %lu\n",
+            el_logger->debug("[ConnectionManager::OnConnectionInactivityCb] Remove inactivity connection, activity map size: {}, activity element count: {}, client map size: {}",
                     m_activity_map.Size(), m_activity_map.ElementCount(), m_client_map.size());
         }
         else

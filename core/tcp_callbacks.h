@@ -43,12 +43,12 @@ struct TcpCallbacks {
     OnIdleTimeoutCallback on_idle_timeout_cb;
 
     private:
-    void EmptyMsgRecvdCb(TcpConnection*, const Message*)        { printf("Empty Message Received Callback\n"); }
-    void EmptyMsgSentCb(TcpConnection*, const Message*)         { printf("Empty Message Sent Callback\n"); }
-    void EmptyClosedCb(TcpConnection*)                          { printf("Empty Connection Closed Callback\n"); }
-    void EmptyErrorCb(TcpConnection*, int, const char*)         { printf("Empty Connection Error Callback\n"); }
-    void EmptyReadyCb(TcpConnection*)                           { printf("Empty Connection Ready Callback\n"); }
-    void EmptyIdleTimeoutCb(TcpConnection*, uint32_t)           { printf("Empty Connection Idle Timeout Callback\n"); }
+    void EmptyMsgRecvdCb(TcpConnection*, const Message*);
+    void EmptyMsgSentCb(TcpConnection*, const Message*);
+    void EmptyClosedCb(TcpConnection*);
+    void EmptyErrorCb(TcpConnection*, int, const char*);
+    void EmptyReadyCb(TcpConnection*);
+    void EmptyIdleTimeoutCb(TcpConnection*, uint32_t);
 };
 
 typedef std::shared_ptr<TcpCallbacks>           TcpCallbacksPtr;

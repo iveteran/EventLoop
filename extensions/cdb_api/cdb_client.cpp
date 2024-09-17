@@ -1,4 +1,5 @@
 #include "cdb_client.h"
+#include "core/logger.h"
 
 namespace cdb_api
 {
@@ -46,13 +47,13 @@ void CDBClient::Reconnect()
 
 void CDBClient::OnReconnectTimer(TimerEvent* timer)
 {
-  //printf("[CDBClient::OnReconnectTimer begin] is ready: %d\n", IsReady());
+  //el_logger->debug("[CDBClient::OnReconnectTimer begin] is ready: {}", IsReady());
   if (!IsReady()) {  // if the connection is not created, then reconnect
     bool success = Connect_(RECONNECT);
     if (success)
       timer->Stop();
     else
-      printf("[CDBClient::OnReconnectTimer] Reconnect failed, retry %u seconds later...\n", timer->GetInterval().Seconds());
+      el_logger->warn("[CDBClient::OnReconnectTimer] Reconnect failed, retry {} seconds later...", timer->GetInterval().Seconds());
   } else {
     timer->Stop();
   }

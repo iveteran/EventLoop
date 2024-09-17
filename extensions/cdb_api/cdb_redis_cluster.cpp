@@ -1,4 +1,5 @@
 #include "cdb_redis_cluster.h"
+#include "core/logger.h"
 
 namespace cdb_api {
 
@@ -70,14 +71,15 @@ void RedisClusterAsyncClient::HandleClusterSlotsReply(CDBClient* node, const CDB
 
         auto new_node = cluster->AddNode(slots, ip, port, cluster->IsAutoReconnect());
         SetNodeExceptionReplyCallback(new_node.get());
-        printf("[RedisClusterAsyncClient::HandleClusterSlotsReply] slot range: (%d, %d), %s:%d\n", slots.first, slots.second, ip.c_str(), port);
+        el_logger->debug("[RedisClusterAsyncClient::HandleClusterSlotsReply] slot range: ({}, {}), {}:{}",
+                slots.first, slots.second, ip, port);
       }
     }
   }
 }
 void RedisClusterAsyncClient::SendAskRequest(RedisClient* node, const RedisRequestPtr& request, const string& ip, uint16_t port)
 {
-  printf("[RedisClusterAsyncClient::SendAskRequest] Asking to node: %s:%d\n", ip.c_str(), port);
+  el_logger->debug("[RedisClusterAsyncClient::SendAskRequest] Asking to node: {}:{}", ip, port);
   RedisClusterAsync* cluster = (RedisClusterAsync*)node->GetCluster();
   if (cluster) {
     auto target_node = cluster->GetNode(ip, port);
@@ -91,7 +93,7 @@ void RedisClusterAsyncClient::SendAskRequest(RedisClient* node, const RedisReque
 }
 void RedisClusterAsyncClient::SendRedirectRequest(RedisClient* node, const RedisRequestPtr& request, const string& ip, uint16_t port)
 {
-  printf("[RedisClusterAsyncClient::SendRedirectRequest] Redirect to node: %s:%d\n", ip.c_str(), port);
+  el_logger->debug("[RedisClusterAsyncClient::SendRedirectRequest] Redirect to node: {}:{}", ip, port);
   RedisClusterAsync* cluster = (RedisClusterAsync*)node->GetCluster();
   if (cluster) {
     auto target_node = cluster->GetNode(ip, port);
@@ -104,12 +106,12 @@ void RedisClusterAsyncClient::SendRedirectRequest(RedisClient* node, const Redis
 }
 void RedisClusterAsyncClient::HandleClusterDownReply(RedisClient* node, const RedisRequestPtr& request)
 {
-  printf("[RedisClusterAsyncClient::HandleClusterDownReply] cmd: %s\n", request->ToString().c_str());
+  el_logger->debug("[RedisClusterAsyncClient::HandleClusterDownReply] cmd: {}", request->ToString());
 }
 void RedisClusterAsyncClient::HandleAskReply(CDBClient* node, const CDBReply* cdb_reply)
 {
   const redisReply* reply = (const redisReply*)cdb_reply->GetReply();
-  printf("[RedisClusterAsyncClient::HandleAskReply] reply status: %s\n", reply->str);
+  el_logger->debug("[RedisClusterAsyncClient::HandleAskReply] reply status: {}", reply->str);
 }
 void RedisClusterAsyncClient::SetNodeExceptionReplyCallback(RedisAsyncClient* node)
 {
@@ -183,10 +185,10 @@ bool RedisClusterSyncClient::SendCommand(CDBReply* user_reply, const char* forma
   if (node) {
     success = node->SendCommand(user_reply, format, ap_copy);
     if (!success) {
-      printf("[RedisClusterSyncClient::SendCommand] Send command failed\n");
+      el_logger->debug("[RedisClusterSyncClient::SendCommand] Send command failed");
     }
   } else {
-    printf("[RedisClusterSyncClient::SendCommand] Get node by key(%s) failed and not has available node\n", key.c_str());
+    el_logger->debug("[RedisClusterSyncClient::SendCommand] Get node by key({}) failed and not has available node", key);
   }
   va_end(ap_copy);
 
@@ -195,7 +197,7 @@ bool RedisClusterSyncClient::SendCommand(CDBReply* user_reply, const char* forma
 
 bool RedisClusterSyncClient::SendCommand(const OnReplyCallback& reply_cb, const char* format, ...)
 {
-  printf("[RedisClusterSyncClient::SendCommand]: api not implemented\n");
+  el_logger->debug("[RedisClusterSyncClient::SendCommand]: api not implemented");
   return false;
 }
 

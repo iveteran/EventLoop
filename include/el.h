@@ -7,5 +7,6 @@
 #include "../core/timer_handler.h"
 #include "../core/signal_handler.h"
 #include "../core/user_event_handler.h"
+#include "../core/logger.h"
 
 #endif  // _EL_H

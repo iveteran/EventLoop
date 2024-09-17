@@ -1,5 +1,6 @@
 #include "tcp_heartbeat_handler.h"
 #include "tcp_connection.h"
+#include "logger.h"
 
 namespace evt_loop {
 
@@ -27,7 +28,7 @@ void PrintMessage(const Message* msg)
     if (msg->Type() == MessageType::BINARY) {
         msg->DumpHex();
     } else {
-        printf("%s\n", msg->Data().c_str());
+        el_logger->debug(msg->Data());
     }
 
 }
@@ -121,7 +122,7 @@ bool TcpHeartbeatHandler::IsHeartbeatRequest(const Message* msg)
             // Do nothing
             break;
         default:
-            printf("[TcpHeartbeatHandler::IsHeartbeatRequest] Unknown message type: %d\n", msg->Type());
+            el_logger->warn("[TcpHeartbeatHandler::IsHeartbeatRequest] Unknown message type: {}", msg->Type());
             break;
     }
     return retval;
@@ -142,7 +143,7 @@ bool TcpHeartbeatHandler::IsHeartbeatResponse(const Message* msg)
             // Do nothing
             break;
         default:
-            printf("[TcpHeartbeatHandler::IsHeartbeatResponse] Unknown message type: %d\n", msg->Type());
+            el_logger->warn("[TcpHeartbeatHandler::IsHeartbeatResponse] Unknown message type: {}", msg->Type());
             break;
     }
     return retval;
@@ -182,14 +183,16 @@ bool TcpHeartbeatHandler::IsCRLFHeartbeatResponse(const Message* msg)
 
 void TcpHeartbeatHandler::OnHeartbeatRequestReceived(const Message* msg)
 {
-    printf("[TcpHeartbeatHandler::OnHeartbeatRequestReceived] client type: %d, fd: %d\n", m_connection->GetMessageType(), m_connection->FD());
+    el_logger->debug("[TcpHeartbeatHandler::OnHeartbeatRequestReceived] client type: {}, fd: {}",
+            m_connection->GetMessageType(), m_connection->FD());
     PrintMessage(msg);
     m_send_heartbeat_response_cb(m_connection);
 }
 
 void TcpHeartbeatHandler::OnHeartbeatResponseReceived(const Message* msg)
 {
-    printf("[TcpHeartbeatHandler::OnHeartbeatResponseReceived] client type: %d, fd: %d\n", m_connection->GetMessageType(), m_connection->FD());
+    el_logger->debug("[TcpHeartbeatHandler::OnHeartbeatResponseReceived] client type: {}, fd: {}",
+            m_connection->GetMessageType(), m_connection->FD());
     PrintMessage(msg);
     if (m_heartbeat_pinger) {
         m_heartbeat_pinger->OnFinishPing();
@@ -198,7 +201,8 @@ void TcpHeartbeatHandler::OnHeartbeatResponseReceived(const Message* msg)
 
 void TcpHeartbeatHandler::SendHeartbeatRequest(TcpConnection* conn)
 {
-    printf("[TcpHeartbeatHandler::SendHeartbeatRequest] client type: %d, fd: %d\n", conn->GetMessageType(), conn->FD());
+    el_logger->debug("[TcpHeartbeatHandler::SendHeartbeatRequest] client type: {}, fd: {}",
+            conn->GetMessageType(), conn->FD());
     switch (conn->GetMessageType())
     {
         case MessageType::BINARY:
@@ -211,7 +215,8 @@ void TcpHeartbeatHandler::SendHeartbeatRequest(TcpConnection* conn)
             // Do nothing
             break;
         default:
-            printf("[TcpHeartbeatHandler::SendHeartbeatRequest] Unknown connection message type: %d\n", conn->GetMessageType());
+            el_logger->warn("[TcpHeartbeatHandler::SendHeartbeatRequest] Unknown connection message type: {}",
+                    conn->GetMessageType());
             break;
     }
 }
@@ -230,7 +235,8 @@ void TcpHeartbeatHandler::SendCRLFHeartbeatRequest(TcpConnection* conn)
 
 void TcpHeartbeatHandler::SendHeartbeatResponse(TcpConnection* conn)
 {
-    printf("[TcpHeartbeatHandler::SendHeartbeatResponse] client type: %d, fd: %d\n", conn->GetMessageType(), conn->FD());
+    el_logger->debug("[TcpHeartbeatHandler::SendHeartbeatResponse] client type: {}, fd: {}",
+            conn->GetMessageType(), conn->FD());
     switch (conn->GetMessageType())
     {
         case MessageType::BINARY:
@@ -243,7 +249,8 @@ void TcpHeartbeatHandler::SendHeartbeatResponse(TcpConnection* conn)
             // Do nothing
             break;
         default:
-            printf("[TcpHeartbeatHandler::SendHeartbeatResponse] Unknown connection message type: %d\n", conn->GetMessageType());
+            el_logger->warn("[TcpHeartbeatHandler::SendHeartbeatResponse] Unknown connection message type: {}",
+                    conn->GetMessageType());
             break;
     }
 }

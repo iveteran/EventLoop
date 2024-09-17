@@ -55,12 +55,7 @@ class TcpConnection : public BufferIOEvent
     void OnSent(const Message* buffer);
     void OnClosed();
     void OnError(int errcode, const char* errstr);
-    void OnReady()
-    {
-        printf("TcpConnection::OnReady\n");
-        if (on_conn_ready_cb_) on_conn_ready_cb_(this);
-        if (tcp_evt_cbs_) tcp_evt_cbs_->on_conn_ready_cb(this);
-    }
+    void OnReady();
     void OnIdleTimeout(TimerEvent* timer);
 
   private:

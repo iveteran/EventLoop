@@ -1,4 +1,5 @@
 #include "signal_handler.h"
+#include "logger.h"
 
 namespace evt_loop
 {
@@ -50,6 +51,11 @@ SignalHandler::SignalHandler(SIGNO signo, const OnSignalCallback& cb) :
 }
 SignalHandler::~SignalHandler() {
   SignalManager::Instance()->DeleteEvent(this);
+}
+
+void SignalHandler::OnEvents(uint32_t events) {
+  el_logger->info("SignalHandler receives signal ({}).", events);
+  signal_cb_(this, events);
 }
 
 }  // namespace evt_loop

@@ -1,4 +1,5 @@
 #include "session_mngr.h"
+#include "logger.h"
 
 namespace evt_loop {
 
@@ -69,7 +70,7 @@ void TimeoutSessionManager::RemoveSession(SessionID sid)
 void TimeoutSessionManager::CheckSessionTimeoutCb(TimerEvent* timer)
 {
     time_t now = time(NULL);
-    printf("Session timeout checking on timer, now: %lu.\n", now);
+    el_logger->debug("Session timeout checking on timer, now: {}.", now);
     for (auto iter = m_sess_timeout_map.begin(); iter != m_sess_timeout_map.end();)
     {
         time_t ctime = iter->first;
@@ -83,7 +84,7 @@ void TimeoutSessionManager::CheckSessionTimeoutCb(TimerEvent* timer)
             auto iter_rm = iter++;
             m_sess_timeout_map.erase(iter_rm);
             m_session_map.erase(sess_ptr->m_id);
-            printf("[TimeoutSessionManager::CheckSessionTimeoutCb] Session timeout in %d seconds, dissconnect by server", elapse);
+            el_logger->warn("[TimeoutSessionManager::CheckSessionTimeoutCb] Session timeout in {} seconds, disconnect by server", elapse);
         }
         else
         {

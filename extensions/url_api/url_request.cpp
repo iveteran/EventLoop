@@ -1,4 +1,5 @@
 #include "url_request.h"
+#include "core/logger.h"
 
 namespace url_api {
 
@@ -24,7 +25,7 @@ bool URLRequest::Init(const char* url, const CompletionCallback& cb, uint32_t ti
 }
 void URLRequest::SetSocketEvent(curl_socket_t sockfd, int action)
 {
-  //printf("%s: socket: %d, action: %d\n", __FUNCTION__, sockfd, action);
+  //el_logger->debug("{}: socket: {}, action: {}", __FUNCTION__, sockfd, action);
   uint32_t events = (action & CURL_POLL_IN ? FileEvent::READ : 0) | ( action & CURL_POLL_OUT ? FileEvent::WRITE : 0);
   if (FD() < 0) {
     WatchEvents(sockfd, events);
@@ -41,7 +42,7 @@ void URLRequest::OnComplete()
 {
   char *request_url;
   curl_easy_getinfo(curl_, CURLINFO_EFFECTIVE_URL, &request_url);
-  printf("%s DONE\n", request_url);
+  el_logger->info("{} DONE", request_url);
 
   completion_cb_(this, ERR_SUCCESS);
 
@@ -52,7 +53,7 @@ void URLRequest::OnTimeout()
 {
   char *request_url;
   curl_easy_getinfo(curl_, CURLINFO_EFFECTIVE_URL, &request_url);
-  printf("%s TIMEOUT(%ld)\n", request_url, Now() - ctime_);
+  el_logger->error("{} TIMEOUT({})", request_url, Now() - ctime_);
 
   strncpy(errstr_, "timeout", sizeof(errstr_));
   completion_cb_(this, ERR_TIMEOUT);
@@ -166,14 +167,14 @@ bool SMTPRequest::SetMail(const char* from, const char* to, const char* subject,
 }
 size_t SMTPRequest::ReadData_Callback(void *write_ptr, size_t size, size_t nmemb, void *userp)
 {
-  //printf("[SMTPRequest::ReadData_Callback]\n");
+  //el_logger->debug("[SMTPRequest::ReadData_Callback]");
   if (size == 0 || nmemb == 0 || (size * nmemb) < 1)
     return 0;
 
   std::queue<string>& mail_items = ((SMTPRequest *)userp)->mail_items_;
   if (! mail_items.empty()) {
     string& item = mail_items.front();
-    //printf("upload email item: %s\n", item.c_str());
+    //el_logger->debug("upload email item: {}", item);
     size_t item_size = item.size();
     memcpy(write_ptr, item.c_str(), item_size);
     mail_items.pop();

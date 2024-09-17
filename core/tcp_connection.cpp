@@ -2,6 +2,7 @@
 #include "tcp_connection.h"
 #include <unistd.h>
 #include <sstream>
+#include "logger.h"
 
 namespace evt_loop {
 
@@ -11,8 +12,8 @@ TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddres
   active_closing_(false), is_client_(false), creator_notification_cb_(close_cb), tcp_evt_cbs_(tcp_evt_cbs),
   heartbeat_handler_(this), checking_idle_timer_(nullptr)
 {
-    printf("[TcpConnection::TcpConnection] local_addr: %s, peer_addr: %s, peer_real_addr: %s\n",
-        local_addr_.ToString().c_str(), peer_addr_.ToString().c_str(), peer_real_addr_.ToString().c_str());
+    el_logger->info("[TcpConnection::TcpConnection] local_addr: {}, peer_addr: {}, peer_real_addr: {}",
+        local_addr_.ToString(), peer_addr_.ToString(), peer_real_addr_.ToString());
 }
 
 TcpConnection::~TcpConnection()
@@ -22,7 +23,7 @@ TcpConnection::~TcpConnection()
 
 void TcpConnection::Destroy()
 {
-    printf("[TcpConnection::Destroy] id: %d, fd: %d\n", id_, fd_);
+    el_logger->info("[TcpConnection::Destroy] id: {}, fd: {}", id_, fd_);
     if (state_ >= COUNT) return;    // Invalid connection
 
     DisableIdleTimeout();
@@ -57,13 +58,13 @@ void TcpConnection::DisableIdleTimeout()
     if (state_ >= COUNT) return;    // Invalid connection
 
     if (checking_idle_timer_ && checking_idle_timer_->IsRunning()) {
-        printf("[TcpConnection::DisableIdleTimeout] fd: %d\n", fd_);
+        el_logger->debug("[TcpConnection::DisableIdleTimeout] fd: {}", fd_);
         checking_idle_timer_->Stop();
     }
 }
 void TcpConnection::OnIdleTimeout(TimerEvent* timer)
 {
-    printf("[TcpConnection::OnIdleTimeout] fd: %d now: %ld, stats_rx_last_time: %ld, timer interval: %d\n",
+    el_logger->debug("[TcpConnection::OnIdleTimeout] fd: {} now: {}, stats_rx_last_time: {}, timer interval: {}",
             fd_, Now(), StatsRxLastTime(), timer->GetInterval().Seconds());
     if (Now() - StatsRxLastTime() > timer->GetInterval().Seconds()) {
         if (tcp_evt_cbs_) tcp_evt_cbs_->on_idle_timeout_cb(this, StatsRxLastTime());
@@ -72,7 +73,7 @@ void TcpConnection::OnIdleTimeout(TimerEvent* timer)
 
 void TcpConnection::Disconnect()
 {
-    printf("[TcpConnection::Disconnect] fd: %d, state: %d\n", fd_, state_);
+    el_logger->warn("[TcpConnection::Disconnect] fd: {}, state: {}", fd_, state_);
     if (state_ == CLOSED || state_ >= COUNT) return;    // Invalid connection
 
     active_closing_ = true;
@@ -80,6 +81,13 @@ void TcpConnection::Disconnect()
         OnClosed();
     else
         SetCloseWait();
+}
+
+void TcpConnection::OnReady()
+{
+    el_logger->info("[TcpConnection::OnReady]");
+    if (on_conn_ready_cb_) on_conn_ready_cb_(this);
+    if (tcp_evt_cbs_) tcp_evt_cbs_->on_conn_ready_cb(this);
 }
 
 void TcpConnection::OnReceived(const Message* msg)
@@ -95,7 +103,7 @@ void TcpConnection::OnReceived(const Message* msg)
         }
         else
         {
-            printf("[TcpConnection::OnReceived] Invalid connection: %s\n", ToString().c_str());
+            el_logger->warn("[TcpConnection::OnReceived] Invalid connection: {}", ToString());
         }
     }
 }
@@ -113,7 +121,7 @@ void TcpConnection::OnSent(const Message* msg)
 
 void TcpConnection::OnClosed()
 {
-    printf("[TcpConnection::OnClosed] fd: %d, state: %d, active_closing: %d\n", fd_, state_, active_closing_);
+    el_logger->info("[TcpConnection::OnClosed] fd: {}, state: {}, active_closing: {}", fd_, state_, active_closing_);
     if (state_ == CLOSED || state_ >= COUNT) return;    // Invalid connection
 
     if (active_closing_) {
@@ -128,7 +136,7 @@ void TcpConnection::OnClosed()
 
 void TcpConnection::OnError(int errcode, const char* errstr)
 {
-    printf("[TcpConnection::OnError] fd: %d, errcode: %d, errstr: %s\n", fd_, errcode, errstr);
+    el_logger->error("[TcpConnection::OnError] fd: {}, errcode: {}, errstr: {}", fd_, errcode, errstr);
     if (tcp_evt_cbs_) tcp_evt_cbs_->on_error_cb(this, errcode, errstr);
     //Disconnect();
     state_ = FAILED;

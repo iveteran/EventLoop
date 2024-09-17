@@ -4,12 +4,13 @@
 #include <assert.h>
 #include <sys/select.h>
 #include "poller.h"
+#include "logger.h"
 
 namespace evt_loop {
 
 Poller::Poller()
 {
-  printf("Poller: using select on linux platform\n");
+  el_logger.info("Poller: using select on linux platform");
   m_anfdmax = 0;
   m_fd_set_ri = new fd_set;
   m_fd_set_wi = new fd_set;
@@ -40,10 +41,10 @@ int Poller::Poll(uint32_t wait_ms, const PollCallback& poll_cb)
   int rc = select(fd_setsize, &fd_set_ro, &fd_set_wo, 0, &tv);
   if (rc > 0)
   {
-    printf("[Poller:Poll] select: rc(%d), m_anfdmax(%d)\n", rc, m_anfdmax);
+    el_logger.info("[Poller:Poll] select: rc({}), m_anfdmax({})", rc, m_anfdmax);
     for (int fd = 0; fd <= m_anfdmax; ++fd)
     {
-      //printf("[Poller:Poll] fd (%d)\n", fd);
+      //el_logger.debug("[Poller:Poll] fd ({})", fd);
       uint32_t events = 0;
       if (FD_ISSET(fd, &fd_set_ro)) {
         events |= FileEvent::READ;
@@ -58,14 +59,14 @@ int Poller::Poll(uint32_t wait_ms, const PollCallback& poll_cb)
         if (iter != m_fd_userdata_map.end()) {
           poll_cb(iter->second, events);
         } else {
-          printf("ERROR: the fd(%d) not exists in fd userdata map\n", fd);
+          el_logger.error("the fd({}) not exists in fd userdata map", fd);
         }
       }
     }
   } else if (rc < 0) {
-    printf("[Poller:Poll] select failed: rc(%d)\n", rc);
+    el_logger.error("[Poller:Poll] select failed: rc({})", rc);
   }
-  //printf("[Poller:Poll] select: rc(%d), nfds(%d), wait_ms(%d)\n", rc, nfds, wait_ms);
+  //el_logger.debug("[Poller:Poll] select: rc({}), nfds({}), wait_ms({})", rc, nfds, wait_ms);
 
   return nfds;
 }
@@ -75,7 +76,7 @@ int Poller::SetEvents(int fd, PollerCtrl ctrl, uint32_t events, void* userdata)
   assert (("Poller(select): fd >= FD_SETSIZE passed to fd_set-based select backend", fd < FD_SETSIZE));
   if (fd < 0) return -1;
 
-  printf("[Poller::SetEvents] fd: %d, ctrl: %d, events: %d, userdata: %p\n", fd, ctrl, events, userdata);
+  el_logger.debug("[Poller::SetEvents] fd: {}, ctrl: {}, events: {}, userdata: {}", fd, ctrl, events, userdata);
   if (ctrl == PollerCtrl::DELETE) {
     if (events & FileEvent::READ)
       FD_CLR(fd, m_fd_set_ri);

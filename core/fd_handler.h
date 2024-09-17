@@ -58,7 +58,7 @@ class BufferIOEvent : public IOEvent {
   virtual void OnSent(const Message* msg) { }
   virtual void OnReady() { }
 
-  virtual bool OnHandshake() { printf("BufferIOEvent::OnHandshake\n"); state_ = READY; OnReady(); return true; }
+  virtual bool OnHandshake();
 
  private:
   // MSG_NOSIGNAL: Don't generate a SIGPIPE signal if the peer on a stream-oriented socket has closed the connection

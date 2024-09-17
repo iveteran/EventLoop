@@ -36,11 +36,11 @@ struct DBCallbacks {
     OnErrorCallback     on_error_cb;
 
     private:
-    void EmptyReplyCb(DBConnection*, const DBResult*)             { printf("Empty DBConnection Result Callback\n"); }
-    void EmptyCmdSentCb(DBConnection*, const char* sql, const SQLParameter*)         { printf("Empty DBConnection Command Sent Callback\n"); }
-    void EmptyConnectedCb(DBConnection*)                          { printf("Empty Connected Callback\n"); }
-    void EmptyClosedCb(DBConnection*)                             { printf("Empty Connection Closed Callback\n"); }
-    void EmptyErrorCb(DBConnection*, int, const char*)            { printf("Empty Connection Error Callback\n"); }
+    void EmptyReplyCb(DBConnection*, const DBResult*);
+    void EmptyCmdSentCb(DBConnection*, const char* sql, const SQLParameter*);
+    void EmptyConnectedCb(DBConnection*);
+    void EmptyClosedCb(DBConnection*);
+    void EmptyErrorCb(DBConnection*, int, const char*);
 };
 
 typedef std::shared_ptr<DBCallbacks>       DBCallbacksPtr;

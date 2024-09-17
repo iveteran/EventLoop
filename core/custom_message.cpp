@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include "custom_message.h"
+#include "logger.h"
 
 namespace evt_loop {
 
@@ -38,7 +39,7 @@ size_t CustomMessage::AppendData(const char* data, uint32_t length) {
   if (data_.size() >= HeaderSize()) {
     DecodeHeader();
     DumpHex(hdr_desc_->hdr_len);
-    printf("[CustomMessage::AppendData] HDR: %s\n", hdr_desc_->ToString().c_str());
+    el_logger->debug("[CustomMessage::AppendData] HDR: {}", hdr_desc_->ToString());
     if (data_.capacity() < MessageSize()) {
       data_.reserve(MessageSize());
       DecodeHeader();
@@ -80,7 +81,7 @@ void CustomMessage::DecodeHeader() {
     //  hdr_desc_->payload_len = ntohll(*(uint64_t*)payload_len_ptr);
     //  break;
     default:
-      fprintf(stderr, "[CustomMessage::DecodeHeader] Unsupported payload length bytes: %d\n", hdr_desc_->payload_len_bytes);
+      el_logger->error("[CustomMessage::DecodeHeader] Unsupported payload length bytes: {}", hdr_desc_->payload_len_bytes);
       break;
   }
 }

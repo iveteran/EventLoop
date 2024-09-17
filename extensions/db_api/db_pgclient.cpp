@@ -1,6 +1,7 @@
 #include <sstream>
 #include <stdarg.h>
 #include "db_pgclient.h"
+#include "core/logger.h"
 
 namespace db_api {
 
@@ -90,11 +91,11 @@ bool PGClient::Connect()
 
 bool PGClient::Connect_()
 {
-  printf("PGClient::Connect_ starts\n");
+  el_logger->debug("PGClient::Connect_ starts");
   bool success = false;
 
   if (m_pgconn == NULL) {
-    printf("PGClient::Connect_ connection string: %s\n", m_conn_str.c_str());
+    el_logger->info("PGClient::Connect_ connection string: {}", m_conn_str);
     m_pgconn = PQconnectdb(m_conn_str.c_str());
   } else {
     PQreset(m_pgconn);
@@ -103,12 +104,12 @@ bool PGClient::Connect_()
   if (PQstatus(m_pgconn) != CONNECTION_OK) {
     const char* err_msg = PQerrorMessage(m_pgconn);
     SetLastError("ERROR", "08006", err_msg);
-    printf("PGClient::Connect_ Connect to database(%s) failed: %s\n", m_conn_str.c_str(), SAFE_STRING(err_msg));
+    el_logger->error("PGClient::Connect_ Connect to database({}) failed: {}", m_conn_str, SAFE_STRING(err_msg));
   } else {
     success = true;
     SetFD(PQsocket(m_pgconn));  // add fd to event loop
   }
-  printf("PGClient::Connect_ end, success: %d\n", success);
+  el_logger->info("PGClient::Connect_ end, success: {}", success);
   return  success;
 }
 
@@ -121,7 +122,7 @@ void PGClient::Disconnect() {
   if (m_pgconn != NULL) {
     PQfinish(m_pgconn);
     m_pgconn = NULL;
-    printf("PGClient::Disconnect PQfinish done\n");
+    el_logger->info("PGClient::Disconnect PQfinish done");
   }
   RemoveFDHandler();
 }
@@ -149,7 +150,7 @@ void PGClient::SetLastError( const char* severity, const char* sqlstate,
 }
 
 bool PGClient::BeginTransaction(const DBResultCallback& cb, void* ctx) {
-  printf("PGClient::beginTransaction start\n");
+  el_logger->debug("PGClient::beginTransaction start");
   bool success = false;
   if (m_pgconn != NULL) {
     if (!m_transactionStarted) {
@@ -162,18 +163,18 @@ bool PGClient::BeginTransaction(const DBResultCallback& cb, void* ctx) {
       }
     } else {
       SetLastError("ERROR", "0B000", INVALID_TRANSACTION);
-      printf("PGClient::beginTransaction there was an already running transaction in this connection.\n");
+      el_logger->error("PGClient::beginTransaction there was an already running transaction in this connection.");
     }
   } else {
     SetLastError("ERROR", "08006", NOCONNECTION);
-    printf("PGClient::beginTransaction there was no connection made yet.\n");
+    el_logger->error("PGClient::beginTransaction there was no connection made yet.");
   }
-  printf("PGClient::beginTransaction end %d\n", success);
+  el_logger->debug("PGClient::beginTransaction end, success?: {}", success);
   return  success;
 }
 
 bool PGClient::CommitTransaction(const DBResultCallback& cb, void* ctx) {
-  printf("PGClient::commitTransaction start\n");
+  el_logger->debug("PGClient::commitTransaction start");
   bool success = false;
   if (m_pgconn != NULL) {
     m_last_cmd = COMMITTRANSACTION;
@@ -181,9 +182,9 @@ bool PGClient::CommitTransaction(const DBResultCallback& cb, void* ctx) {
   } else {
     //m_last_error = NOCONNECTION;
     SetLastError("ERROR", "08006", NOCONNECTION);
-    printf("PGClient::commitTransaction there was no connection made yet.\n");
+    el_logger->error("PGClient::commitTransaction there was no connection made yet.");
   }
-  printf("PGClient::commitTransaction end %d\n", success);
+  el_logger->debug("PGClient::commitTransaction end, success?: {}", success);
   return  success;
 }
 
@@ -204,7 +205,7 @@ void PGClient::CancelQueue(bool invokeCallbackFunction) {
 }
 
 bool PGClient::CancelCurrentQuery() {
-  printf("PGClient::cancelCurrentQuery start\n");
+  el_logger->debug("PGClient::cancelCurrentQuery start");
   bool success = false;
   if (m_pgconn != NULL) {
     char errbuf[256];
@@ -215,14 +216,14 @@ bool PGClient::CancelCurrentQuery() {
     }
     PQfreeCancel(cancel);
   }
-  printf("PGClient::cancelCurrentQuery end %d\n", success);
+  el_logger->debug("PGClient::cancelCurrentQuery end, success?: {}", success);
   return success;
 }
 
 bool PGClient::RollbackTransaction() {
   bool success = false;
   if (m_pgconn != NULL) {
-    printf("PGClient::rollbackTransaction start\n");
+    el_logger->debug("PGClient::rollbackTransaction start");
     if (GetWaitingSQLCount() > 0) {
       CancelCurrentQuery();
     }
@@ -238,16 +239,16 @@ bool PGClient::RollbackTransaction() {
       CancelQueue(true);
     }
     m_transactionStarted = false;
-    printf("PGClient::rollbackTransaction end %d\n", success);
+    el_logger->debug("PGClient::rollbackTransaction end, success?: {}", success);
   } else {
     SetLastError("ERROR", "08006", NOCONNECTION);
-    printf("PGClient::rollbackTransaction there was no connection made yet.\n");
+    el_logger->error("PGClient::rollbackTransaction there was no connection made yet.");
   }
   return  success;
 }
 
 DBResult* PGClient::ExecuteSQL(const char* sql, int pcount, ...) {
-  printf("PGClient::ExecuteSQL start %s\n", SAFE_STRING(sql));
+  el_logger->debug("PGClient::ExecuteSQL start {}", SAFE_STRING(sql));
   bool success = false;
   PGResult* result = NULL;
   m_dberror.Clear();
@@ -292,28 +293,28 @@ DBResult* PGClient::ExecuteSQL(const char* sql, int pcount, ...) {
             PQresultErrorField(res, PG_DIAG_MESSAGE_PRIMARY),
             PQresultErrorField(res, PG_DIAG_MESSAGE_DETAIL),
             PQresultErrorField(res, PG_DIAG_MESSAGE_HINT));
-        printf("PGClient::ExecuteSQL [%s].\n", SAFE_STRING(PQresultErrorMessage(res)));
+        el_logger->error("PGClient::ExecuteSQL [{}].", SAFE_STRING(PQresultErrorMessage(res)));
       }
     } else {
       const char* err_msg = PQerrorMessage(m_pgconn);
       SetLastError("ERROR", "00000", err_msg);
-      printf("PGClient::ExecuteSQL [%s].\n", SAFE_STRING(err_msg));
+      el_logger->error("PGClient::ExecuteSQL [{}].", SAFE_STRING(err_msg));
     }
     if (paramFormats != NULL) delete[] paramFormats;
     if (paramLengths != NULL) delete[] paramLengths;
     if (paramsValue != NULL) delete[] paramsValue;
   } else {
     SetLastError("ERROR", "08006", NOCONNECTION);
-    printf("PGClient::ExecuteSQL there was no connection made yet.\n");
+    el_logger->error("PGClient::ExecuteSQL there was no connection made yet.");
   }
 
-  printf("PGClient::ExecuteSQL end %d\n", success);
+  el_logger->debug("PGClient::ExecuteSQL end, success?: {}", success);
   return result;
 }
 
 bool PGClient::SendNextQueryAsync()
 {
-  printf("PGClient::SendNextQueryAsync start\n");
+  el_logger->debug("PGClient::SendNextQueryAsync start");
   bool success = false;
   m_dberror.Clear();
 
@@ -337,7 +338,7 @@ bool PGClient::SendNextQueryAsync()
         paramFormats[i] = qitem.params[i].format_;
       }
     }
-    printf("[PGClient::SendNextQueryAsync] Execute: %s\n", qitem.ToString().c_str());
+    el_logger->debug("[PGClient::SendNextQueryAsync] Execute: {}", qitem.ToString());
 
     int nResult = PQsendQueryParams(m_pgconn,
         sql,
@@ -361,12 +362,12 @@ bool PGClient::SendNextQueryAsync()
       } else if (flushResult == -1) {
         const char* err_msg = PQerrorMessage(m_pgconn);
         SetLastError("ERROR", "08006", err_msg);
-        printf("PGClient::SendNextQueryAsync error1:%s\n", SAFE_STRING(err_msg));
+        el_logger->error("PGClient::SendNextQueryAsync error1: {}", SAFE_STRING(err_msg));
       }
     } else {
       const char* err_msg = PQerrorMessage(m_pgconn);
       SetLastError("ERROR", "08006", err_msg);
-      printf("PGClient::SendNextQueryAsync error2:%s\n", SAFE_STRING(err_msg));
+      el_logger->error("PGClient::SendNextQueryAsync error2: {}", SAFE_STRING(err_msg));
     }
     if (paramFormats != NULL) delete[] paramFormats;
     if (paramLengths != NULL) delete[] paramLengths;
@@ -378,7 +379,7 @@ bool PGClient::SendNextQueryAsync()
     success = true;
   }
 
-  printf("PGClient::SendNextQueryAsync end %d\n", success);
+  el_logger->debug("PGClient::SendNextQueryAsync end, success?: {}", success);
   return  success;
 }
 
@@ -423,7 +424,7 @@ bool PGClient::HandleSubscription() {
     while ((pg_notify = PQnotifies(m_pgconn)) != NULL) {
       string channelName = pg_notify->relname;
       string message = pg_notify->extra;
-      printf("[PGClient::HandleSubscription] Invokes registered subscription callback function with [%s]\n", message.c_str());
+      el_logger->debug("[PGClient::HandleSubscription] Invokes registered subscription callback function with [{}]", message);
       auto iter = m_subscribeMap.find(channelName);
       if (iter != m_subscribeMap.end()) {
         auto& cb = iter->second;
@@ -466,7 +467,7 @@ PGResult* PGClient::PollResultSet(bool& success) {
             PQresultErrorField(result, PG_DIAG_MESSAGE_DETAIL),
             PQresultErrorField(result, PG_DIAG_MESSAGE_HINT));
         PQclear(result);
-        printf("PGClient::pollResultset received an error message: [%s]\n", SAFE_STRING(PQresultErrorMessage(result)));
+        el_logger->error("PGClient::pollResultset received an error message: [{}]", SAFE_STRING(PQresultErrorMessage(result)));
       }
       while ((result = PQgetResult(m_pgconn)) != NULL) {
         PQclear(result);
@@ -474,14 +475,14 @@ PGResult* PGClient::PollResultSet(bool& success) {
     } else {
       const char* err_msg = PQerrorMessage(m_pgconn);
       SetLastError("ERROR", "00000", err_msg);
-      printf("PGClient::pollResultset postgresql returned empty resultset although it is supposed to return a resultset. [%s]\n",
+      el_logger->error("PGClient::pollResultset postgresql returned empty resultset although it is supposed to return a resultset. [{}]",
           SAFE_STRING(err_msg));
     }
   } else {
     if (PQstatus(m_pgconn) != CONNECTION_OK) {
       const char* err_msg = PQerrorMessage(m_pgconn);
       SetLastError("ERROR", "08006", err_msg);
-      printf("PGClient::pollResultset connection lost: [%s]\n", SAFE_STRING(err_msg));
+      el_logger->error("PGClient::pollResultset connection lost: [{}]", SAFE_STRING(err_msg));
     }
   }
 
@@ -489,7 +490,7 @@ PGResult* PGClient::PollResultSet(bool& success) {
 }
 
 bool PGClient::AddSubscribeChannel(const char* channelName, const SubscribeCallback& cb) {
-  printf("PGClient::AddSubscribeChannel start: channelName [%s]\n", SAFE_STRING(channelName));
+  el_logger->debug("PGClient::AddSubscribeChannel start: channelName [{}]", SAFE_STRING(channelName));
   if (channelName == NULL) return false;
   bool success = false;
   stringstream ss;
@@ -504,12 +505,12 @@ bool PGClient::AddSubscribeChannel(const char* channelName, const SubscribeCallb
     m_subscribeMap[channelName] = cb;
     success = true;
   }
-  printf("PGClient::addSubscribeChannel end: %d\n", success);
+  el_logger->debug("PGClient::addSubscribeChannel end, success?: {}", success);
   return  success;
 }
 
 bool PGClient::RemoveSubscribeChannel(const char* channelName) {
-  printf("PGClient::RemoveSubscribeChannel start: channelName [%s]\n", SAFE_STRING(channelName));
+  el_logger->debug("PGClient::RemoveSubscribeChannel start: channelName [{}]", SAFE_STRING(channelName));
   if (channelName == NULL) return false;
   bool success = false;
   stringstream ss;
@@ -523,7 +524,7 @@ bool PGClient::RemoveSubscribeChannel(const char* channelName) {
     m_subscribeMap.erase(channelName);
     success = true;
   }
-  printf("PGClient::removeSubscribeChannel end: %d\n", success);
+  el_logger->debug("PGClient::removeSubscribeChannel end, success?: {}", success);
   return  success;
 }
 
@@ -582,8 +583,8 @@ void PGClient::ReadBytes() {
         }
       }
     } else {
-      printf("[ERROR] There is no request item in the query queue for this reply.\n");
-      printf("SQLState: %s, Message: %s, Detail: %s, Hint: %s\n",
+      el_logger->error("[ERROR] There is no request item in the query queue for this reply.");
+      el_logger->debug("SQLState: {}, Message: {}, Detail: {}, Hint: {}",
           SAFE_STRING(m_dberror.GetSQLState()), SAFE_STRING(m_dberror.GetMessage()),
           SAFE_STRING(m_dberror.GetDetail()), SAFE_STRING(m_dberror.GetHint()));
     }
@@ -592,7 +593,7 @@ void PGClient::ReadBytes() {
 }
 
 void PGClient::WriteBytes() {
-  // printf("PGClient::WriteBytes callback function start\n");
+  // el_logger->debug("PGClient::WriteBytes callback function start");
   int flushResult = PQflush(m_pgconn);
   if (flushResult == 0) {
     // There is no data left in send queue
@@ -603,14 +604,14 @@ void PGClient::WriteBytes() {
   } else if (flushResult == -1) {
     const char* err_msg = PQerrorMessage(m_pgconn);
     SetLastError("ERROR", "08006", err_msg);
-    printf("[PGClient::WriteBytes] callback function error in PQflush: %s\n", SAFE_STRING(err_msg));
+    el_logger->error("[PGClient::WriteBytes] callback function error in PQflush: {}", SAFE_STRING(err_msg));
   }
-  // printf("PGClient::WriteBytes callback function end\n");
+  // el_logger->debug("PGClient::WriteBytes callback function end");
 }
 
 void PGClient::OnEvents(uint32_t events)
 {
-  //printf("[PGClient::OnEvents] events: %d\n", events);
+  //el_logger->debug("[PGClient::OnEvents] events: {}", events);
   if (events & FileEvent::WRITE) {
     WriteBytes();
   }
@@ -632,7 +633,7 @@ void PGClient::OnEvents(uint32_t events)
 void PGClient::RemoveFDHandler()
 {
   if (FD() > 0) {
-    printf("PGClient::Disconnect removed database socket(fd: %d) from event handler\n", FD());
+    el_logger->debug("PGClient::Disconnect removed database socket(fd: {}) from event handler", FD());
     EV_Singleton->DeleteEvent(this);
     SetFD(-1);
   }
@@ -640,14 +641,14 @@ void PGClient::RemoveFDHandler()
 
 void PGClient::OnReconnectTimer(TimerEvent* timer)
 {
-  printf("[PGClient::OnReconnectTimer] Timer tick %u\n", timer->GetInterval().Seconds());
+  el_logger->debug("[PGClient::OnReconnectTimer] Timer tick {}", timer->GetInterval().Seconds());
   if (!IsConnected()) {  // if the connection is not created, then reconnect
     bool success = Connect_();
     if (success) {
       timer->Stop();
       OnConnected();
     } else {
-      printf("[PGClient::OnReconnectTimer] Reconnect failed, retry %u seconds later...\n", timer->GetInterval().Seconds());
+      el_logger->error("[PGClient::OnReconnectTimer] Reconnect failed, retry {} seconds later...", timer->GetInterval().Seconds());
     }
   } else {
     timer->Stop();
@@ -656,13 +657,13 @@ void PGClient::OnReconnectTimer(TimerEvent* timer)
 
 void PGClient::OnConnected()
 {
-  printf("[PGClient::OnConnected] connection created, fd: %d\n", FD());
+  el_logger->debug("[PGClient::OnConnected] connection created, fd: {}", FD());
   m_dberror.Clear();
   if (m_db_cbs) m_db_cbs->on_connected_cb(this);
 }
 void PGClient::OnClosed()
 {
-    printf("[PGClient::OnClosed] connection lost, fd: %d\n", FD());
+    el_logger->debug("[PGClient::OnClosed] connection lost, fd: {}", FD());
     RemoveFDHandler();
     if (m_db_cbs) m_db_cbs->on_closed_cb(this);
     if (m_auto_reconnect) {
@@ -671,7 +672,7 @@ void PGClient::OnClosed()
 }
 void PGClient::OnError(int errcode, const char* errstr)
 {
-    printf("[PGClient::OnError] fd: %d, error code: %d, error string: %s\n", FD(), errcode, errstr);
+    el_logger->error("[PGClient::OnError] fd: {}, error code: {}, error string: {}", FD(), errcode, errstr);
     if (m_db_cbs) m_db_cbs->on_error_cb(this, errcode, errstr);
 }
 

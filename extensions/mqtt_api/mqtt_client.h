@@ -219,14 +219,7 @@ class MqttClient : public IOEvent {
     }
 
   private:
-    void ProcessMosquittoLoop(UserEvent* tick_events, void* udata)
-    {
-      printf("[ProcessMosquittoLoop] Trigger tick event(id: %d), udata: %p\n", tick_events->Id(), udata);
-      //MqttClient* mqtt_client = (MqttClient*)udata;
-      int status = mosquitto_loop(mosq_, -1, 1);
-      printf("[ProcessMosquittoLoop] status: %s\n", mosquitto_strerror(status));
-    }
-
+    void ProcessMosquittoLoop(UserEvent* tick_events, void* udata);
     void OnReconnectTimer(TimerEvent* timer);
 
   private:

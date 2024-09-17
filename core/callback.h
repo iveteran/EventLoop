@@ -128,7 +128,6 @@ class Callback2 : public ICallback<ClassName>
             ((this->m_class_instance)->*m_method)(parameter, parameter2);
             success = true;
         }
-        //printf("[Callback2::Invoke] %s\n", this->ToString().c_str());
         return success;
     }
 

@@ -5,6 +5,7 @@
     #include <readline/history.h>
 #endif
 #include "console.h"
+#include "core/logger.h"
 
 using namespace std;
 
@@ -110,7 +111,7 @@ void Console::put_line(const string& text) {
 int Console::registerCommand(const char* cmd, const char* desc, const CommandCallback& cb) {
     string errmsg = verifyCommand(cmd);
     if (! errmsg.empty()) {
-        fprintf(stderr, "[Console::registerCommand] Illegal command name: %s, reason: %s", cmd, errmsg.c_str());
+        el_logger->error("[Console::registerCommand] Illegal command name: {}, reason: {}", cmd, errmsg);
         return -1;
     }
     string _cmd = to_lower(cmd);

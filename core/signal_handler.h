@@ -72,10 +72,7 @@ class SignalHandler : public SignalEvent
   ~SignalHandler();
 
   private:
-  void OnEvents(uint32_t events) {
-    printf("SignalHandler receives signal (%d).\n", events);
-    signal_cb_(this, events);
-  }
+  void OnEvents(uint32_t events);
 
   private:
   OnSignalCallback   signal_cb_;

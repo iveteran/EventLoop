@@ -1,6 +1,7 @@
 #include "message.h"
 #include "custom_message.h"
 #include "utils.h"
+#include "logger.h"
 
 namespace evt_loop {
 
@@ -83,7 +84,7 @@ size_t BinaryMessage::AppendData(const char* data, uint32_t length) {
 
   if (hdr_ == NULL && data_.size() >= sizeof(HDR)) {
     hdr_ = (HDR*)data_.data();
-    printf("[BinaryMessage::AppendData] HDR: %s\n", hdr_->ToString().c_str());
+    el_logger->debug("[BinaryMessage::AppendData] HDR: {}", hdr_->ToString());
     if (data_.capacity() < hdr_->length) {
       data_.reserve(hdr_->length);
       hdr_ = (HDR*)data_.data();
@@ -145,7 +146,7 @@ MessagePtr CreateMessage(MessageType msg_type, const HeaderDescriptionPtr& msg_h
       msg_ptr = std::make_shared<CustomMessage>(msg_hdr_desc);
       break;
     default:
-      fprintf(stderr, "[CreateMessage] Unknown message type: %d\n", msg_type);
+      el_logger->error("[CreateMessage] Unknown message type: {}", msg_type);
       break;
   }
   return msg_ptr;
@@ -168,7 +169,7 @@ MessagePtr CreateMessage(MessageType msg_type, const char* data, size_t length,
       msg_ptr = std::make_shared<CustomMessage>(msg_hdr_desc, data, length);
       break;
     default:
-      fprintf(stderr, "[CreateMessage] Unknown message type: %d\n", msg_type);
+      el_logger->error("[CreateMessage] Unknown message type: {}", msg_type);
       break;
   }
   return msg_ptr;
@@ -190,7 +191,7 @@ MessagePtr CreateMessage(const Message& msg) {
       msg_ptr = std::make_shared<CustomMessage>(dynamic_cast<const CustomMessage&>(msg));
       break;
     default:
-      fprintf(stderr, "[CreateMessage] Unknown message type: %d\n", msg.Type());
+      el_logger->error("[CreateMessage] Unknown message type: {}", msg.Type());
       break;
   }
   return msg_ptr;
@@ -216,7 +217,7 @@ void MessageMQ::AppendData(const char* data, uint32_t size) {
     }
     feeds += Last()->AppendData(&data[feeds], size - feeds);
     if (Last()->Completion()) {
-      printf("[MessageMQ] Recieved a complation message, type: %d, size: %lu\n", Last()->Type(), Last()->Size());
+      el_logger->debug("[MessageMQ] Recieved a complation message, type: {}, size: {}", Last()->Type(), Last()->Size());
     }
   }
 }

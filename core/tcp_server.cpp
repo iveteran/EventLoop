@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <netinet/tcp.h>
+#include "logger.h"
 
 namespace evt_loop {
 
@@ -92,7 +93,7 @@ bool TcpServer::Start()
     int qlen = 5;
     if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen)) == -1)
     {
-        printf("(setsockopt) Ignore error of enabling TFO: %s(errno: %d)\n", strerror(errno), errno);
+        el_logger->warn("(setsockopt) Ignore error of enabling TFO: {}(errno: {})", strerror(errno), errno);
     }
 
     sockaddr_in sock_addr;
@@ -147,7 +148,7 @@ int TcpServer::AcceptClient(IPAddress& peer_addr)
 
 void TcpServer::OnNewClient(int fd, const IPAddress& peer_addr)
 {
-    printf("[TcpServer::OnNewClient] new connection, fd: %d\n", fd);
+    el_logger->info("[TcpServer::OnNewClient] new connection, fd: {}", fd);
     TcpConnectionPtr conn = CreateClient(fd, server_addr_, peer_addr, peer_addr);
     conn->SetMessageType(msg_type_, msg_hdr_desc_);
     if (hb_tmp_params_) {
@@ -162,13 +163,13 @@ void TcpServer::OnNewClient(int fd, const IPAddress& peer_addr)
 
 void TcpServer::OnConnectionClosed(TcpConnection* conn)
 {
-    printf("[TcpServer::OnConnectionClosed] Erase connection, fd: %d\n", conn->FD());
+    el_logger->info("[TcpServer::OnConnectionClosed] Erase connection, fd: {}", conn->FD());
     conn_map_.erase(conn->FD());
 }
 
 void TcpServer::OnError(int errcode, const char* errstr)
 {
-    printf("[TcpServer::OnError] error code: %d, error string: %s\n", errcode, errstr);
+    el_logger->error("[TcpServer::OnError] error code: {}, error string: {}", errcode, errstr);
     if (error_cb_) error_cb_(this, errcode, errstr);
 
     if (errcode == EADDRINUSE || errcode == EADDRNOTAVAIL) {
@@ -220,7 +221,7 @@ bool TcpServer6::Start()
     int qlen = 5;
     if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen)) == -1)
     {
-        printf("(setsockopt) Ignore error of enabling TFO: %s(errno: %d)\n", strerror(errno), errno);
+        el_logger->warn("(setsockopt) Ignore error of enabling TFO: {}(errno: {})", strerror(errno), errno);
     }
 
     sockaddr_in6 sock_addr;

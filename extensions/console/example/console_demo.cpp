@@ -24,7 +24,7 @@ class ConsoleDemo {
     }
     void OnSignal(SignalHandler* sh, uint32_t signo)
     {
-        printf("Shutdown\n");
+        el_logger->info("[ConsoleDemo::OnSignal] Shutdown");
         Console::Instance()->destory(); // XXX: MUST call destory of Console manually, otherwise the terminal will be silently always
         EV_Singleton->StopLoop();
     }
@@ -32,17 +32,17 @@ class ConsoleDemo {
     private:
     void OnConnectionReady(TcpConnection* conn)
     {
-        printf("[OnConnectionReady] fd: %d\n", conn->FD());
+        el_logger->info("[ConsoleDemo::OnConnectionReady] fd: {}", conn->FD());
         conn->Send("hello console\n");
     }
     void OnConnectionIdleTimeout(TcpConnection* conn, uint32_t time)
     {
-        printf("[OnConnectionIdleTimeout] fd: %d, now: %ld\n", conn->FD(), Now());
+        el_logger->debug("[ConsoleDemo::OnConnectionIdleTimeout] fd: {}, now: {}", conn->FD(), Now());
         //conn->Disconnect();
     }
     void OnMessageRecvd(TcpConnection* conn, const Message* msg)
     {
-        printf("[echoserver1] fd: %d, message: %s, length: %lu\n", conn->FD(), msg->Payload(), msg->PayloadSize());
+        el_logger->debug("[ConsoleDemo::OnMessageRecvd] fd: {}, message: {}, length: {}", conn->FD(), msg->Payload(), msg->PayloadSize());
         //conn->Send(msg->Payload(), msg->PayloadSize());
         conn->Send(*msg);
     }

@@ -1,4 +1,5 @@
 #include "aio_wrapper.h"
+#include "core/logger.h"
 #include <sys/epoll.h>
 
 namespace evt_loop {
@@ -6,7 +7,7 @@ namespace evt_loop {
 /*
 void aio_callback(io_context_t ctx, struct iocb *iocb, long res, long res2)
 {
-    printf("request_type: %s, data: %p, offset: %lld, length: %lu, buf: %p, buf str: %s, res: %ld, res2: %ld\n",
+    el_logger->debug("request_type: {}, data: {}, offset: {}, length: {}, buf: {}, buf str: {}, res: {}, res2: {}",
             (iocb->aio_lio_opcode == IO_CMD_PREAD) ? "READ" : "WRITE",
             iocb->data, iocb->u.c.offset, iocb->u.c.nbytes, iocb->u.c.buf, (char*)iocb->u.c.buf, res, res2);
 }
@@ -74,7 +75,7 @@ void aio_request::get_aio_events()
 void aio_read_request::on_aio_return(io_context_t ctx, struct iocb *iocb, long rd_bytes, long status)
 {
     if ((size_t)rd_bytes < iocb->u.c.nbytes) {
-        printf("[aio_read_request] request_type: %s, offset: %lld, to_read_size: %lu, buf: %p, rd_bytes: %ld, status: %ld\n",
+        el_logger->debug("[aio_read_request] request_type: {}, offset: {}, to_read_size: {}, buf: {}, rd_bytes: {}, status: {}",
                 (iocb->aio_lio_opcode == IO_CMD_PREAD) ? "READ" : "WRITE",
                 iocb->u.c.offset, iocb->u.c.nbytes, iocb->u.c.buf, rd_bytes, status);
     }
@@ -97,7 +98,7 @@ void aio_read_request::on_aio_return(io_context_t ctx, struct iocb *iocb, long r
 void aio_write_request::on_aio_return(io_context_t ctx, struct iocb *iocb, long wt_bytes, long status)
 {
     /*
-    printf("[aio_write_request] request_type: %s, offset: %lld, to_write_size: %lu, buf: %p, wt_bytes: %ld, status: %ld\n",
+    el_logger->debug("[aio_write_request] request_type: {}, offset: {}, to_write_size: {}, buf: {}, wt_bytes: {}, status: {}",
             (iocb->aio_lio_opcode == IO_CMD_PREAD) ? "READ" : "WRITE",
             iocb->u.c.offset, iocb->u.c.nbytes, iocb->u.c.buf, wt_bytes, status);
     */
@@ -106,7 +107,7 @@ void aio_write_request::on_aio_return(io_context_t ctx, struct iocb *iocb, long 
         iocb->u.c.offset = wt_offset_;
     }
     if (wt_offset_ >= tx_buf_.size()) {
-        printf("[aio_write_request] request_type: %s, offset: %lld, to_write_size: %lu, buf: %p, wt_bytes: %ld, status: %ld\n",
+        el_logger->debug("[aio_write_request] request_type: {}, offset: {}, to_write_size: {}, buf: {}, wt_bytes: {}, status: {}",
                 (iocb->aio_lio_opcode == IO_CMD_PREAD) ? "READ" : "WRITE",
                 iocb->u.c.offset, iocb->u.c.nbytes, iocb->u.c.buf, wt_bytes, status);
         if (completion_cb_) {
@@ -154,7 +155,7 @@ void aio_wrapper::test()
     epevent.events = EPOLLIN;
 
     for (auto& iter : req_map_) {
-        printf("epoll_ctl add efd %d\n", iter.second->get_eventfd());
+        el_logger->debug("epoll_ctl add efd {}", iter.second->get_eventfd());
         epevent.data.ptr = iter.second.get();
         if (epoll_ctl(epfd, EPOLL_CTL_ADD, iter.second->get_eventfd(), &epevent)) {
             perror("epoll_ctl failed");
@@ -167,7 +168,7 @@ void aio_wrapper::test()
             return;
         }
 
-        printf("epoll_wait epevent.data.ptr %p\n", epevent.data.ptr);
+        el_logger->debug("epoll_wait epevent.data.ptr {}", epevent.data.ptr);
         aio_request* req = (aio_request*)epevent.data.ptr;
         req->get_aio_events_test();
     }

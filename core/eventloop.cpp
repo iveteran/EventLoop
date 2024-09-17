@@ -7,6 +7,7 @@
 #include "signal_handler.h"
 #include "fd_handler.h"
 #include "user_event_handler.h"
+#include "logger.h"
 
 namespace evt_loop {
 
@@ -52,7 +53,7 @@ int EventLoop::ProcessTimeoutEvents() {
   TimerManager::TimerMap::iterator iter = timers_map.begin();
   while (iter != timers_map.end()) {
     TimeVal tv = iter->first;
-    //printf("EventLoop::ProcessTimeoutEvents, now: %d, tv: %d\n", now_.Seconds(), tv.Seconds());
+    //el_logger->debug("EventLoop::ProcessTimeoutEvents, now: {}, tv: {}", now_.Seconds(), tv.Seconds());
     if (TimeVal::MsDiff(now_, tv) < 0) break;
     n++;
     TimerManager::TimerSet events_set = iter->second;
@@ -118,7 +119,7 @@ void EventLoop::StopLoop() {
 
 void EventLoop::StartLoop() {
   if (running_) {
-    printf("Error: EventLoop already running\n");
+    el_logger->error("Error: EventLoop already running");
     return;
   }
 

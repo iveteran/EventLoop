@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <functional>
 #include <memory>
+#include <queue>
 
 namespace mqtt_api {
 
@@ -41,13 +42,13 @@ struct MqttCallbacks {
     OnErrorCallback         on_error_cb;
 
     private:
-    void EmptyMessageCb(MqttClient*, const MqttMessage*)                      { printf("Empty MqttClient Message Reply Callback\n"); }
-    void EmptySubscribeCb(MqttClient*, int msgid, const GrantedQos*)  { printf("Empty MqttClient Subscribe Reply Callback\n"); }
-    void EmptyUnsubscribeCb(MqttClient*, int msgid)                    { printf("Empty MqttClient Unsubscribe Reply Callback\n"); }
-    void EmptyPublishCb(MqttClient*, int msgid)                        { printf("Empty MqttClient Publish Reply Callback\n"); }
-    void EmptyConnectedCb(MqttClient*)                          { printf("Empty Connected Callback\n"); }
-    void EmptyDisconnectedCb(MqttClient*)                       { printf("Empty Disconnected Callback\n"); }
-    void EmptyErrorCb(MqttClient*, int, const char*)            { printf("Empty Error Callback\n"); }
+    void EmptyMessageCb(MqttClient*, const MqttMessage*);
+    void EmptySubscribeCb(MqttClient*, int msgid, const GrantedQos*);
+    void EmptyUnsubscribeCb(MqttClient*, int msgid);
+    void EmptyPublishCb(MqttClient*, int msgid);
+    void EmptyConnectedCb(MqttClient*);
+    void EmptyDisconnectedCb(MqttClient*);
+    void EmptyErrorCb(MqttClient*, int, const char*);
 };
 
 typedef std::shared_ptr<MqttCallbacks>      MqttCallbacksPtr;

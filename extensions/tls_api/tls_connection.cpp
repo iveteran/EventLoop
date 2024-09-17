@@ -1,4 +1,5 @@
 #include "tls_connection.h"
+#include "core/logger.h"
 
 using namespace std;
 
@@ -13,10 +14,10 @@ namespace {
             SSL_load_error_strings ();
             // Register the available ciphers and digests
             int r = SSL_library_init ();
-            if (!r) { printf("SSL_library_init failed\n"); return -1; }
+            if (!r) { el_logger->error("SSL_library_init failed"); return -1; }
             g_sslCtx = SSL_CTX_new (SSLv23_method ());
-            if (g_sslCtx == NULL) { printf("SSL_CTX_new failed\n"); return -1; }
-            printf("ssl library inited\n");
+            if (g_sslCtx == NULL) { el_logger->error("SSL_CTX_new failed"); return -1; }
+            el_logger->debug("ssl library inited");
             return 0;
         }();
         (void)forinit;
@@ -26,21 +27,21 @@ namespace {
 void TLSConnection::setSSLCertKey(const char* cert, const char* key, const char* ca_cert)
 {
     safeSSLInit();
-    printf("ssl cert: %s, key: %s, ca cert: %s\n", cert, key, ca_cert);
+    el_logger->debug("ssl cert: {}, key: {}, ca cert: {}", cert, key, ca_cert);
 
     int r = SSL_CTX_use_certificate_file(g_sslCtx, cert, SSL_FILETYPE_PEM);
-    if (r<=0) { printf("SSL_CTX_use_certificate_file %s failed\n", cert); ERR_print_errors_fp(stderr); return; }
+    if (r<=0) { el_logger->error("SSL_CTX_use_certificate_file {} failed", cert); ERR_print_errors_fp(stderr); return; }
     r = SSL_CTX_use_PrivateKey_file(g_sslCtx, key, SSL_FILETYPE_PEM);
-    if (r<=0) { printf("SSL_CTX_use_PrivateKey_file %s failed\n", key); ERR_print_errors_fp(stderr); return; }
+    if (r<=0) { el_logger->error("SSL_CTX_use_PrivateKey_file {} failed", key); ERR_print_errors_fp(stderr); return; }
     r = SSL_CTX_check_private_key(g_sslCtx);
-    if (!r) { printf("SSL_CTX_check_private_key failed\n"); ERR_print_errors_fp(stderr); return; }
+    if (!r) { el_logger->error("SSL_CTX_check_private_key failed"); ERR_print_errors_fp(stderr); return; }
 
     if (ca_cert && strlen(ca_cert) > 0) {
       r = SSL_CTX_load_verify_locations(g_sslCtx, ca_cert, NULL);
-      if (!r) { printf("SSL_CTX_load_verify_locations failed\n"); ERR_print_errors_fp(stderr); return; }
+      if (!r) { el_logger->error("SSL_CTX_load_verify_locations failed"); ERR_print_errors_fp(stderr); return; }
 
       STACK_OF(X509_NAME) *ca_list = SSL_load_client_CA_file(ca_cert);
-      if (ca_list == NULL) { printf("SSL_load_client_CA_file failed\n"); ERR_print_errors_fp(stderr); return; }
+      if (ca_list == NULL) { el_logger->error("SSL_load_client_CA_file failed"); ERR_print_errors_fp(stderr); return; }
       SSL_CTX_set_client_CA_list(g_sslCtx, ca_list);
 
       SSL_CTX_set_verify_depth(g_sslCtx, 1);
@@ -57,7 +58,7 @@ TLSConnection::TLSConnection(int fd, const IPAddress& local_addr, const IPAddres
 
 TLSConnection::~TLSConnection()
 {
-  printf("[TLSConnection::~TLSConnection]\n");
+  el_logger->debug("[TLSConnection::~TLSConnection]");
   if (ssl_) {
     SSL_shutdown (ssl_);
     SSL_free(ssl_);
@@ -66,32 +67,32 @@ TLSConnection::~TLSConnection()
 
 bool TLSConnection::OnHandshake()
 {
-    printf("[TLSConnection::OnHandshake begin] fd: %d\n", fd_);
+    el_logger->debug("[TLSConnection::OnHandshake begin] fd: {}", fd_);
     int r = 0;
     if (ssl_ == NULL) {
         ssl_ = SSL_new(g_sslCtx);
         if (ssl_ == NULL) {
-            printf("SSL_new failed errno %d errstr %s\n", errno, strerror(errno));
+            el_logger->error("SSL_new failed errno {} errstr {}", errno, strerror(errno));
             state_ = State::FAILED;
             goto out;
         }
         int r = SSL_set_fd(ssl_, fd_);
         if (r == 0) {
-            printf("SSL_set_fd failed errno %d errstr %s\n", errno, strerror(errno));
+            el_logger->error("SSL_set_fd failed errno {} errstr {}", errno, strerror(errno));
             state_ = State::FAILED;
             goto out;
         }
         if (IsClient()) {
-            printf("SSL_set_connect_state for fd: %d\n", fd_);
+            el_logger->debug("SSL_set_connect_state for fd: {}", fd_);
             SSL_set_connect_state(ssl_);
         } else {
-            printf("SSL_set_accept_state for fd: %d\n", fd_);
+            el_logger->debug("SSL_set_accept_state for fd: {}", fd_);
             SSL_set_accept_state(ssl_);
         }
     }
     r = SSL_do_handshake(ssl_);
     if (r == 1) {
-        printf("[TLSConnection::OnHandshake] ssl handshake success fd: %d\n", fd_);
+        el_logger->debug("[TLSConnection::OnHandshake] ssl handshake success fd: {}", fd_);
         state_ = State::READY;
         OnReady();
     } else {
@@ -102,7 +103,7 @@ bool TLSConnection::OnHandshake()
             //AddReadEvent();
             DeleteWriteEvent();
         } else {
-            printf("SSL_do_handshake return %d error %d errno %d msg %s\n", r, err, errno, strerror(errno));
+            el_logger->error("SSL_do_handshake return {} error {} errno {} msg {}", r, err, errno, strerror(errno));
             ERR_print_errors_fp(stderr);
             state_ = State::FAILED;
             goto out;
@@ -110,18 +111,18 @@ bool TLSConnection::OnHandshake()
     }
 out:
     bool success = (state_ != State::FAILED);
-    printf("[TLSConnection::OnHandshake end] success: %d\n", success);
+    el_logger->debug("[TLSConnection::OnHandshake end] success: {}", success);
     return success;
 }
 
 int TLSConnection::OnRead(const void* buf, size_t bytes)
 {
-    printf("[TLSConnection::OnRead]\n");
+    el_logger->debug("[TLSConnection::OnRead]");
     int rd = SSL_read(ssl_, (void*)buf, bytes);
     int ssle = SSL_get_error(ssl_, rd);
     if (rd < 0 && ssle != SSL_ERROR_WANT_READ) {
         //AddReadEvent();
-        printf("SSL_read return %d error %d errno %d msg %s\n", rd, ssle, errno, strerror(errno));
+        el_logger->error("SSL_read return {} error {} errno {} msg {}", rd, ssle, errno, strerror(errno));
         ERR_print_errors_fp(stderr);
     }
     return rd;
@@ -129,12 +130,12 @@ int TLSConnection::OnRead(const void* buf, size_t bytes)
 
 int TLSConnection::OnWrite(const void* buf, size_t bytes)
 {
-    printf("[TLSConnection::OnWrite]\n");
+    el_logger->debug("[TLSConnection::OnWrite]");
     int wd = SSL_write(ssl_, buf, bytes);
     int ssle = SSL_get_error(ssl_, wd);
     if (wd < 0 && ssle != SSL_ERROR_WANT_WRITE) {
         //AddWriteEvent();
-        printf("SSL_write return %d error %d errno %d msg %s\n", wd, ssle, errno, strerror(errno));
+        el_logger->error("SSL_write return {} error {} errno {} msg {}", wd, ssle, errno, strerror(errno));
         ERR_print_errors_fp(stderr);
     }
     return wd;

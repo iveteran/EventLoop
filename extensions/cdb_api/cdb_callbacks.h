@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <functional>
 #include <memory>
+#include <queue>
 
 namespace cdb_api {
 
@@ -35,11 +36,11 @@ struct CDBCallbacks {
     OnErrorCallback     on_error_cb;
 
     private:
-    void EmptyReplyCb(CDBClient*, const CDBReply*)             { printf("Empty CDBClient Reply Callback\n"); }
-    void EmptyCmdSentCb(CDBClient*, const CDBCommand*)         { printf("Empty CDBClient Command Sent Callback\n"); }
-    void EmptyConnectedCb(CDBClient*)                          { printf("Empty Connected Callback\n"); }
-    void EmptyClosedCb(CDBClient*)                             { printf("Empty Connection Closed Callback\n"); }
-    void EmptyErrorCb(CDBClient*, int, const char*)            { printf("Empty Connection Error Callback\n"); }
+    void EmptyReplyCb(CDBClient*, const CDBReply*);
+    void EmptyCmdSentCb(CDBClient*, const CDBCommand*);
+    void EmptyConnectedCb(CDBClient*);
+    void EmptyClosedCb(CDBClient*);
+    void EmptyErrorCb(CDBClient*, int, const char*);
 };
 
 typedef std::shared_ptr<CDBCallbacks>       CDBCallbacksPtr;

@@ -1,5 +1,6 @@
 #include "timer_handler.h"
 #include "eventloop.h"
+#include "logger.h"
 
 namespace evt_loop
 {
@@ -17,7 +18,7 @@ TimerEvent::TimerEvent(const TimeVal& inter) :
 }
 
 void TimerEvent::OnEvents(uint32_t events) {
-  printf("[TimerEvent::OnEvents] timeval: (%d.%d)\n", interval_.Seconds(), interval_.USeconds());
+  el_logger->debug("[TimerEvent::OnEvents] timeval: ({}.{})", interval_.Seconds(), interval_.USeconds());
   OnTimer();
   if (running_) {
     el_->DeleteEvent(this);
@@ -29,7 +30,7 @@ void TimerEvent::OnEvents(uint32_t events) {
 void TimerEvent::Start(bool immediately) {
   if (!el_) return;
   running_ = true;
-  printf("[TimerEvent::Start] timeval: (%d.%d)\n", interval_.Seconds(), interval_.USeconds());
+  el_logger->debug("[TimerEvent::Start] timeval: ({}.{})", interval_.Seconds(), interval_.USeconds());
   SetTime(el_->Now() + interval_);
   el_->AddEvent(this);
   if (immediately) {
@@ -38,7 +39,7 @@ void TimerEvent::Start(bool immediately) {
 }
 
 void TimerEvent::Stop() {
-  printf("[TimerEvent::Stop] Timer stopped\n");
+  el_logger->debug("[TimerEvent::Stop] Timer stopped");
   if (!el_) return;
   running_ = false;
   el_->DeleteEvent(this);
@@ -46,7 +47,7 @@ void TimerEvent::Stop() {
 
 // TimerManager implementation
 int TimerManager::AddEvent(TimerEvent *e) {
-  //printf("[TimerManager::AddEvent] event object: %p, timeval: (%ld.%ld)\n", e, e->Time().tv_sec, e->Time().tv_usec);
+  //el_logger->debug("[TimerManager::AddEvent] event object: {}, timeval: ({}.{})", e, e->Time().tv_sec, e->Time().tv_usec);
   TimerMap::iterator iter = timers_.find(e->Time());
   if (iter != timers_.end()) {
       iter->second.insert(e);
