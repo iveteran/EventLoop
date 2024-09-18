@@ -398,6 +398,7 @@ private:
 }  // namespace evt_loop
 
 #include "../core/singleton_tmpl.h"
-#define el_logger   (Singleton<Logger>::GetInstance())  // Default logger
+#define el_logger   (Singleton<Logger>::GetInstance())  // Default logger (pointer)
+#define el_log      (*el_logger)                        // Reference to *el_logger
 
 #endif  // _LOGGER_H

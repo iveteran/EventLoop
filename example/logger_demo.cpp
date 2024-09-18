@@ -24,9 +24,13 @@ int main()
     logger.log(LogLevel::CRITICAL, "stdout: Critical error.");
     logger.log(LogLevel::WARN, "stdout: Program end");
 
-    el_logger->debug("default logger: test");
+    // Examples of how to use global default Logger, el_log is a reference to *el_logger
+    el_log.info("default logger(stdout): using el_log, a reference to *el_logger");
+    el_logger->debug("default logger(stdout): test");
     el_logger->switch_to_file("logfile_3.txt");
-    el_logger->warn("logfile3: default logger: test");
+    (*el_logger).warn("logfile3: default logger: test");
+    (*el_logger).switch_to_stdout();
+    el_log.debug("default logger(stdout): returns back to output log to STDOUT");
 
     return 0;
 }
