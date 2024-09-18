@@ -21,14 +21,14 @@ class CustomMessageServer {
     }
     void OnSignal(SignalHandler* sh, uint32_t signo)
     {
-        printf("Shutdown\n");
+        el_logger->info("[CustomMessageServer::OnSignal] Shutdown");
         EV_Singleton->StopLoop();
     }
 
     private:
     void OnConnectionReady(TcpConnection* conn)
     {
-        printf("[OnConnectionReady] fd: %d\n", conn->FD());
+        el_logger->debug("[CustomMessageServer::OnConnectionReady] fd: {}", conn->FD());
 
         CommandMessage msg;
         const char* content = "hello china from server";
@@ -41,17 +41,20 @@ class CustomMessageServer {
 
     void OnMessageRecvd(TcpConnection* conn, const Message* msg)
     {
-        printf("[server] fd: %d, message: %s, length: %lu\n", conn->FD(), msg->Payload(), msg->PayloadSize());
-        printf("[server] msg size: %lu\n", msg->Size());
-        el_logger->debug("received msg bytes:");
-        el_logger->debug(msg->DumpHex());
+        el_logger->debug("[CustomMessageServer::OnMessageRecvd] fd: {}, message: {}, length: {}",
+                conn->FD(), msg->Payload(), msg->PayloadSize());
+        el_logger->debug("[CustomMessageServer::OnMessageRecvd] msg size: {}", msg->Size());
+        el_logger->debug("[CustomMessageServer::OnMessageRecvd] received msg bytes:");
+        el_logger->output(msg->DumpHex()).eol();
 
         conn->Send(*msg);
 
         CommandMessage* cmdMsg = (CommandMessage*)(msg->Data().data());
         cmdMsg->payload_len = ntohl(cmdMsg->payload_len);
-        printf("Received command, cmd: %d\n", cmdMsg->cmd);
-        printf("Received command, payload_len: %d\n", cmdMsg->payload_len);
+        // NOTE: will print blank for uint8_t variable, MUST add "+" before it;
+        //   refer: https://stackoverflow.com/questions/19562103/uint8-t-cant-be-printed-with-cout
+        el_logger->debug("[CustomMessageServer::OnMessageRecvd] Received command, cmd: {}", +cmdMsg->cmd);
+        el_logger->debug("[CustomMessageServer::OnMessageRecvd] Received command, payload_len: {}", cmdMsg->payload_len);
     }
 
     HeaderDescriptionPtr CreateMessageHeaderDescription() {

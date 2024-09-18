@@ -31,10 +31,10 @@ class CustomMessageClient {
         string msg_bytes((char*)&msg, sizeof(msg));
         msg_bytes.append(content);
         size_t msg_length = sizeof(msg) + strlen(content);
-        printf("hdr size: %ld\n", sizeof(msg));
-        printf("msg size: %ld\n", msg_length);
-        el_logger->debug("msg bytes:");
-        el_logger->debug(DumpHex(msg_bytes));
+        el_logger->debug("[CustomMessageClient] hdr size: {}", sizeof(msg));
+        el_logger->debug("[CustomMessageClient] msg size: {}", msg_length);
+        el_logger->debug("[CustomMessageClient] msg bytes:");
+        el_logger->output(DumpHex(msg_bytes)).eol();
 
         client_.Send((char*)&msg, sizeof(msg));
         client_.Send(content);
@@ -43,20 +43,23 @@ class CustomMessageClient {
     protected:
     void OnMessageRecvd(TcpConnection* conn, const Message* msg)
     {
-        printf("[OnMessageRecvd] received message, fd: %d, message: %s, length: %lu\n", conn->FD(), msg->Payload(), msg->PayloadSize());
-        printf("[client] msg size: %lu\n", msg->Size());
-        el_logger->debug("[client] msg bytes:");
-        el_logger->debug(msg->DumpHex());
+        el_logger->debug("[CustomMessageClient::OnMessageRecvd] received message, fd: {}, message: {}, length: {}",
+                conn->FD(), msg->Payload(), msg->PayloadSize());
+        el_logger->debug("[CustomMessageClient::OnMessageRecvd] msg size: {}", msg->Size());
+        el_logger->debug("[CustomMessageClient::OnMessageRecvd] msg bytes:");
+        el_logger->output(msg->DumpHex()).eol();
 
         CommandMessage* cmdMsg = (CommandMessage*)(msg->Data().data());
         cmdMsg->payload_len = ntohl(cmdMsg->payload_len);
-        printf("Received command, cmd: %d\n", cmdMsg->cmd);
-        printf("Received command, payload_len: %d\n", cmdMsg->payload_len);
+        // NOTE: will print blank for uint8_t variable, MUST add "+" before it;
+        //   refer: https://stackoverflow.com/questions/19562103/uint8-t-cant-be-printed-with-cout
+        el_logger->debug("[CustomMessageClient::OnMessageRecvd] Received command, cmd: {}", +cmdMsg->cmd);
+        el_logger->debug("[CustomMessageClient::OnMessageRecvd] Received command, payload_len: {}", cmdMsg->payload_len);
     }
     void OnConnectionCreated(TcpConnection* conn)
     {
-        printf("[OnConnectionCreated] connection created, fd: %d\n", conn->FD());
-        printf("[OnConnectionCreated] ping\n");
+        el_logger->debug("[CustomMessageClient::OnConnectionCreated] connection created, fd: {}", conn->FD());
+        el_logger->debug("[CustomMessageClient::OnConnectionCreated] ping");
 
         CommandMessage msg;
         const char* content = "ping";
@@ -65,8 +68,8 @@ class CustomMessageClient {
         msg.payload_len = htonl(msg_payload_len);
 
         string hdr_bytes((char*)&msg, sizeof(msg));
-        el_logger->debug("hdr bytes:");
-        el_logger->debug(DumpHex(hdr_bytes));
+        el_logger->debug("[CustomMessageClient::OnConnectionCreated] hdr bytes:");
+        el_logger->output(DumpHex(hdr_bytes)).eol();
 
         client_.Send((char*)&msg, sizeof(msg));
         client_.Send(content);
@@ -89,7 +92,7 @@ int main(int argc, char **argv) {
   CustomMessageClient client;
 
   SignalHandler sh(SignalEvent::INT, [&](SignalHandler* sh, uint32_t signo) {
-          printf("Shutdown\n");
+          el_logger->info("[main] Shutdown");
           EV_Singleton->StopLoop();
           });
 
