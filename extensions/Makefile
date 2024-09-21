@@ -10,6 +10,17 @@ subsystem:
 	$(MAKE) -C lua_eval
 	$(MAKE) -C console
 
+examples:
+	$(MAKE) -C cdb_api examples
+	$(MAKE) -C db_api examples
+	$(MAKE) -C url_api examples
+	$(MAKE) -C aio_api examples
+	$(MAKE) -C tls_api examples
+	$(MAKE) -C mqtt_api examples
+	$(MAKE) -C amqp_api examples
+	$(MAKE) -C lua_eval examples
+	$(MAKE) -C console example
+
 clean:
 	$(MAKE) -C cdb_api clean
 	$(MAKE) -C db_api clean
