@@ -6,7 +6,7 @@ CPPFLAGS = -g -Wall -std=c++20
 CXXFLAGS = -I$(ROOT)/include \
 		   -I..
 
-CXXLDFLAGS = -L../ -ldb_api \
+CXXLDFLAGS = -L../ -lel_db \
 			 -L$(ROOT)/core -lel \
 			 -lpq \
 

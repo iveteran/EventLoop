@@ -9,7 +9,7 @@ CXXFLAGS = -I$(ROOT)/include \
 		   -I $(HIREDIS_LIB) \
 		   -I..
 
-CXXLDFLAGS = -L../ -lcdb_api \
+CXXLDFLAGS = -L../ -lel_cdb \
 			 $(ROOT)/core/libel.a \
 			 $(HIREDIS_LIB)/libhiredis.a
 			 #-L $(HIREDIS_LIB) -lhiredis

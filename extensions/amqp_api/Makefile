@@ -1,4 +1,4 @@
-TARGET = libamqp_api.a
+TARGET = libel_amqp.a
 
 ROOT = ../..
 

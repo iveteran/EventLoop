@@ -1,4 +1,4 @@
-TARGET = libconsole.a
+TARGET = libel_console.a
 
 ROOT = ../..
 

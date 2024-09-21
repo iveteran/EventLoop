@@ -1,4 +1,4 @@
-TARGET = libmqtt_api.a
+TARGET = libel_mqtt.a
 
 ROOT = ../..
 

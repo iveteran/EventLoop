@@ -1,4 +1,4 @@
-TARGET = libdb_api.a
+TARGET = libel_db.a
 
 ROOT = ../..
 

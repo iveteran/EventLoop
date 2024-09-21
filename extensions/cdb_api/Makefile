@@ -1,4 +1,4 @@
-TARGET = libcdb_api.a
+TARGET = libel_cdb.a
 
 ROOT = ../..
 

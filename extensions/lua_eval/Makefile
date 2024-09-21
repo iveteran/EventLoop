@@ -1,4 +1,4 @@
-TARGET = liblua_eval.a
+TARGET = libel_lua.a
 
 ROOT = ../..
 

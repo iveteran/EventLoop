@@ -1,4 +1,4 @@
-TARGET = libtls_api.a
+TARGET = libel_tls.a
 
 ROOT = ../..
 

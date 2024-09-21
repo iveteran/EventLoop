@@ -11,7 +11,7 @@ LDFLAGS =
 
 DEP_LIBS += \
            $(ROOT)/core/libel.a \
-           ../libtls_api.a \
+           ../libel_tls.a \
            -lssl -lcrypto
 
 CXX      = g++

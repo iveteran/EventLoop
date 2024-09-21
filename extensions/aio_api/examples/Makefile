@@ -10,7 +10,7 @@ CXXFLAGS = -I$(ROOT)/include \
 LDFLAGS =
 
 DEP_LIBS += \
-           ../libaio_api.a \
+           ../libel_aio.a \
            $(ROOT)/core/libel.a \
            -laio
 

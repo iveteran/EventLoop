@@ -1,4 +1,4 @@
-TARGET = liburl_api.a
+TARGET = libel_url.a
 
 ROOT = ../..
 

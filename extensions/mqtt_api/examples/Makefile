@@ -6,7 +6,7 @@ CPPFLAGS = -g -Wall -std=c++20
 CXXFLAGS = -I$(ROOT)/include \
 		   -I..
 
-CXXLDFLAGS = -L../ -lmqtt_api \
+CXXLDFLAGS = -L../ -lel_mqtt \
 			 -L$(ROOT)/core -lel \
 			 -lmosquitto
 

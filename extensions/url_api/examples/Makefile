@@ -7,7 +7,7 @@ CXXFLAGS = -I$(ROOT)/include \
 		   -I$(ROOT) \
 		   -I..
 
-CXXLDFLAGS = -L../ -lurl_api \
+CXXLDFLAGS = -L../ -lel_url \
 			 -L$(ROOT)/core -lel \
 			 -lcurl \
 

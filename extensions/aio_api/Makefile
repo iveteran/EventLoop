@@ -1,4 +1,4 @@
-TARGET = libaio_api.a
+TARGET = libel_aio.a
 
 ROOT = ../..
 

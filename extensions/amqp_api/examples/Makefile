@@ -11,7 +11,7 @@ CXXFLAGS = -I$(ROOT)/include \
 		   -I $(AMQP_LIB_PATH)/include \
 		   -I..
 
-CXXLDFLAGS = -L../ -lamqp_api \
+CXXLDFLAGS = -L../ -lel_amqp \
 			 -L$(ROOT)/core -lel \
 			 $(AMQP_LIB_PATH)/build/bin/libamqpcpp.a \
 			 -lssl -ldl

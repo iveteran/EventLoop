@@ -9,7 +9,7 @@ CXXFLAGS = -I$(ROOT)/include \
 LDFLAGS =
 
 DEP_LIBS += \
-           ../liblua_eval.a \
+           ../libel_lua.a \
            $(ROOT)/core/libel.a \
            -llua5.4
 

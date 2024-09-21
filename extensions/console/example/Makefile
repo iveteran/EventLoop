@@ -10,7 +10,7 @@ LDFLAGS =
 
 DEP_LIBS += \
            $(ROOT)/core/libel.a \
-           ../libconsole.a
+           ../libel_console.a
 
 DEP_LIBS += -lreadline
 
