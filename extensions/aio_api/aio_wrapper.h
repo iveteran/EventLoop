@@ -41,11 +41,13 @@ class aio_request : public IOEvent
     }
     virtual ~aio_request()
     {
+        destory();
         free(buffer_);
         free(iocb_);
     }
     bool init();
     bool submit();
+    int destory();
     int get_fd() const { return fd_; }
     int get_eventfd() const { return efd_; }
     void get_aio_events_test() { get_aio_events(); }

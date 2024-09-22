@@ -2,6 +2,10 @@
 #include "eventloop/logger.h"
 #include <sys/epoll.h>
 
+// Refers:
+//   https://www.fsl.cs.sunysb.edu/~vass/linux-aio.txt
+//   https://blog.csdn.net/cheng_fangang/article/details/37811123
+
 namespace evt_loop {
 
 /*
@@ -46,6 +50,17 @@ bool aio_request::submit()
 {
     int retval = io_submit(aio_ctx_, 1, (struct iocb**)(&iocb_));
     return retval >= 0;
+}
+int aio_request::destory()
+{
+    if (fd_ < 0)
+        return 0;
+    int ret = io_destroy(aio_ctx_);
+    if (ret < 0) {
+        perror("io_destroy error");
+        return -1;
+    }
+    return 0;
 }
 void aio_request::get_aio_events()
 {
