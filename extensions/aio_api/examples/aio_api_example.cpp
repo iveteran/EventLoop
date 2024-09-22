@@ -12,7 +12,7 @@ int main()
     auto rd_done_cb = [&](int status, const string& data) {
         printf(">>> read done, status: %d, size: %ld\n", status, data.size());
 
-        bool success = AIO.write("test_data/words_copy.dat", O_RDWR | O_CREAT, data, [&](int status) {
+        bool success = AIO.async_write("test_data/words_copy.dat", O_RDWR | O_CREAT, data, [&](int status) {
                 printf(">>> write done, status: %d\n", status);
                 });
         if (!success) {
@@ -20,13 +20,13 @@ int main()
         }
     };
 
-    success = AIO.read("test_data/words.dat", O_RDONLY, rd_done_cb);
+    success = AIO.async_read("test_data/words.dat", O_RDONLY, rd_done_cb);
     if (!success) {
         printf("error: read failed\n");
     }
 
     std::string wt_data("xxxxx-yyyyyyy");
-    success = AIO.write("test_data/wt_data.dat", O_RDWR | O_CREAT, wt_data, [&](int status) {
+    success = AIO.async_write("test_data/wt_data.dat", O_RDWR | O_CREAT, wt_data, [&](int status) {
             printf(">>> write done, status: %d\n", status);
             });
     if (!success) {

@@ -138,7 +138,7 @@ void aio_write_request::on_aio_return(io_context_t ctx, struct iocb *iocb, long 
     }
 }
 
-bool aio_wrapper::read(const char* filepath, int o_flags, const aio_read_callback& cb)
+bool aio_wrapper::async_read(const char* filepath, int o_flags, const aio_read_callback& cb)
 {
     aio_read_request_sp sp = std::make_shared<aio_read_request>(filepath, o_flags, cb);
     bool success = sp->init() && sp->submit();
@@ -150,7 +150,7 @@ bool aio_wrapper::read(const char* filepath, int o_flags, const aio_read_callbac
         return false;
     }
 }
-bool aio_wrapper::write(const char* filepath, int o_flags, const string& data, const aio_write_callback& cb)
+bool aio_wrapper::async_write(const char* filepath, int o_flags, const string& data, const aio_write_callback& cb)
 {
     aio_write_request_sp sp = std::make_shared<aio_write_request>(filepath, o_flags, data, cb);
     bool success = sp->init() && sp->submit();

@@ -131,8 +131,8 @@ class aio_wrapper
         static aio_wrapper instance_;
         return instance_;
     }
-    bool read(const char* filepath, int o_flags, const aio_read_callback& cb);
-    bool write(const char* filepath, int o_flags, const string& data, const aio_write_callback& cb);
+    bool async_read(const char* filepath, int o_flags, const aio_read_callback& cb);
+    bool async_write(const char* filepath, int o_flags, const string& data, const aio_write_callback& cb);
 
     void test();
 
