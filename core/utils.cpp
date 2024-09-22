@@ -88,31 +88,57 @@ bool is_visable_char(char c)
     return c >= 0x20 && c <= 0x7e;
 }
 
+/*
+ * output format example:
+ * 02 20 00 00 00 3B 7B 22  61 63 63 65 73 73 5F 63
+ * 6F 64 65 22 3A 22 48 65  6C 6C 6F 20 57 6F 72 6C
+ * 64 22 2C 22 69 64 22 3A  38 36 2C 22 72 6F 6C 65
+ * 22 3A 22 65 6E 64 70 6F  69 6E 74 22 7D
+ */
 string DumpHex(const string& data, size_t max_bytes)
 {
-  size_t bytes_to_dump = (max_bytes == 0 || max_bytes > data.size()) ? data.size() : max_bytes;
+    return DumpHex(data.data(), data.size(), max_bytes);
+}
+string DumpHex(const char* data, size_t size, size_t max_bytes)
+{
+  size_t bytes_to_dump = (max_bytes == 0 || max_bytes > size) ? size : max_bytes;
   size_t i = 0;
+  const size_t LINE_BYTES = 16;
   std::stringstream ss;
   for (; i < bytes_to_dump; i++) {
       char strbuf[4];
       snprintf(strbuf, sizeof(strbuf), "%02X", data[i]);
       ss << strbuf;
-      if (i != 0 && i != data.size()-1 && (i + 1) % 16 == 0)
+      if (i != 0 && i != size-1 && (i + 1) % LINE_BYTES == 0)
+          // append line break for each LINE_BYTES bytes
           ss << '\n';
       else
+          // append 1 blank between each hex
           ss << ' ';
-      if (i != 0 && (i + 1) % 8 == 0 && (i + 1) % 16 != 0)
+      if (i != 0 && (i + 1) % (LINE_BYTES/2) == 0 && (i + 1) % LINE_BYTES != 0)
+          // append more one blank for each half of one line
           ss << ' ';
   }
 
   return ss.str();
 }
 
-string DumpHex(const string& data, const char* tag, size_t max_bytes)
+/*
+ * output format example:
+ * payload:
+ * 7B 22 61 63 63 65 73 73  5F 63 6F 64 65 22 3A 22   {"access_code":"
+ * 48 65 6C 6C 6F 20 57 6F  72 6C 64 22 2C 22 69 64   Hello World","id
+ * 22 3A 35 31 2C 22 72 6F  6C 65 22 3A 22 65 6E 64   ":51,"role":"end
+ * 70 6F 69 6E 74 22 7D 00  6F 2E 2E                  point"}.o..
+ */
+string DumpHexWithChars(const string& data, size_t max_bytes)
+{
+    return DumpHexWithChars(data.data(), data.size(), max_bytes);
+}
+string DumpHexWithChars(const char* data, size_t size, size_t max_bytes)
 {
   std::stringstream ss;
-  ss << tag << ": \n";
-  size_t bytes_to_dump = (max_bytes == 0 || max_bytes > data.size()) ? data.size() : max_bytes;
+  size_t bytes_to_dump = (max_bytes == 0 || max_bytes > size) ? size : max_bytes;
   size_t i = 0;
   size_t j = 0;
   size_t k = 0;
@@ -122,14 +148,18 @@ string DumpHex(const string& data, const char* tag, size_t max_bytes)
     for (j=0; j<rest_bytes && j<LINE_BYTES; j++) {
       char strbuf[4];
       snprintf(strbuf, sizeof(strbuf), "%02X", data[i+j]);
-      ss << strbuf;
+      ss << strbuf << " ";  // append 1 blank between each hex
+      if (j != 0 && (j + 1) % (LINE_BYTES/2) == 0 && (j + 1) % LINE_BYTES != 0)
+          // append more one blank for each half of one line
+          ss << ' ';
     }
-    ss << "  ";
     if (rest_bytes < LINE_BYTES) {
       for (size_t n=0; n<LINE_BYTES-rest_bytes; n++) {
-        ss << "   ";  // 3 blanks
+        ss << "   ";  // 3 blanks: 2 blanks for 2 hex placeholder and 1 blank for seperate
       }
     }
+
+    ss << "  ";  // add 2 blanks between hex and chars
 
     for (k=0; k<rest_bytes && k<LINE_BYTES; k++) {
       int pos = i+k;
@@ -140,8 +170,11 @@ string DumpHex(const string& data, const char* tag, size_t max_bytes)
       } else if (data[pos] == '\r') {
         ss << "\\r";
       } else {
-        ss << '.';
+        ss << '.';  // use '.' replace of invisable charactor
       }
+    }
+    if (i != bytes_to_dump-1) {
+        ss << '\n';
     }
   }
 

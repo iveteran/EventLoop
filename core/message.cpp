@@ -9,8 +9,8 @@ string Message::DumpHex(size_t max_bytes) const {
   return evt_loop::DumpHex(data_, max_bytes);
 }
 
-string Message::DumpHex(const char* tag, size_t max_bytes) const {
-  return evt_loop::DumpHex(data_, tag, max_bytes);
+string Message::DumpHexWithChars(size_t max_bytes) const {
+  return evt_loop::DumpHexWithChars(data_, max_bytes);
 }
 
 const char* CRLFMessage::TERMINAL_LABEL = "\r\n";

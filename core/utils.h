@@ -63,7 +63,9 @@ void SocketAddrToIPAddress(const struct sockaddr_in& sock_addr, IPAddress& ip_ad
 void SocketAddrToIPAddress(const struct sockaddr_in6& sock_addr, IPAddress& ip_addr);
 
 string DumpHex(const string& data, size_t max_bytes = 0);
-string DumpHex(const string& data, const char* tag, size_t max_bytes = 0);
+string DumpHex(const char* data, size_t size, size_t max_bytes);
+string DumpHexWithChars(const string& data, size_t max_bytes = 0);
+string DumpHexWithChars(const char* data, size_t size, size_t max_bytes = 0);
 
 }  // namespace evt_loop
 
