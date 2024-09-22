@@ -19,32 +19,36 @@ void aio_callback(io_context_t ctx, struct iocb *iocb, long res, long res2)
 
 bool aio_request::init()
 {
+    if (fd_ < 0) {
+        perror("open file failed");
+        return false;
+    }
+
     int retval = io_setup(AIO_MAXIO, &aio_ctx_);
     if (retval != 0)
     {
         perror("io_setup failed");
         return false;
     }
-    if (fd_ > 0) {
-        int retval = posix_memalign(&buffer_, getpagesize(), AIO_BLKSIZE);
-        if (retval < 0) {
-            perror("posix_memalign failed");
-            return false;
-        }
-        efd_ = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-        if (efd_ < 0) {
-            perror("eventfd failed");
-            return false;
-        }
-        perpare();
-        io_set_eventfd(iocb_, efd_);
-        //io_set_callback(iocb_, aio_callback);
-        io_set_callback(iocb_, (io_callback_t)this);
 
-        SetFD(efd_);
-        return true;
+    retval = posix_memalign(&buffer_, getpagesize(), AIO_BLKSIZE);
+    if (retval < 0) {
+        perror("posix_memalign failed");
+        return false;
     }
-    return false;
+    efd_ = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    if (efd_ < 0) {
+        perror("eventfd failed");
+        return false;
+    }
+    perpare();
+    io_set_eventfd(iocb_, efd_);
+    //io_set_callback(iocb_, aio_callback);
+    io_set_callback(iocb_, (io_callback_t)this);  // use user data(aio_request*) instead of io_callback_t
+
+    SetFD(efd_);
+
+    return true;
 }
 bool aio_request::submit()
 {
@@ -66,7 +70,7 @@ void aio_request::get_aio_events()
 {
     uint64_t done_num;
     if (read(efd_, &done_num, sizeof(done_num)) != sizeof(done_num)) {
-        perror("read failed");
+        perror("read file failed");
         return;
     }
 
@@ -78,7 +82,7 @@ void aio_request::get_aio_events()
         int r = io_getevents(aio_ctx_, 1, AIO_MAXIO, events, &tms);
         if (r > 0) {
             for (int i = 0; i < r; ++i) {
-                aio_request* request = (aio_request*)(events[i].data);
+                aio_request* request = (aio_request*)(events[i].data);  // get user data(aio_request*)
                 request->on_aio_return(aio_ctx_, events[i].obj, events[i].res, events[i].res2);
                 //((io_callback_t)(events[i].data))(aio_ctx_, events[i].obj, events[i].res, events[i].res2);
             }
