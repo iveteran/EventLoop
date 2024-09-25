@@ -20,7 +20,12 @@ class ConsoleDemo {
         echoserver_crlf_.SetTcpCallbacks(svr_cbs);
         echoserver_crlf_.EnableIdleTimeout(10, std::bind(&ConsoleDemo::OnConnectionIdleTimeout, this, std::placeholders::_1, std::placeholders::_2));
 
-        Console::Instance()->registerCommand("clients", "Show number of connected clients", std::bind(&ConsoleDemo::handleClientsCommand, this, std::placeholders::_1));
+        Console::Instance()->registerCommand(
+                "clients",
+                "Show number of connected clients",
+                std::bind(&ConsoleDemo::handleClientsCommand, this, std::placeholders::_1, std::placeholders::_2),
+                std::bind(&ConsoleDemo::onClientsCommandResult, this, std::placeholders::_1, std::placeholders::_2)
+                );
     }
     void OnSignal(SignalHandler* sh, uint32_t signo)
     {
@@ -47,10 +52,21 @@ class ConsoleDemo {
         conn->Send(*msg);
     }
 
-    int handleClientsCommand(const vector<string>& argv)
+    int handleClientsCommand(const vector<string>& argv, const Console::ResultCallback& result_cb)
     {
-        Console::Instance()->put_line("clients: ", echoserver_crlf_.GetConnectionNumber());
+        //Console::Instance()->put_line("clients: ", echoserver_crlf_.GetConnectionNumber());
+
+        stringstream ss;
+        ss << "clients: " << echoserver_crlf_.GetConnectionNumber();
+        if (result_cb) {
+            result_cb(0, ss.str());
+        }
         return 0;
+    }
+    int onClientsCommandResult(int status, const string& data)
+    {
+        Console::Instance()->put_line(data);
+        return status;
     }
 
     private:

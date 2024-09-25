@@ -103,14 +103,15 @@ void Console::handleCtrl_D() {
 #endif
 }
 
-int Console::registerCommand(const char* cmd, const char* desc, const CommandCallback& cb) {
+int Console::registerCommand(const char* cmd, const char* desc,
+        const CommandCallback& cb, const ResultCallback& result_cb) {
     string errmsg = verifyCommand(cmd);
     if (! errmsg.empty()) {
         el_logger->error("[Console::registerCommand] Illegal command name: {}, reason: {}", cmd, errmsg);
         return -1;
     }
     string _cmd = to_lower(cmd);
-    auto cmd_obj = std::make_shared<ConsoleCommand>(_cmd, desc, cb);
+    auto cmd_obj = std::make_shared<ConsoleCommand>(_cmd, desc, cb, result_cb);
     cmd_callbacks_.insert(std::make_pair(_cmd, cmd_obj));
     return 0;
 }
@@ -186,33 +187,34 @@ int Console::handleCommand(const vector<string>& argv) {
         return -1;
     }
     auto cmd_obj = iter->second;
-    return cmd_obj->callback(argv);
+    return cmd_obj->callback(argv, cmd_obj->result_callback);
 }
 
 void Console::registerInnerCommand() {
     registerCommand(
             ".help",
             "print this help",
-            std::bind(&Console::handleCommandHelp, this, std::placeholders::_1)
+            std::bind(&Console::handleCommandHelp, this, std::placeholders::_1, std::placeholders::_2)
             );
     registerCommand(
             ".echo",
             "echo input, .echo [text]",
-            std::bind(&Console::handleCommandEcho, this, std::placeholders::_1)
+            std::bind(&Console::handleCommandEcho, this, std::placeholders::_1, std::placeholders::_2),
+            std::bind(&Console::onCommandEchoResult, this, std::placeholders::_1, std::placeholders::_2)
             );
     registerCommand(
             ".change_prompt",
             "change console prompt, example: .change_prompt \"$ \"",
-            std::bind(&Console::handleCommandChangePrompt, this, std::placeholders::_1)
+            std::bind(&Console::handleCommandChangePrompt, this, std::placeholders::_1, std::placeholders::_2)
             );
     registerCommand(
             ".log",
             "set log options",
-            std::bind(&Console::handleCommandLog, this, std::placeholders::_1)
+            std::bind(&Console::handleCommandLog, this, std::placeholders::_1, std::placeholders::_2)
             );
 }
 
-int Console::handleCommandHelp(const vector<string>& argv) {
+int Console::handleCommandHelp(const vector<string>& argv, const ResultCallback& result_cb) {
     size_t max_size_of_cmd_name = get_max_size_of_words(cmd_callbacks_);
     auto twice_spaces = std::string(2, ' ');
     put_line("Commands: ");
@@ -224,7 +226,7 @@ int Console::handleCommandHelp(const vector<string>& argv) {
     return 0;
 }
 
-int Console::handleCommandEcho(const vector<string>& argv) {
+int Console::handleCommandEcho(const vector<string>& argv, const ResultCallback& result_cb) {
     for (size_t i=1; i<argv.size(); i++) {
         output(argv[i]);
         if (i < argv.size() - 1) {
@@ -232,10 +234,21 @@ int Console::handleCommandEcho(const vector<string>& argv) {
         }
     }
     output('\n');
+
+    if (result_cb) {
+        int status = 0;
+        string result = "echo dummy result";
+        result_cb(status, result);
+    }
     return 0;
 }
+int Console::onCommandEchoResult(int status, const string& data) {
+    put_line("* echo callback, status: ", status);
+    put_line("* echo callback, data: ", data);
+    return status;
+}
 
-int Console::handleCommandChangePrompt(const vector<string>& argv) {
+int Console::handleCommandChangePrompt(const vector<string>& argv, const ResultCallback& result_cb) {
 #if defined(SUPPORTS_READLINE)
     put_line("Unsupport in GNU readline mode");
     return 0;
@@ -251,7 +264,7 @@ int Console::handleCommandChangePrompt(const vector<string>& argv) {
     return 0;
 }
 
-int Console::handleCommandLog(const vector<string>& argv) {
+int Console::handleCommandLog(const vector<string>& argv, const ResultCallback& result_cb) {
     map<string, string> cmd_usages;
     cmd_usages["info"] = ".log info, show log info";
     cmd_usages["on"] = ".log on, enable log";
@@ -275,7 +288,7 @@ int Console::handleCommandLog(const vector<string>& argv) {
     };
 
     if (argv.size() < 2) {
-        put_line("Miss sub command.");
+        put_line("Missing sub command.");
         show_help();
         return 1;
     }

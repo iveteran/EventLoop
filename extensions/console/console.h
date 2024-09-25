@@ -22,15 +22,18 @@ void cb_line_handler(char *line);
 
 class Console;
 
-using CommandCallback = std::function<int (const vector<string>&)>;
+using ResultCallback = std::function<int (int, const string&)>;
+using CommandCallback = std::function<int (const vector<string>&, const ResultCallback&)>;
 
 struct ConsoleCommand {
     string cmd;
     string desc;
     CommandCallback callback;
+    ResultCallback result_callback;
 
-    ConsoleCommand(const string& _cmd, const string& _desc, const CommandCallback& cb) :
-        cmd(_cmd), desc(_desc), callback(cb)
+    ConsoleCommand(const string& _cmd, const string& _desc,
+            const CommandCallback& cb, const ResultCallback& result_cb=nullptr)
+        : cmd(_cmd), desc(_desc), callback(cb), result_callback(result_cb)
     {}
 };
 using ConsoleCommandPtr = std::shared_ptr<ConsoleCommand>;
@@ -57,7 +60,8 @@ class Console : public IOEvent {
 
   void init();
   void destory();
-  int registerCommand(const char* cmd, const char* desc, const CommandCallback& cb);
+  int registerCommand(const char* cmd, const char* desc,
+          const CommandCallback& cb, const ResultCallback& result_cb=nullptr);
 
   template<typename T, typename... Args>
   inline void put_line(const T& x, Args... args) {
@@ -82,10 +86,12 @@ class Console : public IOEvent {
  protected:
   int handleCommand(const vector<string>& argv);
 
-  int handleCommandHelp(const vector<string>& argv);
-  int handleCommandEcho(const vector<string>& argv);
-  int handleCommandChangePrompt(const vector<string>& argv);
-  int handleCommandLog(const vector<string>& argv);
+  int handleCommandHelp(const vector<string>& argv, const ResultCallback& result_cb);
+  int handleCommandEcho(const vector<string>& argv, const ResultCallback& result_cb);
+  int handleCommandChangePrompt(const vector<string>& argv, const ResultCallback& result_cb);
+  int handleCommandLog(const vector<string>& argv, const ResultCallback& result_cb);
+
+  int onCommandEchoResult(int status, const string& data);
 
  private:
   void OnEvents(uint32_t events);
