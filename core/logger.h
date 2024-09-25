@@ -322,6 +322,9 @@ private:
 
     void _print_prefix(LogLevel level)
     {
+        if (disabled_ || ! os_) {
+            return;
+        }
         // Get current timestamp
         time_t now = time(0);
         tm* timeinfo = localtime(&now);
