@@ -20,7 +20,7 @@ string to_lower(const string& str) {
     return lower_str;
 }
 
-size_t get_max_size_of_words(const map<string, ConsoleCommandPtr>& cmds) {
+size_t get_max_size_of_words(const map<string, Console::CommandPtr>& cmds) {
     size_t max_size = 0;
     for (auto [cmd_name, _] : cmds) {
         if (cmd_name.size() > max_size) {
@@ -111,7 +111,7 @@ int Console::registerCommand(const char* cmd, const char* desc,
         return -1;
     }
     string _cmd = to_lower(cmd);
-    auto cmd_obj = std::make_shared<ConsoleCommand>(_cmd, desc, cb, result_cb);
+    auto cmd_obj = std::make_shared<Command>(_cmd, desc, cb, result_cb);
     cmd_callbacks_.insert(std::make_pair(_cmd, cmd_obj));
     return 0;
 }

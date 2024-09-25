@@ -22,24 +22,26 @@ void cb_line_handler(char *line);
 
 class Console;
 
-using ResultCallback = std::function<int (int, const string&)>;
-using CommandCallback = std::function<int (const vector<string>&, const ResultCallback&)>;
+class Console : public IOEvent {
+  friend void cb_line_handler(char *line);
 
-struct ConsoleCommand {
+public:
+  using ResultCallback = std::function<int (int, const string&)>;
+  using CommandCallback = std::function<int (const vector<string>&, const ResultCallback&)>;
+
+  struct Command {
     string cmd;
     string desc;
     CommandCallback callback;
     ResultCallback result_callback;
 
-    ConsoleCommand(const string& _cmd, const string& _desc,
+    Command(const string& _cmd, const string& _desc,
             const CommandCallback& cb, const ResultCallback& result_cb=nullptr)
         : cmd(_cmd), desc(_desc), callback(cb), result_callback(result_cb)
     {}
-};
-using ConsoleCommandPtr = std::shared_ptr<ConsoleCommand>;
+  };
+  using CommandPtr = std::shared_ptr<Command>;
 
-class Console : public IOEvent {
-  friend void cb_line_handler(char *line);
   private:
   Console(const char* prompt = "> ")
     : IOEvent(IOType::STDIN, STDIN_FILENO, FileEvent::READ | FileEvent::ERROR),
@@ -104,7 +106,7 @@ class Console : public IOEvent {
 
  private:
   string prompt_;
-  map<string, ConsoleCommandPtr> cmd_callbacks_;
+  map<string, CommandPtr> cmd_callbacks_;
   std::ostream& os_;
 
   static Console* instance_;
