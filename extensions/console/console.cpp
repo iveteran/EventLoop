@@ -266,14 +266,14 @@ int Console::handleCommandChangePrompt(const vector<string>& argv, const ResultC
 
 int Console::handleCommandLog(const vector<string>& argv, const ResultCallback& result_cb) {
     map<string, string> cmd_usages;
-    cmd_usages["info"] = ".log info, show log info";
-    cmd_usages["on"] = ".log on, enable log";
-    cmd_usages["off"] = ".log off, disable log";
-    cmd_usages["flush"] = ".log flush, flush log immediately";
-    cmd_usages["color"] = ".log color <on|off>, enable or disable color for log level";
-    cmd_usages["stdout"] = ".log stdout, output log to STDOUT";
-    cmd_usages["file"] = ".log file <FILENAME>, change log file to FILENAME";
-    cmd_usages["help"] = ".log help, show this help";
+    cmd_usages["info"]   = ".log info             Show log info";
+    cmd_usages["on"]     = ".log on               Enable log";
+    cmd_usages["off"]    = ".log off              Disable log";
+    cmd_usages["flush"]  = ".log flush            Flush log immediately";
+    cmd_usages["color"]  = ".log color <on|off>   Enable or disable color for log level";
+    cmd_usages["stdout"] = ".log stdout           Output log to STDOUT";
+    cmd_usages["file"]   = ".log file <FILENAME>  Change log file to FILENAME";
+    cmd_usages["help"]   = ".log help             Show this help";
 
     auto show_help = [this, cmd_usages]() {
         auto twice_spaces = std::string(2, ' ');
