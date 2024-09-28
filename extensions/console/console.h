@@ -57,6 +57,13 @@ public:
     }
     return instance_;
   }
+  // Call Initialize before Instance if you want to set your own prompt
+  static Console *Initialize(const char* prompt=nullptr) {
+      if (!instance_) {
+          instance_ = prompt ? new Console(prompt) : new Console();
+      }
+      return instance_;
+  }
 
   virtual ~Console() { destory(); }
 

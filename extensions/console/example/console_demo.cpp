@@ -20,6 +20,8 @@ class ConsoleDemo {
         echoserver_crlf_.SetTcpCallbacks(svr_cbs);
         echoserver_crlf_.EnableIdleTimeout(10, std::bind(&ConsoleDemo::OnConnectionIdleTimeout, this, std::placeholders::_1, std::placeholders::_2));
 
+        const char* prompt = "demo> ";
+        Console::Initialize(prompt);
         Console::Instance()->registerCommand(
                 "clients",
                 "Show number of connected clients",
