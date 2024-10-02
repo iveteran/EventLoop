@@ -124,6 +124,12 @@ void TcpClient::EnableKeepAlive(bool enable)
 
 void TcpClient::EnableHeartbeat(uint32_t idle_interval, uint32_t ping_interval, uint32_t ping_total)
 {
+    if (msg_type_ == MessageType::CUSTOM &&
+            (msg_hdr_desc_->heartbeat_request.empty() ||
+             msg_hdr_desc_->heartbeat_response.empty())) {
+        el_logger->error("[TcpClient::EnableHeartbeat] MUST define heartbeat request/response messages for CUSTOM message");
+        return;
+    }
     hb_tmp_params_ = std::make_shared<HeartbeatParams>(idle_interval, ping_interval, ping_total);
     if (conn_) conn_->EnableHeartbeat(idle_interval, ping_interval, ping_total);
 }

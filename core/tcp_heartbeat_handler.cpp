@@ -128,7 +128,7 @@ bool TcpHeartbeatHandler::IsHeartbeatRequest(const Message* msg)
         case MessageType::CRLF:
             retval = IsCRLFHeartbeatRequest(msg); break;
         case MessageType::CUSTOM:
-            // Do nothing
+            retval = IsCustomMessageHeartbeatRequest(msg); break;
             break;
         default:
             el_logger->warn("[TcpHeartbeatHandler::IsHeartbeatRequest] Unknown message type: {}", msg->Type());
@@ -149,7 +149,7 @@ bool TcpHeartbeatHandler::IsHeartbeatResponse(const Message* msg)
         case MessageType::CRLF:
             retval = IsCRLFHeartbeatResponse(msg); break;
         case MessageType::CUSTOM:
-            // Do nothing
+            retval = IsCustomMessageHeartbeatResponse(msg); break;
             break;
         default:
             el_logger->warn("[TcpHeartbeatHandler::IsHeartbeatResponse] Unknown message type: {}", msg->Type());
@@ -174,6 +174,11 @@ bool TcpHeartbeatHandler::IsCRLFHeartbeatRequest(const Message* msg)
     return msg->Data() == dft_crlf_heartbeat_request;
 }
 
+bool TcpHeartbeatHandler::IsCustomMessageHeartbeatRequest(const Message* msg)
+{
+    return msg->Data() == m_connection->GetMessageHeaderDescription()->heartbeat_request;
+}
+
 bool TcpHeartbeatHandler::IsBinaryHeartbeatResponse(const Message* msg)
 {
     DefaultBinaryHeartbeatMessage* hb_msg = (DefaultBinaryHeartbeatMessage*)(msg->Data().data());
@@ -188,6 +193,11 @@ bool TcpHeartbeatHandler::IsJsonHeartbeatResponse(const Message* msg)
 bool TcpHeartbeatHandler::IsCRLFHeartbeatResponse(const Message* msg)
 {
     return msg->Data() == dft_crlf_heartbeat_response;
+}
+
+bool TcpHeartbeatHandler::IsCustomMessageHeartbeatResponse(const Message* msg)
+{
+    return msg->Data() == m_connection->GetMessageHeaderDescription()->heartbeat_response;
 }
 
 void TcpHeartbeatHandler::OnHeartbeatRequestReceived(const Message* msg)
@@ -221,7 +231,7 @@ void TcpHeartbeatHandler::SendHeartbeatRequest(TcpConnection* conn)
         case MessageType::CRLF:
             SendCRLFHeartbeatRequest(conn); break;
         case MessageType::CUSTOM:
-            // Do nothing
+            SendCustomMessageHeartbeatRequest(conn); break;
             break;
         default:
             el_logger->warn("[TcpHeartbeatHandler::SendHeartbeatRequest] Unknown connection message type: {}",
@@ -241,6 +251,14 @@ void TcpHeartbeatHandler::SendCRLFHeartbeatRequest(TcpConnection* conn)
 {
     conn->Send(dft_crlf_heartbeat_request);
 }
+void TcpHeartbeatHandler::SendCustomMessageHeartbeatRequest(TcpConnection* conn)
+{
+    auto hdr_desc = conn->GetMessageHeaderDescription();
+    if (hdr_desc && ! hdr_desc->heartbeat_request.empty()) {
+        string& hb_req = hdr_desc->heartbeat_request;
+        conn->Send(hb_req);
+    }
+}
 
 void TcpHeartbeatHandler::SendHeartbeatResponse(TcpConnection* conn)
 {
@@ -255,7 +273,7 @@ void TcpHeartbeatHandler::SendHeartbeatResponse(TcpConnection* conn)
         case MessageType::CRLF:
             SendCRLFHeartbeatResponse(conn); break;
         case MessageType::CUSTOM:
-            // Do nothing
+            SendCustomMessageHeartbeatResponse(conn); break;
             break;
         default:
             el_logger->warn("[TcpHeartbeatHandler::SendHeartbeatResponse] Unknown connection message type: {}",
@@ -274,6 +292,14 @@ void TcpHeartbeatHandler::SendJsonHeartbeatResponse(TcpConnection* conn)
 void TcpHeartbeatHandler::SendCRLFHeartbeatResponse(TcpConnection* conn)
 {
     conn->Send(dft_crlf_heartbeat_response);
+}
+void TcpHeartbeatHandler::SendCustomMessageHeartbeatResponse(TcpConnection* conn)
+{
+    auto hdr_desc = conn->GetMessageHeaderDescription();
+    if (hdr_desc && ! hdr_desc->heartbeat_response.empty()) {
+        string& hb_rsp = hdr_desc->heartbeat_response;
+        conn->Send(hb_rsp);
+    }
 }
 
 void TcpHeartbeatHandler::OnConnectionDead(TcpConnection* conn)

@@ -86,20 +86,24 @@ class TcpHeartbeatHandler
     bool IsBinaryHeartbeatRequest(const Message* msg);
     bool IsJsonHeartbeatRequest(const Message* msg);
     bool IsCRLFHeartbeatRequest(const Message* msg);
+    bool IsCustomMessageHeartbeatRequest(const Message* msg);
 
     bool IsBinaryHeartbeatResponse(const Message* msg);
     bool IsJsonHeartbeatResponse(const Message* msg);
     bool IsCRLFHeartbeatResponse(const Message* msg);
+    bool IsCustomMessageHeartbeatResponse(const Message* msg);
 
     void SendHeartbeatRequest(TcpConnection* conn);
     void SendBinaryHeartbeatRequest(TcpConnection* conn);
     void SendJsonHeartbeatRequest(TcpConnection* conn);
     void SendCRLFHeartbeatRequest(TcpConnection* conn);
+    void SendCustomMessageHeartbeatRequest(TcpConnection* conn);
 
     void SendHeartbeatResponse(TcpConnection* conn);
     void SendBinaryHeartbeatResponse(TcpConnection* conn);
     void SendJsonHeartbeatResponse(TcpConnection* conn);
     void SendCRLFHeartbeatResponse(TcpConnection* conn);
+    void SendCustomMessageHeartbeatResponse(TcpConnection* conn);
 
     void OnConnectionDead(TcpConnection* conn);
 

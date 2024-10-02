@@ -26,6 +26,8 @@ struct HeaderDescription {
   uint32_t          payload_len_offset = 0;
   uint32_t          payload_len_bytes = 0;
   bool              is_payload_len_including_self = false;
+  std::string       heartbeat_request;
+  std::string       heartbeat_response;
 
   // be decode fields
   const char*       hdr_ptr = nullptr;
