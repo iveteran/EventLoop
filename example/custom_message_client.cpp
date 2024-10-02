@@ -1,8 +1,9 @@
 #include <stdio.h>
-#include <arpa/inet.h>
+#include "custom_message.h"
 #include "eventloop/el.h"
 #include "eventloop/logger.h"
-#include "custom_message.h"
+
+#define DEBUG
 
 using namespace evt_loop;
 
@@ -13,6 +14,7 @@ class CustomMessageClient {
     {
         auto msg_hdr_desc = CreateMessageHeaderDescription();
         client_.SetMessageHeaderDescription(msg_hdr_desc);
+        client_.EnableHeartbeat();
 
         TcpCallbacksPtr client_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         client_cbs->on_msg_recvd_cb = std::bind(&CustomMessageClient::OnMessageRecvd, this, std::placeholders::_1, std::placeholders::_2);
@@ -22,12 +24,9 @@ class CustomMessageClient {
 
         client_.Connect();
 
-        CommandMessage msg;
         const char* content = "hello world from client";
-        size_t msg_payload_len = msg_hdr_desc->is_payload_len_including_self ? sizeof(msg.payload_len) + strlen(content) : strlen(content);
-        msg.cmd = 1;
-        msg.payload_len = htonl(msg_payload_len);
-
+        CommandMessage msg = create_demo_message(msg_hdr_desc->is_payload_len_including_self, content);
+#ifdef DEBUG
         string msg_bytes((char*)&msg, sizeof(msg));
         msg_bytes.append(content);
         size_t msg_length = sizeof(msg) + strlen(content);
@@ -35,6 +34,7 @@ class CustomMessageClient {
         el_logger->debug("[CustomMessageClient] msg size: {}", msg_length);
         el_logger->debug("[CustomMessageClient] msg bytes:");
         el_logger->output(DumpHex(msg_bytes)).eol();
+#endif
 
         client_.Send((char*)&msg, sizeof(msg));
         client_.Send(content);
@@ -81,6 +81,10 @@ class CustomMessageClient {
         msg_hdr_desc->payload_len_offset = 1;  // jump a byte of cmd field
         msg_hdr_desc->payload_len_bytes = sizeof(CommandMessage::payload_len);
         msg_hdr_desc->is_payload_len_including_self = true;
+        auto hb_request = create_heartbeat_request(msg_hdr_desc->is_payload_len_including_self);
+        msg_hdr_desc->heartbeat_request = string((char*)&hb_request, sizeof(hb_request));
+        auto hb_response = create_heartbeat_response(msg_hdr_desc->is_payload_len_including_self);
+        msg_hdr_desc->heartbeat_response = string((char*)&hb_response, sizeof(hb_response));
         return msg_hdr_desc;
     }
 

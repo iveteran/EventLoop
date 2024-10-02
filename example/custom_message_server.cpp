@@ -1,8 +1,8 @@
 #include <stdio.h>
 
+#include "custom_message.h"
 #include "eventloop/el.h"
 #include "eventloop/logger.h"
-#include "custom_message.h"
 
 using namespace evt_loop;
 
@@ -63,6 +63,10 @@ class CustomMessageServer {
         msg_hdr_desc->payload_len_offset = 1;  // jump a byte of cmd field
         msg_hdr_desc->payload_len_bytes = sizeof(CommandMessage::payload_len);
         msg_hdr_desc->is_payload_len_including_self = true;
+        auto hb_request = create_heartbeat_request(msg_hdr_desc->is_payload_len_including_self);
+        msg_hdr_desc->heartbeat_request = string((char*)&hb_request, sizeof(hb_request));
+        auto hb_response = create_heartbeat_response(msg_hdr_desc->is_payload_len_including_self);
+        msg_hdr_desc->heartbeat_response = string((char*)&hb_response, sizeof(hb_response));
         return msg_hdr_desc;
     }
 
