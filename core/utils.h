@@ -14,6 +14,8 @@ using std::string;
 
 namespace evt_loop {
 
+const int DUMP_MAX_BYTES = 256;
+
 class TimeVal {
  public:
   TimeVal(uint32_t sec = 0, uint32_t usec = 0);
