@@ -22,11 +22,15 @@ class TcpClient : public IOEvent
     void Disconnect();
 
     void EnableKeepAlive(bool enable);
+    bool IsKeepAliveEnabled() const { return keepalive_; }
     void EnableHeartbeat(uint32_t idle_interval = TcpHeartbeatHandler::DFT_IDLE_INTERVAL,
             uint32_t ping_interval = TcpHeartbeatHandler::DFT_PING_INTERVAL,
             uint32_t ping_total = TcpHeartbeatHandler::DFT_PING_TOTAL);
+    void DisableHeartbeat();
+    bool IsHeartbeatEnabled() const;
     void EnableIdleTimeout(uint32_t seconds, const OnIdleTimeoutCallback& cb);
     void SetAutoReconnect(bool value = true) { auto_reconnect_ = value; }
+    bool IsAutoReconnectEnabled() const { return auto_reconnect_; }
 
     void SetMessageHeaderDescription(const HeaderDescriptionPtr& msg_hdr_desc) {
         msg_hdr_desc_ = msg_hdr_desc;

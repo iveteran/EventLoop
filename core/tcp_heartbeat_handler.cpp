@@ -100,12 +100,20 @@ void TcpHeartbeatHandler::SetCallbacks(const SendHeartbeatRequestCallback& send_
 
 void TcpHeartbeatHandler::EnablePing(uint32_t idle_interval, uint32_t ping_interval, uint32_t ping_total)
 {
+    if (IsEnabled()) return;
     m_heartbeat_pinger = std::make_shared<HeartbeatPing>(this, idle_interval, ping_interval, ping_total);
+    el_logger->info("[TcpHeartbeatHandler::EnableHeartbeat] heartbeat enabled");
 }
 
 void TcpHeartbeatHandler::DisablePing()
 {
     m_heartbeat_pinger = nullptr;
+    el_logger->info("[TcpHeartbeatHandler::EnableHeartbeat] heartbeat disabled");
+}
+
+bool TcpHeartbeatHandler::IsEnabled() const
+{
+    return m_heartbeat_pinger != nullptr;
 }
 
 bool TcpHeartbeatHandler::IsHeartbeatRequest(const Message* msg)

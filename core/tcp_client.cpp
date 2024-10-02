@@ -128,6 +128,16 @@ void TcpClient::EnableHeartbeat(uint32_t idle_interval, uint32_t ping_interval, 
     if (conn_) conn_->EnableHeartbeat(idle_interval, ping_interval, ping_total);
 }
 
+void TcpClient::DisableHeartbeat()
+{
+    if (conn_) conn_->DisableHeartbeat();
+}
+
+bool TcpClient::IsHeartbeatEnabled() const
+{
+    return conn_ && conn_->IsHeartbeatEnabled();
+}
+
 void TcpClient::EnableIdleTimeout(uint32_t seconds, const OnIdleTimeoutCallback& cb)
 {
     idle_timeout_params_ = std::make_shared<IdleTimeoutParams>(std::make_tuple(seconds, cb));

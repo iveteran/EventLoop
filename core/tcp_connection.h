@@ -38,9 +38,11 @@ class TcpConnection : public BufferIOEvent
             uint32_t ping_interval = TcpHeartbeatHandler::DFT_PING_INTERVAL,
             uint32_t ping_total = TcpHeartbeatHandler::DFT_PING_TOTAL);
     void DisableHeartbeat();
+    bool IsHeartbeatEnabled() const;
 
     void EnableIdleTimeout(uint32_t seconds, const OnIdleTimeoutCallback& cb);
     void DisableIdleTimeout();
+    bool IsIdleTimeoutEnabled() const;
 
     const IPAddress& GetLocalAddr() const { return local_addr_; }
     const IPAddress& GetPeerAddr() const { return peer_addr_; }

@@ -34,12 +34,21 @@ void TcpConnection::Destroy()
 
 void TcpConnection::EnableHeartbeat(uint32_t idle_interval, uint32_t ping_interval, uint32_t ping_total)
 {
+    if (IsHeartbeatEnabled()) return;
     heartbeat_handler_.EnablePing(idle_interval, ping_interval, ping_total);
+    el_logger->info("[TcpConnection::EnableHeartbeat] heartbeat enabled");
 }
 
 void TcpConnection::DisableHeartbeat()
 {
+    if (! IsHeartbeatEnabled()) return;
     heartbeat_handler_.DisablePing();
+    el_logger->info("[TcpConnection::EnableHeartbeat] heartbeat disabled");
+}
+
+bool TcpConnection::IsHeartbeatEnabled() const
+{
+    return heartbeat_handler_.IsEnabled();
 }
 
 void TcpConnection::EnableIdleTimeout(uint32_t seconds, const OnIdleTimeoutCallback& cb)
@@ -52,15 +61,21 @@ void TcpConnection::EnableIdleTimeout(uint32_t seconds, const OnIdleTimeoutCallb
     TimeVal tv(seconds, 0);
     checking_idle_timer_ = std::make_shared<PeriodicTimer>(tv, std::bind(&TcpConnection::OnIdleTimeout, this, std::placeholders::_1));
     checking_idle_timer_->Start();
+    el_logger->info("[TcpConnection::EnableIdleTimeout] idle timeout callback enabled");
 }
 void TcpConnection::DisableIdleTimeout()
 {
     if (state_ >= COUNT) return;    // Invalid connection
 
-    if (checking_idle_timer_ && checking_idle_timer_->IsRunning()) {
+    if (IsIdleTimeoutEnabled()) {
         el_logger->debug("[TcpConnection::DisableIdleTimeout] fd: {}", fd_);
         checking_idle_timer_->Stop();
+        el_logger->info("[TcpConnection::EnableIdleTimeout] idle timeout callback disabled");
     }
+}
+bool TcpConnection::IsIdleTimeoutEnabled() const
+{
+    return checking_idle_timer_ && checking_idle_timer_->IsRunning();
 }
 void TcpConnection::OnIdleTimeout(TimerEvent* timer)
 {

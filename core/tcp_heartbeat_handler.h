@@ -68,6 +68,7 @@ class TcpHeartbeatHandler
 
     void EnablePing(uint32_t idle_interval, uint32_t ping_interval, uint32_t ping_total);
     void DisablePing();
+    bool IsEnabled() const;
 
     void SetCallbacks(const SendHeartbeatRequestCallback& send_hb_req_cb = nullptr,
             const SendHeartbeatRequestCallback& send_hb_rsp_cb = nullptr,
