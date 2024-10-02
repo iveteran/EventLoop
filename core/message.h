@@ -22,17 +22,16 @@ enum MessageType {
 
 struct HeaderDescription {
   // pre-defined fields
-  uint32_t          hdr_len;
-  uint32_t          payload_len_offset;
-  uint32_t          payload_len_bytes;
-  bool              is_payload_len_including_self;
+  uint32_t          hdr_len = 0;
+  uint32_t          payload_len_offset = 0;
+  uint32_t          payload_len_bytes = 0;
+  bool              is_payload_len_including_self = false;
 
   // be decode fields
-  const char*       hdr_ptr;
-  const char*       payload_ptr;
-  uint32_t          payload_len;
+  const char*       hdr_ptr = nullptr;
+  const char*       payload_ptr = nullptr;
+  uint32_t          payload_len = 0;
 
-  HeaderDescription() { memset(this, 0, sizeof(*this)); }
   std::string ToString() const {
     char buffer[256];
     snprintf(buffer, sizeof(buffer), "{ hdr_len: %u, payload_len_offset: %u, payload_len_bytes: %u, "
