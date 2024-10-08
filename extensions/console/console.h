@@ -99,6 +99,7 @@ public:
   int handleCommandEcho(const vector<string>& argv, const ResultCallback& result_cb);
   int handleCommandChangePrompt(const vector<string>& argv, const ResultCallback& result_cb);
   int handleCommandLog(const vector<string>& argv, const ResultCallback& result_cb);
+  int handleCommandDaemonize(const vector<string>& argv, const ResultCallback& result_cb);
 
   int onCommandEchoResult(int status, const string& data);
 

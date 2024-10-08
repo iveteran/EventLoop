@@ -212,6 +212,11 @@ void Console::registerInnerCommand() {
             "set log options",
             std::bind(&Console::handleCommandLog, this, std::placeholders::_1, std::placeholders::_2)
             );
+    registerCommand(
+            ".daemonize",
+            "daemonize this process",
+            std::bind(&Console::handleCommandDaemonize, this, std::placeholders::_1, std::placeholders::_2)
+            );
 }
 
 int Console::handleCommandHelp(const vector<string>& argv, const ResultCallback& result_cb) {
@@ -342,6 +347,11 @@ int Console::handleCommandLog(const vector<string>& argv, const ResultCallback& 
         put_line("Invalid sub command: ", subcmd);
         show_help();
     }
+    return 0;
+}
+
+int Console::handleCommandDaemonize(const vector<string>& argv, const ResultCallback& result_cb) {
+    put_line(argv[0], ": Not implement, use https://github.com/bmc/daemonize.git instead");
     return 0;
 }
 
