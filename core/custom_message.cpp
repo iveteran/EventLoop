@@ -82,7 +82,8 @@ void CustomMessage::DecodeHeader() {
     //  hdr_desc_->payload_len = ntohll(*(uint64_t*)payload_len_ptr);
     //  break;
     default:
-      el_logger->error("[CustomMessage::DecodeHeader] Unsupported payload length bytes: {}", hdr_desc_->payload_len_bytes);
+      el_logger->critical("[CustomMessage::DecodeHeader] Unsupported payload length bytes: {}", hdr_desc_->payload_len_bytes);
+      abort();
       break;
   }
 }
