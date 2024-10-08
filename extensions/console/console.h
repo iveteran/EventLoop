@@ -43,9 +43,9 @@ public:
   using CommandPtr = std::shared_ptr<Command>;
 
   private:
-  Console(const char* prompt = "> ")
+  Console(const char* prompt = "> ", const char* output_prompt = "")
     : IOEvent(IOType::STDIN, STDIN_FILENO, FileEvent::READ | FileEvent::ERROR),
-      prompt_(prompt), os_(std::cout) {
+      prompt_(prompt), output_prompt_(output_prompt), os_(std::cout) {
     init();
     registerInnerCommand();
   }
@@ -58,9 +58,9 @@ public:
     return instance_;
   }
   // Call Initialize before Instance if you want to set your own prompt
-  static Console *Initialize(const char* prompt=nullptr) {
+  static Console *Initialize(const char* prompt="", const char* output_prompt="") {
       if (!instance_) {
-          instance_ = prompt ? new Console(prompt) : new Console();
+          instance_ = prompt ? new Console(prompt, output_prompt) : new Console();
       }
       return instance_;
   }
@@ -74,13 +74,16 @@ public:
 
   template<typename T, typename... Args>
   inline void put_line(const T& x, Args... args) {
+      output(output_prompt_);
       output(x);
       output(args...);
       os_ << std::endl;
   }
   template<typename T>
   inline void put_line(const T& x) {
-      os_ << x << std::endl;
+      output(output_prompt_);
+      output(x);
+      os_ << std::endl;
   }
   template<typename T, typename... Args>
   inline void output(const T& x, Args... args) {
@@ -114,6 +117,7 @@ public:
 
  private:
   string prompt_;
+  string output_prompt_;
   map<string, CommandPtr> cmd_callbacks_;
   std::ostream& os_;
 

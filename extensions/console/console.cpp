@@ -248,8 +248,8 @@ int Console::handleCommandEcho(const vector<string>& argv, const ResultCallback&
     return 0;
 }
 int Console::onCommandEchoResult(int status, const string& data) {
-    put_line("* echo callback, status: ", status);
-    put_line("* echo callback, data: ", data);
+    put_line("echo callback, status: ", status);
+    put_line("echo callback, data: ", data);
     return status;
 }
 
