@@ -21,7 +21,8 @@ class ConsoleDemo {
         echoserver_crlf_.EnableIdleTimeout(10, std::bind(&ConsoleDemo::OnConnectionIdleTimeout, this, std::placeholders::_1, std::placeholders::_2));
 
         const char* prompt = "demo> ";
-        Console::Initialize(prompt);
+        const char* output_prompt = "* ";
+        Console::Initialize(prompt, output_prompt);
         Console::Instance()->registerCommand(
                 "clients",
                 "Show number of connected clients",
@@ -58,16 +59,15 @@ class ConsoleDemo {
     {
         //Console::Instance()->put_line("clients: ", echoserver_crlf_.GetConnectionNumber());
 
-        stringstream ss;
-        ss << "clients: " << echoserver_crlf_.GetConnectionNumber();
         if (result_cb) {
-            result_cb(0, ss.str());
+            result_cb(0, std::to_string(echoserver_crlf_.GetConnectionNumber()));
         }
         return 0;
     }
     int onClientsCommandResult(int status, const string& data)
     {
-        Console::Instance()->put_line(data);
+        Console::Instance()->put_line("clients: ", data);
+        Console::Instance()->put_line_p("clients: ", data);
         return status;
     }
 

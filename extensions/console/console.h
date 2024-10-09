@@ -74,16 +74,25 @@ public:
 
   template<typename T, typename... Args>
   inline void put_line(const T& x, Args... args) {
-      output(output_prompt_);
       output(x);
       output(args...);
       os_ << std::endl;
   }
   template<typename T>
   inline void put_line(const T& x) {
-      output(output_prompt_);
       output(x);
       os_ << std::endl;
+  }
+  template<typename T, typename... Args>
+  inline void put_line_p(const T& x, Args... args) {
+      output(output_prompt_);
+      output(x);
+      put_line(args...);
+  }
+  template<typename T>
+  inline void put_line_p(const T& x) {
+      output(output_prompt_);
+      put_line(x);
   }
   template<typename T, typename... Args>
   inline void output(const T& x, Args... args) {
