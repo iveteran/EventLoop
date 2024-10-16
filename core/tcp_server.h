@@ -8,7 +8,8 @@ namespace evt_loop {
 class TcpServer: public IOEvent
 {
     public:
-    TcpServer(const char *host ="", uint16_t port=0, MessageType msg_type = MessageType::BINARY, TcpCallbacksPtr tcp_evt_cbs = nullptr);
+    TcpServer(const char *host ="", uint16_t port=0, MessageType msg_type = MessageType::BINARY,
+            TcpCallbacksPtr tcp_evt_cbs = nullptr);
     ~TcpServer();
     void Destroy();
 
@@ -35,7 +36,8 @@ class TcpServer: public IOEvent
     virtual void InitAddress(const char* host, uint16_t port);
     virtual bool Start();
     virtual int AcceptClient(IPAddress& peer_addr);
-    virtual TcpConnectionPtr CreateClient(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, const IPAddress& peer_real_addr)
+    virtual TcpConnectionPtr CreateClient(int fd, const IPAddress& local_addr,
+            const IPAddress& peer_addr, const IPAddress& peer_real_addr)
     {
         return std::make_shared<TcpConnection>(fd, server_addr_, peer_addr, peer_real_addr,
                 std::bind(&TcpServer::OnConnectionClosed, this, std::placeholders::_1), tcp_evt_cbs_);
@@ -64,7 +66,8 @@ typedef std::shared_ptr<TcpServer> TcpServerPtr;
 class TcpServer6: public TcpServer
 {
     public:
-    TcpServer6(const char *host="", uint16_t port=0, bool ipv6_only = true, MessageType msg_type = MessageType::BINARY, TcpCallbacksPtr tcp_evt_cbs = nullptr);
+    TcpServer6(const char *host="", uint16_t port=0, bool ipv6_only = true,
+            MessageType msg_type = MessageType::BINARY, TcpCallbacksPtr tcp_evt_cbs = nullptr);
 
     protected:
     void InitAddress(const char* host, uint16_t port);
