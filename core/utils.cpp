@@ -175,7 +175,7 @@ string DumpHexWithChars(const char* data, size_t size, size_t max_bytes)
         ss << '.';  // use '.' replace of invisable charactor
       }
     }
-    if (i != bytes_to_dump-1) {
+    if (i+j != bytes_to_dump) {
         ss << '\n';
     }
   }
