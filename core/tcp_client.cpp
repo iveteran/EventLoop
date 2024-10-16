@@ -2,6 +2,7 @@
 #include "eventloop.h"
 #include <unistd.h>
 #include <errno.h>
+#include <arpa/inet.h>
 #if defined(__linux__)
 #include <linux/tcp.h>
 #endif

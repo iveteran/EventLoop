@@ -2,15 +2,13 @@
 #define _UTILS_H
 
 #include <stdint.h>
-#include <time.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <string>
 #include <vector>
 
 using std::string;
+
+struct sockaddr_in6;
+struct sockaddr_in;
 
 namespace evt_loop {
 
