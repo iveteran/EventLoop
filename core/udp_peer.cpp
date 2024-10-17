@@ -70,6 +70,7 @@ size_t UdpPeer::SendPacket(const char* data, size_t size)
 
 size_t UdpPeer::SendPacket(const PeerAddr* peer_addr, const char* data, size_t size)
 {
+    el_logger->debug("[UdpPeer::SendPacket] sendto: {}, size: {}", peer_addr->String(), size);
     return sendto(fd_, data, size, 0, peer_addr->SockAddr(), peer_addr->Size());
 }
 
@@ -142,6 +143,10 @@ size_t UdpPeer4::ReceivePacket(char* recvbuf, size_t recvbuf_size)
     size_t rx_bytes = recvfrom(fd_, recvbuf, recvbuf_size, 0, (struct sockaddr*)remote_peer_addr.SockAddr(), &sock_addr_size);
     el_logger->debug("[UdpPeer4::ReceivePacket] client: {}, bytes size: {}", remote_peer_addr.String(), rx_bytes);
     if (rx_bytes > 0 && on_packet_cb_) {
+        if (remote_peer_addr_.Port() == 0) {
+            // set remote peer addr with currently
+            remote_peer_addr_ = remote_peer_addr;
+        }
         on_packet_cb_(this, &remote_peer_addr, recvbuf, rx_bytes);
     }
     return rx_bytes;
