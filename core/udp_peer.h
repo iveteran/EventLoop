@@ -58,6 +58,7 @@ class UdpPeer4: public UdpPeer
 {
     public:
     //UdpPeer4(const char *host, uint16_t port, Mode mode);
+    bool Bind(const char* ip, uint16_t port);
 
     protected:
     virtual void InitAddress(const char* host, uint16_t port) override;
@@ -77,6 +78,7 @@ class UdpPeer6: public UdpPeer
     public:
     UdpPeer6(bool ipv6_only = true) : ipv6_only_(ipv6_only) {}
     //UdpPeer6(const char *host, uint16_t port, Mode mode, bool ipv6_only = true);
+    bool Bind(const char* ip, uint16_t port);
 
     protected:
     virtual void InitAddress(const char* host, uint16_t port) override;

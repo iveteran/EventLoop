@@ -118,21 +118,27 @@ bool UdpPeer4::Create(Mode mode)
         close(fd);
         return false;
     }
+    SetFD(fd);
 
     if (mode == Mode::LOCAL) {
-        local_peer_addr_ = PeerAddr4(ip_addr_.ip_.c_str(), ip_addr_.port_);
-        el_logger->info("[UdpPeer4::Create] Bind to address: {}", local_peer_addr_.String());
-
-        if (::bind(fd, (struct sockaddr*)local_peer_addr_.SockAddr(), local_peer_addr_.Size()) == -1) {
-            OnError(errno, strerror(errno));
-            return false;
-        }
+        Bind(ip_addr_.ip_.c_str(), ip_addr_.port_);
     } else {
         remote_peer_addr_ = PeerAddr4(ip_addr_.ip_.c_str(), ip_addr_.port_);
         el_logger->info("[UdpPeer4::Create] Remote address: {}", remote_peer_addr_.String());
     }
-    SetFD(fd);
 
+    return true;
+}
+
+bool UdpPeer4::Bind(const char* ip, uint16_t port)
+{
+    local_peer_addr_ = PeerAddr4(ip, port);
+    el_logger->info("[UdpPeer4::Bind] Bind to address: {}", local_peer_addr_.String());
+
+    if (::bind(fd_, (struct sockaddr*)local_peer_addr_.SockAddr(), local_peer_addr_.Size()) == -1) {
+        el_logger->error("[UdpPeer4::Bind] Bind to address failed: {}", strerror(errno));
+        return false;
+    }
     return true;
 }
 
@@ -197,23 +203,29 @@ bool UdpPeer6::Create(Mode mode)
             return false;
         }
     }
+    SetFD(fd);
 
     if (mode == Mode::LOCAL) {
-        local_peer_addr_ = PeerAddr6(ip_addr_.ip_.c_str(), ip_addr_.port_);
-        //local_peer_addr_.Assign(ip_addr_.ip_.c_str(), ip_addr_.port_);
-        el_logger->info("[UdpPeer6::Create] Bind to address: {}", local_peer_addr_.String());
-
-        if (::bind(fd, (struct sockaddr*)local_peer_addr_.SockAddr(), local_peer_addr_.Size()) == -1) {
-            OnError(errno, strerror(errno));
-            return false;
-        }
+        Bind(ip_addr_.ip_.c_str(), ip_addr_.port_);
     } else {
         remote_peer_addr_ = PeerAddr6(ip_addr_.ip_.c_str(), ip_addr_.port_);
         //remote_peer_addr_.Assign(ip_addr_.ip_.c_str(), ip_addr_.port_);
         el_logger->info("[UdpPeer6::Create] Remote address: {}", remote_peer_addr_.String());
     }
-    SetFD(fd);
 
+    return true;
+}
+
+bool UdpPeer6::Bind(const char* ip, uint16_t port)
+{
+    local_peer_addr_ = PeerAddr6(ip, port);
+    //local_peer_addr_.Assign(ip, port);
+    el_logger->info("[UdpPeer6::Bind] Bind to address: {}", local_peer_addr_.String());
+
+    if (::bind(fd_, (struct sockaddr*)local_peer_addr_.SockAddr(), local_peer_addr_.Size()) == -1) {
+        el_logger->error("[UdpPeer6::Bind] Bind to address failed: {}", strerror(errno));
+        return false;
+    }
     return true;
 }
 
