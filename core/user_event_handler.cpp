@@ -13,6 +13,13 @@ UserEvent::UserEvent(const OnUserEventCallback& cb, void* udata, int32_t repeat)
 
 void UserEvent::OnEvents(uint32_t events) {
   user_event_cb_(this, user_data_);
+  if (repeat_ > 0 && --repeat_ == 0) {
+    if (soft_deleting_enabled_) {
+      soft_deleted_ = true;
+    } else {
+      DeleteEvents();
+    }
+  }
 }
 
 IdleEvent::IdleEvent(const OnUserEventCallback& cb, void* udata, int32_t repeat) :
@@ -27,26 +34,12 @@ TickEvent::TickEvent(const OnUserEventCallback& cb, void* udata, int32_t repeat)
   el_->AddEvent(this);
 }
 
-void IdleEvent::OnEvents(uint32_t events) {
-  UserEvent::OnEvents(events);
-  if (--repeat_ == 0) {
-    if (soft_deleting_enabled_) {
-      soft_deleted_ = true;
-    } else {
-      el_->DeleteEvent(this);
-    }
-  }
+void IdleEvent::DeleteEvents() {
+    el_->DeleteEvent(this);
 }
 
-void TickEvent::OnEvents(uint32_t events) {
-  UserEvent::OnEvents(events);
-  if (--repeat_ == 0) {
-    if (soft_deleting_enabled_) {
-      soft_deleted_ = true;
-    } else {
-      el_->DeleteEvent(this);
-    }
-  }
+void TickEvent::DeleteEvents() {
+    el_->DeleteEvent(this);
 }
 
 uint32_t UserEventManager::Process()

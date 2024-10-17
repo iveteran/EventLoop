@@ -23,6 +23,7 @@ class UserEvent : public IEvent {
 
  protected:
   void OnEvents(uint32_t events) override;
+  virtual void DeleteEvents() = 0;
 
  protected:
   uint32_t  id_;
@@ -38,14 +39,14 @@ class IdleEvent : public UserEvent {
   public:
   IdleEvent(const OnUserEventCallback& cb, void* udata = NULL, int32_t repeat = -1);
  protected:
-  void OnEvents(uint32_t events) override;
+  void DeleteEvents() override;
 };
 
 class TickEvent : public UserEvent {
   public:
   TickEvent(const OnUserEventCallback& cb, void* udata = NULL, int32_t repeat = -1);
  protected:
-  void OnEvents(uint32_t events) override;
+  void DeleteEvents() override;
 };
 
 class UserEventManager {
