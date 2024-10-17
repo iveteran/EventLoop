@@ -18,6 +18,8 @@ class TickEvent;
 class UserEventManager;
 
 time_t Now();
+int64_t NowMillisSeconds();
+int64_t NowMicroSeconds();
 int SetNonblocking(int fd);
 
 class EventLoop {
@@ -54,6 +56,8 @@ class EventLoop {
   bool IsRunning() const { return running_; }
   const TimeVal& Now() const { return now_; }
   time_t UnixTime() const { return now_.Seconds(); }
+  int64_t MillisSeconds() const { return now_.Seconds() * 1000 + now_.USeconds() / 1000; }
+  int64_t MicroSeconds() const { return now_.Seconds() * 1000000 + now_.USeconds(); }
 
  private:
   // do epoll_waite and collect events

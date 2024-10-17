@@ -15,6 +15,14 @@ time_t Now()
 {
   return EV_Singleton->UnixTime();
 }
+int64_t NowMillisSeconds()
+{
+  return EV_Singleton->MillisSeconds();
+}
+int64_t NowMicroSeconds()
+{
+  return EV_Singleton->MicroSeconds();
+}
 
 int SetNonblocking(int fd) {
   if (fd < 0) return -1;
