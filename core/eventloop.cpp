@@ -37,13 +37,14 @@ int SetNonblocking(int fd) {
 }
 
 // EventLoop implementation
-EventLoop::EventLoop() {
+EventLoop::EventLoop(int tick_ms) {
   poller_ = std::make_shared<Poller>();
   timermanager_ = std::make_shared<TimerManager>();
   idle_events_ = std::make_shared<UserEventManager>();
   tick_events_ = std::make_shared<UserEventManager>();
   now_.SetNow();
   running_ = false;
+  tick_ms_ = tick_ms;
   signal(SIGPIPE, SIG_IGN);  // Ignore SIGPIPE, this signal will be received when write the socket that closed by peer
 }
 
@@ -111,7 +112,7 @@ int EventLoop::ProcessTickEvents()
 
 int EventLoop::CalcNextTimeout()
 {
-    int timeout = 100;
+    int timeout = tick_ms_;
     if (timermanager_->timers_.size() > 0) {
       TimerManager::TimerMap::iterator iter = timermanager_->timers_.begin();
       TimeVal time = iter->first;

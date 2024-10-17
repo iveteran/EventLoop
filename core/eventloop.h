@@ -22,9 +22,14 @@ int64_t NowMillisSeconds();
 int64_t NowMicroSeconds();
 int SetNonblocking(int fd);
 
+const int TICK_MS_MIN = 10;   // 10 millisseconds
+const int TICK_MS_MID = 20;
+const int TICK_MS_DFT = 50;
+const int TICK_MS_MAX = 100;
+
 class EventLoop {
  public:
-  EventLoop();
+  EventLoop(int tick_ms = TICK_MS_DFT);
   ~EventLoop();
 
  public:
@@ -53,6 +58,8 @@ class EventLoop {
   void StartLoop();
   void StopLoop();
 
+  void SetTickMS(int ms) { if (ms > 0) tick_ms_ = ms; }
+  int GetTickMS() const { return tick_ms_; }
   bool IsRunning() const { return running_; }
   const TimeVal& Now() const { return now_; }
   time_t UnixTime() const { return now_.Seconds(); }
@@ -76,6 +83,7 @@ class EventLoop {
 
   TimeVal   now_;
   bool      running_;
+  int       tick_ms_;
 
   std::shared_ptr<TimerManager> timermanager_;
   std::shared_ptr<UserEventManager> idle_events_;
