@@ -1,0 +1,33 @@
+TARGET = simple
+
+CPPFLAGS = -g -Wall -std=c++20
+#CPPFLAGS = -g -Wall -std=c++20 -D USE_SINGLETON_EVENTLOOP
+CXXFLAGS = -I../include
+
+LDFLAGS = 
+
+DEP_LIBS += \
+           ../core/libel.a
+
+CXX      = g++
+RM       = rm -f
+
+OBJS = simple.o
+
+%.o : %.cpp
+	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $<
+
+.PHONY : all clean cleanall rebuild
+
+all: $(TARGET)
+
+$(TARGET) : $(OBJS) $(DEP_LIBS)
+	$(CXX) -o $(TARGET) $(OBJS) $(DEP_LIBS) $(LDFLAGS)
+
+rebuild: clean all
+
+clean:
+	@$(RM) $(OBJS) *.d
+
+cleanall: clean
+	@$(RM) $(TARGET)
