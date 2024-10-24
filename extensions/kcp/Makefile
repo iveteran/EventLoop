@@ -2,8 +2,8 @@ TARGET = libel_kcp.a
 
 ROOT = ../..
 
-CCFLAGS = -g -Wall -D SUPPORTS_READLINE
-CPPFLAGS = -g -Wall -std=c++20 -D SUPPORTS_READLINE
+CCFLAGS = -g -Wall
+CPPFLAGS = -g -Wall -std=c++20
 CXXFLAGS = -I$(ROOT)/include
 
 CC 		 = gcc
