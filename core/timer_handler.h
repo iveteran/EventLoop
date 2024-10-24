@@ -18,7 +18,7 @@ class TimerEvent : public IEvent {
  public:
   TimerEvent();
   TimerEvent(const TimeVal& inter);
-  ~TimerEvent() { Stop(); }
+  ~TimerEvent() { if (running_) Stop(); }
 
   void SetTime(const TimeVal& tv) { time_ = tv; }
   const TimeVal& Time() const { return time_; }
