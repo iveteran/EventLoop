@@ -20,6 +20,8 @@ class UserEvent : public IEvent {
  public:
   UserEvent(const OnUserEventCallback& cb, void* udata = NULL, int32_t repeat = -1);
   uint32_t Id() const { return id_; }
+  int32_t GetRepeatRemain() const { return repeat_; }
+  void* GetUserData() const { return user_data_; }
 
  protected:
   void OnEvents(uint32_t events) override;
