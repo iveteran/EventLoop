@@ -18,11 +18,11 @@ class TickEvent;
 class UserEventManager;
 
 time_t Now();
-int64_t NowMillisSeconds();
+int64_t NowMilliSeconds();
 int64_t NowMicroSeconds();
 int SetNonblocking(int fd);
 
-const int TICK_MS_MIN = 10;   // 10 millisseconds
+const int TICK_MS_MIN = 10;   // 10 milliseconds
 const int TICK_MS_MID = 20;
 const int TICK_MS_DFT = 50;
 const int TICK_MS_MAX = 100;
@@ -63,7 +63,7 @@ class EventLoop {
   bool IsRunning() const { return running_; }
   const TimeVal& Now() const { return now_; }
   time_t UnixTime() const { return now_.Seconds(); }
-  int64_t MillisSeconds() const { return now_.Seconds() * 1000 + now_.USeconds() / 1000; }
+  int64_t MilliSeconds() const { return now_.Seconds() * 1000 + now_.USeconds() / 1000; }
   int64_t MicroSeconds() const { return now_.Seconds() * 1000000 + now_.USeconds(); }
 
  private:

@@ -15,9 +15,9 @@ time_t Now()
 {
   return EV_Singleton->UnixTime();
 }
-int64_t NowMillisSeconds()
+int64_t NowMilliSeconds()
 {
-  return EV_Singleton->MillisSeconds();
+  return EV_Singleton->MilliSeconds();
 }
 int64_t NowMicroSeconds()
 {
@@ -131,6 +131,7 @@ void EventLoop::StartLoop() {
     el_logger->error("Error: EventLoop already running");
     return;
   }
+  el_logger->info("EventLoop tick interval: {} milliseconds", tick_ms_);
 
   running_ = true;
   while (running_) {
