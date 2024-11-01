@@ -55,6 +55,10 @@ void IOEvent::UpdateEvents(uint32_t events)
     }
   }
 }
+void IOEvent::UpdateEvents()
+{
+    UpdateEvents(Events());
+}
 void IOEvent::AddReadEvent() {
   if (el_ && !(events_ & FileEvent::READ))
   {

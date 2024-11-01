@@ -23,6 +23,7 @@ class IOEvent : public IEvent {
   int FD() const { return fd_; }
   void WatchEvents(int fd, uint32_t events = FileEvent::READ | FileEvent::ERROR);
   void UpdateEvents(uint32_t events);
+  void UpdateEvents();
 
   void AddReadEvent();
   void DeleteReadEvent();
