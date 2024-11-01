@@ -5,6 +5,7 @@
 
 #if defined(USE_SELECT)
 #include <sys/select.h>
+#include <stdint.h>
 #include <map>
 #endif
 
