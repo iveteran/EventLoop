@@ -48,6 +48,8 @@ class BufferIOEvent : public IOEvent {
   bool SendMore(const char *data, uint32_t len);
   void SetCloseWait() { close_wait_ = true; }
 
+  void Handshake() { OnHandshake(); }
+
   uint32_t StatsRxBytes() const     { return stats_rx_bytes_; };
   time_t   StatsRxLastTime() const  { return stats_rx_last_time_; };
   uint32_t StatsTxBytes() const     { return stats_tx_bytes_; };
@@ -58,7 +60,7 @@ class BufferIOEvent : public IOEvent {
   virtual void OnSent(const Message* msg) { }
   virtual void OnReady() { }
 
-  virtual bool OnHandshake();
+  virtual int OnHandshake(const char* data = nullptr, size_t size = 0);
 
  private:
   // MSG_NOSIGNAL: Don't generate a SIGPIPE signal if the peer on a stream-oriented socket has closed the connection

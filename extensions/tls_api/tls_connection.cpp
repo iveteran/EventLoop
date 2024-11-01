@@ -65,7 +65,7 @@ TLSConnection::~TLSConnection()
   }
 }
 
-bool TLSConnection::OnHandshake()
+int TLSConnection::OnHandshake(const char* data, size_t size)
 {
     el_logger->debug("[TLSConnection::OnHandshake begin] fd: {}", fd_);
     int r = 0;
@@ -112,7 +112,7 @@ bool TLSConnection::OnHandshake()
 out:
     bool success = (state_ != State::FAILED);
     el_logger->debug("[TLSConnection::OnHandshake end] success: {}", success);
-    return success;
+    return success ? 1 : -1;
 }
 
 int TLSConnection::OnRead(const void* buf, size_t bytes)

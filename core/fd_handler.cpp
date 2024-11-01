@@ -8,11 +8,11 @@
 namespace evt_loop
 {
 
-bool BufferIOEvent::OnHandshake() {
+int BufferIOEvent::OnHandshake(const char* data, size_t size) {
     el_logger->debug("BufferIOEvent::OnHandshake");
     state_ = READY;
     OnReady();
-    return true;
+    return 0;
 }
 
 // BufferIOEvent implementation
@@ -104,11 +104,10 @@ int BufferIOEvent::SendData(uint32_t& events) {
 }
 
 void BufferIOEvent::OnEvents(uint32_t events, void* ctx) {
-  bool success = false;
   if ((events & FileEvent::WRITE || events & FileEvent::READ) &&
           (state_ == CONNECTED || state_ == HANDSHAKING)) {
-    success = OnHandshake();
-    if (!success) events |= FileEvent::CLOSED;
+    int status = OnHandshake();
+    if (status < 0) events |= FileEvent::CLOSED;
   } else {
     /// The WRITE events should deal with before the READ events
     if (events & FileEvent::WRITE) {
