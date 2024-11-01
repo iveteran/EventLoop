@@ -5,6 +5,8 @@
 
 namespace evt_loop {
 
+static const int MESSAGE_MAX_KB = 64; // unit is KB
+
 string Message::DumpHex(size_t max_bytes) const {
   return evt_loop::DumpHex(data_, max_bytes);
 }
@@ -24,8 +26,15 @@ size_t CRLFMessage::AppendData(const char* data, uint32_t size) {
   if (tl_ptr != NULL) {
     tl_ptr += 2;
     feed_size = tl_ptr - data;
+
+    if (feed_size > MESSAGE_MAX_KB * 1024) {
+      el_logger->error("[CRLFMessage::AppendData] the message is to large(>{}KB), does not supported", MESSAGE_MAX_KB);
+      return 0;
+    }
   }
-  data_.append(data, feed_size);
+  if (feed_size > 0) {
+    data_.append(data, feed_size);
+  }
   return feed_size;
 }
 size_t CRLFMessage::AssignData(const char* data, uint32_t size, bool has_hdr) {
@@ -57,8 +66,14 @@ size_t JsonMessage::AppendData(const char* data, uint32_t size) {
       feed_size = i + 1;
       break;
     }
+    if (feed_size > MESSAGE_MAX_KB * 1024) {
+      el_logger->error("[JsonMessage::AppendData] the message is to large(>{}KB), does not supported", MESSAGE_MAX_KB);
+      return 0;
+    }
   }
-  data_.append(data, feed_size);
+  if (feed_size > 0) {
+    data_.append(data, feed_size);
+  }
   return feed_size;
 }
 size_t JsonMessage::AssignData(const char* data, uint32_t size, bool has_hdr) {
@@ -88,6 +103,10 @@ BinaryMessage& BinaryMessage::operator=(const BinaryMessage& rvalue) {
 
 size_t BinaryMessage::AppendData(const char* data, uint32_t length) {
   if (data == NULL || length == 0) return 0;
+  if (length > MESSAGE_MAX_KB * 1024) {
+      el_logger->error("[BinaryMessage::AppendData] the message is to large(>{}KB), does not supported", MESSAGE_MAX_KB);
+      return 0;
+  }
 
   data_.append(data, length);
 
