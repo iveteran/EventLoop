@@ -54,7 +54,7 @@ class BufferIOEvent : public IOEvent {
   time_t   StatsTxLastTime() const  { return stats_tx_last_time_; };
 
  protected:
-  virtual void OnReceived(const Message* msg) { }
+  virtual void OnMessage(const Message* msg) { }
   virtual void OnSent(const Message* msg) { }
   virtual void OnReady() { }
 

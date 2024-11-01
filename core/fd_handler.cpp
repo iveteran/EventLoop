@@ -61,7 +61,7 @@ int BufferIOEvent::ReceiveData(uint32_t& events) {
 }
 
 void BufferIOEvent::HandleCompletionMessages() {
-    MessageMQ::MessageDispatcher processing_msg_cb = std::bind(&BufferIOEvent::OnReceived, this, std::placeholders::_1);
+    MessageMQ::MessageDispatcher processing_msg_cb = std::bind(&BufferIOEvent::OnMessage, this, std::placeholders::_1);
     rx_msg_mq_.Apply(processing_msg_cb);
 }
 

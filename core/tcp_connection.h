@@ -53,7 +53,7 @@ class TcpConnection : public BufferIOEvent
 
   protected:
     void Destroy();
-    void OnReceived(const Message* buffer);
+    void OnMessage(const Message* msg) override;
     void OnSent(const Message* buffer);
     void OnClosed();
     void OnError(int errcode, const char* errstr);

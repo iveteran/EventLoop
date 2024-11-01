@@ -105,7 +105,7 @@ void TcpConnection::OnReady()
     if (tcp_evt_cbs_) tcp_evt_cbs_->on_conn_ready_cb(this);
 }
 
-void TcpConnection::OnReceived(const Message* msg)
+void TcpConnection::OnMessage(const Message* msg)
 {
     if (heartbeat_handler_.IsHeartbeatRequest(msg)) {
         heartbeat_handler_.OnHeartbeatRequestReceived(msg);
@@ -118,7 +118,7 @@ void TcpConnection::OnReceived(const Message* msg)
         }
         else
         {
-            el_logger->warn("[TcpConnection::OnReceived] Invalid connection: {}", ToString());
+            el_logger->warn("[TcpConnection::OnMessage] Invalid connection: {}", ToString());
         }
     }
 }
