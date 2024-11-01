@@ -37,14 +37,23 @@ size_t CRLFMessage::AssignData(const char* data, uint32_t size, bool has_hdr) {
 size_t JsonMessage::AppendData(const char* data, uint32_t size) {
   if (data == NULL || size == 0 || Completion())
     return 0;
-  size_t feed_size = size;
+  size_t feed_size = 0;
   for (uint32_t i = 0; i < size; i++) {
+    if (std::isblank(data[i])) {
+      // skip blank char
+      continue;
+    }
+    if (lbc_ == 0 && data[i] != '{') {
+      // 第一个非空字符不是'{', 无效的JSON字串
+      el_logger->error("[JsonMessage::AppendData] Illegal JSON string: {}", data);
+      break;
+    }
     if (data[i] == '{') {
       lbc_++;
     } else if (data[i] == '}') {
       rbc_++;
     }
-    if (lbc_ == rbc_) {
+    if (lbc_ > 0 && lbc_ == rbc_) {
       feed_size = i + 1;
       break;
     }
