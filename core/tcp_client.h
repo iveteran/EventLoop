@@ -56,11 +56,8 @@ class TcpClient : public IOEvent
 
     virtual void InitAddress(const char* host, uint16_t port);
     virtual bool Connect_();
-    virtual TcpConnectionPtr CreateClient(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, const IPAddress& peer_real_addr)
-    {
-        return std::make_shared<TcpConnection>(fd, local_addr, peer_addr, peer_real_addr,
-                std::bind(&TcpClient::OnConnectionClosed, this, std::placeholders::_1), tcp_evt_cbs_);
-    }
+    virtual TcpConnectionPtr CreateClient(int fd, const IPAddress& local_addr,
+            const IPAddress& peer_addr, const IPAddress& peer_real_addr);
     void Reconnect();
 
     void OnConnected(int fd, const IPAddress& local_addr);

@@ -182,6 +182,14 @@ void TcpClient::OnConnected(int fd, const IPAddress& local_addr)
     if (new_client_cb_) new_client_cb_(conn_.get());
 }
 
+TcpConnectionPtr TcpClient::CreateClient(int fd, const IPAddress& local_addr,
+        const IPAddress& peer_addr, const IPAddress& peer_real_addr)
+{
+    el_logger->info("[TcpClient::CreateClient] address: {}", local_addr.ToString());
+    return std::make_shared<TcpConnection>(fd, local_addr, peer_addr, peer_real_addr,
+            std::bind(&TcpClient::OnConnectionClosed, this, std::placeholders::_1), tcp_evt_cbs_);
+}
+
 void TcpClient::OnConnectionClosed(TcpConnection* conn)
 {
     //delete conn_;

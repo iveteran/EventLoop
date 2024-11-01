@@ -54,10 +54,10 @@ class TcpConnection : public BufferIOEvent
   protected:
     void Destroy();
     void OnMessage(const Message* msg) override;
-    void OnSent(const Message* buffer);
-    void OnClosed();
-    void OnError(int errcode, const char* errstr);
-    void OnReady();
+    void OnSent(const Message* msg) override;
+    void OnClosed() override;
+    void OnError(int errcode, const char* errstr) override;
+    void OnReady() override;
     void OnIdleTimeout(TimerEvent* timer);
 
   private:

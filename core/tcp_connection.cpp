@@ -101,6 +101,7 @@ void TcpConnection::Disconnect()
 void TcpConnection::OnReady()
 {
     el_logger->info("[TcpConnection::OnReady]");
+    BufferIOEvent::OnReady();
     if (on_conn_ready_cb_) on_conn_ready_cb_(this);
     if (tcp_evt_cbs_) tcp_evt_cbs_->on_conn_ready_cb(this);
 }

@@ -18,8 +18,8 @@ struct DefaultBinaryHeartbeatMessage
 
 static const DefaultBinaryHeartbeatMessage dft_binary_heartbeat_request(BINARY_HEARTBEAT_REQUEST_MAGIC);
 static const DefaultBinaryHeartbeatMessage dft_binary_heartbeat_response(BINARY_HEARTBEAT_RESPONSE_MAGIC);
-static const string dft_json_heartbeat_request = "{ \"heartbeat\": \"request\" }";
-static const string dft_json_heartbeat_response = "{ \"heartbeat\": \"response\" }";
+static const string dft_json_heartbeat_request = R"({"heartbeat": "request"})";
+static const string dft_json_heartbeat_response = R"({"heartbeat": "response"})";
 static const string dft_crlf_heartbeat_request = "heartbeat_reqeust\r\n";
 static const string dft_crlf_heartbeat_response = "heartbeat_response\r\n";
 

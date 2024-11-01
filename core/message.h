@@ -214,6 +214,7 @@ class MessageMQ {
   bool FirstCompletion() { return First()->Completion(); }
   bool HasCompletion() { return First()->Completion(); }
 
+  void FeedData(const char* data, uint32_t size) { AppendData(data, size); }
   void AppendData(const char* data, uint32_t size);
   void Apply(MessageDispatcher& cb);
 

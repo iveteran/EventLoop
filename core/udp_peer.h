@@ -38,7 +38,7 @@ class UdpPeer: public IOEvent
     virtual const PeerAddr* PeerLocalAddr() const = 0;
     virtual const PeerAddr* PeerRemoteAddr() const = 0;
 
-    void OnError(int errcode, const char* errstr);
+    void OnError(int errcode, const char* errstr) override;
     void OnEvents(uint32_t events, void* ctx = nullptr) override;
 
     size_t ReceivePacket();

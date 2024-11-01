@@ -75,7 +75,11 @@ size_t UdpPeer::SendPacket(const char* data, size_t size)
 size_t UdpPeer::SendPacket(const PeerAddr* peer_addr, const char* data, size_t size)
 {
     el_logger->debug("[UdpPeer::SendPacket] sendto: {}, size: {}", peer_addr->String(), size);
-    return sendto(fd_, data, size, 0, peer_addr->SockAddr(), peer_addr->Size());
+    int tx_size = sendto(fd_, data, size, 0, peer_addr->SockAddr(), peer_addr->Size());
+    if (tx_size < 0) {
+        el_logger->error("[UdpPeer::SendPacket] sendto failed: {}", strerror(errno));
+    }
+    return tx_size;
 }
 
 void UdpPeer::OnError(int errcode, const char* errstr)
