@@ -16,8 +16,8 @@ struct TLSConnection : public TcpConnection
 
   protected:
   virtual int OnHandshake(const char* data = nullptr, size_t size = 0) override;
-  virtual int OnRead(const void* buf, size_t bytes);
-  virtual int OnWrite(const void* buf, size_t bytes);
+  virtual int OnRead(const void* buf, size_t bytes) override;
+  virtual int OnWrite(const void* buf, size_t bytes) override;
 
   private:
   SSL *ssl_;
