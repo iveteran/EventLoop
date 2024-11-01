@@ -106,7 +106,9 @@ size_t BinaryMessage::AppendData(const char* data, uint32_t length) {
       return 0;
   }
 
-  data_.append(data, length);
+  // MoreSize maybe returns only the size of message header or remain of message header
+  size_t feed_size = std::min((size_t)length, MoreSize());
+  data_.append(data, feed_size);
 
   if (hdr_ == NULL && data_.size() >= sizeof(HDR)) {
     hdr_ = (HDR*)data_.data();
@@ -116,7 +118,18 @@ size_t BinaryMessage::AppendData(const char* data, uint32_t length) {
       hdr_ = (HDR*)data_.data();
     }
   }
-  return length;   // FIXME: the return value maybe less than length
+
+  // check if only feed a message header at previous appending, and has more data then feed message payload
+  if (data_.size() == sizeof(HDR)) {
+      size_t remain_length = length - feed_size;
+      if (length > 0) {
+          size_t more_feed_size = std::min(remain_length, MoreSize());
+          data_.append(data + feed_size, more_feed_size);
+          feed_size += more_feed_size;
+      }
+  }
+
+  return feed_size;  // maybe less then length
 }
 
 size_t BinaryMessage::AssignData(const char* data, uint32_t length, bool has_hdr) {
@@ -148,7 +161,7 @@ size_t BinaryMessage::Payload(std::string& payload) const {
 size_t BinaryMessage::MoreSize() const {
   size_t more_size = 0;
   size_t data_size = data_.size();
-  if (data_size < sizeof(HDR)) {
+  if (data_size < sizeof(HDR) || !hdr_) {
     more_size = sizeof(HDR) - data_size;
   } else {
     more_size = hdr_->length - data_size;
