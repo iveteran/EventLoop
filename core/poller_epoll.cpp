@@ -29,7 +29,7 @@ int Poller::Poll(uint32_t wait_ms, const PollCallback& poll_cb)
   int nfds = epoll_wait(pfd_, evs, MAX_EVENTS, wait_ms);
   for (int i = 0; i < nfds; i++) {
     uint32_t events = FromEpollEvents(evs[i].events);
-    poll_cb(evs[i].data.ptr, events);
+    poll_cb((IOEvent*)evs[i].data.ptr, events, nullptr);
   }
   return nfds;
 }

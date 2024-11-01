@@ -99,7 +99,7 @@ int BufferIOEvent::SendData(uint32_t& events) {
   return cur_sent;
 }
 
-void BufferIOEvent::OnEvents(uint32_t events) {
+void BufferIOEvent::OnEvents(uint32_t events, void* ctx) {
   bool success = false;
   if ((events & FileEvent::WRITE || events & FileEvent::READ) &&
           (state_ == CONNECTED || state_ == HANDSHAKING)) {

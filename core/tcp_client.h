@@ -51,7 +51,7 @@ class TcpClient : public IOEvent
     bool Send(const char* msg, size_t size);
     
     protected:
-    void OnEvents(uint32_t events) {}
+    void OnEvents(uint32_t events, void* ctx = nullptr) {}
     void SetFD(int fd) { if (conn_) conn_->SetFD(fd); }  // Hides interface of base class IOEvent
 
     virtual void InitAddress(const char* host, uint16_t port);

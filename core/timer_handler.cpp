@@ -17,7 +17,7 @@ TimerEvent::TimerEvent(const TimeVal& inter) :
   el_ = EV_Singleton;
 }
 
-void TimerEvent::OnEvents(uint32_t events) {
+void TimerEvent::OnEvents(uint32_t events, void* ctx) {
   el_logger->debug("[TimerEvent::OnEvents] timeval: ({}.{})", interval_.Seconds(), interval_.USeconds());
   OnTimer();
   if (running_) {

@@ -53,7 +53,7 @@ EventLoop::~EventLoop() {
 
 int EventLoop::ProcessFileEvents(int timeout) {
   return poller_->Poll(timeout, std::bind(&EventLoop::_ProcessFileEvents, this,
-              std::placeholders::_1, std::placeholders::_2));
+              std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 }
 
 int EventLoop::ProcessTimeoutEvents() {
@@ -93,10 +93,9 @@ int EventLoop::ProcessEvents(int timeout) {
   return timeout_events + file_events + idle_events + tick_events;
 }
 
-void EventLoop::_ProcessFileEvents(void* evt, uint32_t events) {
-  IOEvent* e = (IOEvent*)evt;
+void EventLoop::_ProcessFileEvents(IOEvent* e, uint32_t events, void* events_ctx) {
   if (e && e->fd_ >= 0) {
-    e->OnEvents(events);
+    e->OnEvents(events, events_ctx);
   }
 }
 

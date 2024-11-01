@@ -32,7 +32,7 @@ class TimerEvent : public IEvent {
   bool IsRunning() { return running_; }
 
  protected:
-  void OnEvents(uint32_t events) override;
+  void OnEvents(uint32_t events, void* ctx = nullptr) override;
   virtual void OnTimer() = 0;
 
  protected:

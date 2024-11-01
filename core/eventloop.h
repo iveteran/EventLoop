@@ -74,7 +74,7 @@ class EventLoop {
   int ProcessTimeoutEvents();
   int ProcessIdleEvents();
   int ProcessTickEvents();
-  void _ProcessFileEvents(void* evt, uint32_t events);
+  void _ProcessFileEvents(IOEvent* e, uint32_t events, void* events_ctx = nullptr);
 
   int CalcNextTimeout();
 

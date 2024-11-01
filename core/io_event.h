@@ -37,7 +37,7 @@ class IOEvent : public IEvent {
   virtual void OnClosed() {};
   virtual void OnError(int errcode, const char* errstr) {};
 
-  virtual void OnEvents(uint32_t events) = 0;
+  virtual void OnEvents(uint32_t events, void* ctx = nullptr) = 0;
   virtual int OnRead(const void* buf, size_t bytes) { return read(fd_, (void*)buf, bytes); }
   virtual int OnWrite(const void* buf, size_t bytes) { return write(fd_, buf, bytes); }
 

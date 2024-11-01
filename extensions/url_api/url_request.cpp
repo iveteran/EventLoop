@@ -62,7 +62,7 @@ void URLRequest::OnTimeout()
   curl_multi_remove_handle(url_reactor_, curl_);
   curl_easy_cleanup(curl_);
 }
-void URLRequest::OnEvents(uint32_t events)
+void URLRequest::OnEvents(uint32_t events, void* ctx)
 {
   int running_handles;
   int action = 0;

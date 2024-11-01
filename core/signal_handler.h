@@ -72,7 +72,7 @@ class SignalHandler : public SignalEvent
   ~SignalHandler();
 
   private:
-  void OnEvents(uint32_t events);
+  void OnEvents(uint32_t events, void* ctx = nullptr);
 
   private:
   OnSignalCallback   signal_cb_;

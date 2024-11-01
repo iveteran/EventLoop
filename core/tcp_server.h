@@ -44,7 +44,7 @@ class TcpServer: public IOEvent
     }
 
     void OnError(int errcode, const char* errstr);
-    void OnEvents(uint32_t events);
+    void OnEvents(uint32_t events, void* ctx = nullptr) override;
     void OnNewClient(int fd, const IPAddress& peer_addr);
     void OnConnectionClosed(TcpConnection* conn);
 

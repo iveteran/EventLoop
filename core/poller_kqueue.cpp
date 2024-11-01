@@ -32,7 +32,7 @@ int Poller::Poll(uint32_t wait_ms, const PollCallback& poll_cb)
   int nfds = kevent(pfd_, NULL, 0, evs, MAX_EVENTS, &timeout);
   for (int i = 0; i < nfds; i++) {
     uint32_t events = FromKqueueEvents(evs[i].filter, evs[i].flags);
-    poll_cb(evs[i].udata, events);
+    poll_cb((IOEvent*)evs[i].udata, events, nullptr);
   }
   return nfds;
 }

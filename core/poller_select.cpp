@@ -57,7 +57,7 @@ int Poller::Poll(uint32_t wait_ms, const PollCallback& poll_cb)
         nfds++;
         auto iter = m_fd_userdata_map.find(fd);
         if (iter != m_fd_userdata_map.end()) {
-          poll_cb(iter->second, events);
+          poll_cb((IOEvent*)iter->second, events, nullptr);
         } else {
           el_logger.error("the fd({}) not exists in fd userdata map", fd);
         }

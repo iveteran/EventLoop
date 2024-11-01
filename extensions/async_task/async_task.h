@@ -24,7 +24,7 @@ class AsyncTask : public IOEvent
     bool Run();
 
     protected:
-    void OnEvents(uint32_t events) override;
+    void OnEvents(uint32_t events, void* ctx = nullptr) override;
     void OnCompleted();
     void SetErrorMessage(const char* errmsg);
 

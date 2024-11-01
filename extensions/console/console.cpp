@@ -58,7 +58,7 @@ void Console::destory() {
 #endif
 }
 
-void Console::OnEvents(uint32_t events) {
+void Console::OnEvents(uint32_t events, void* ctx) {
     if (events & FileEvent::READ) {
 #if defined(__linux__) && defined(SUPPORTS_READLINE)
         rl_callback_read_char();

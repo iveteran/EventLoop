@@ -609,7 +609,7 @@ void PGClient::WriteBytes() {
   // el_logger->debug("PGClient::WriteBytes callback function end");
 }
 
-void PGClient::OnEvents(uint32_t events)
+void PGClient::OnEvents(uint32_t events, void* ctx)
 {
   //el_logger->debug("[PGClient::OnEvents] events: {}", events);
   if (events & FileEvent::WRITE) {

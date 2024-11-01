@@ -76,7 +76,7 @@ void AsyncTask::OnCompleted()
     }
 }
 
-void AsyncTask::OnEvents(uint32_t events)
+void AsyncTask::OnEvents(uint32_t events, void* ctx)
 {
     if (events & FileEvent::READ) {
         el_logger->debug("[AsyncTask::OnEvents] events: {}", events);

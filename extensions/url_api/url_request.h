@@ -45,7 +45,7 @@ class URLRequest : public IOEvent
 
   void OnComplete();
   void OnTimeout();
-  void OnEvents(uint32_t events);
+  void OnEvents(uint32_t events, void* ctx = nullptr) override;
 
   protected:
   URLRequestReactor*    url_reactor_;

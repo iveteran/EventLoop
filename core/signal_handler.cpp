@@ -53,7 +53,7 @@ SignalHandler::~SignalHandler() {
   SignalManager::Instance()->DeleteEvent(this);
 }
 
-void SignalHandler::OnEvents(uint32_t events) {
+void SignalHandler::OnEvents(uint32_t events, void* ctx) {
   el_logger->info("SignalHandler receives signal ({}).", events);
   signal_cb_(this, events);
 }

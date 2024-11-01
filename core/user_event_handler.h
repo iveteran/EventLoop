@@ -24,7 +24,7 @@ class UserEvent : public IEvent {
   void* GetUserData() const { return user_data_; }
 
  protected:
-  void OnEvents(uint32_t events) override;
+  void OnEvents(uint32_t events, void* ctx = nullptr) override;
   virtual void DeleteEvents() = 0;
 
  protected:

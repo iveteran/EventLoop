@@ -56,7 +56,7 @@ class aio_request : public IOEvent
     virtual void perpare() = 0;
     virtual void on_aio_return(io_context_t ctx, struct iocb *iocb, long bytes, long status) = 0;
 
-    void OnEvents(uint32_t events) override
+    void OnEvents(uint32_t events, void* ctx = nullptr) override
     {
         //printf("[OnEvents]\n");
         if (events & FileEvent::READ) {

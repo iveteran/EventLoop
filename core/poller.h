@@ -10,6 +10,8 @@
 
 namespace evt_loop {
 
+class IOEvent;
+
 enum FileEvent {
   READ = 1 << 0,
   WRITE = 1 << 1,
@@ -26,14 +28,15 @@ enum PollerCtrl {
 
 class Poller
 {
-  typedef std::function<void (void*, uint32_t)> PollCallback;
+  public:
+  typedef std::function<void (IOEvent*, uint32_t, void*)> PollCallback;
   static const uint32_t MAX_EVENTS = 256;
 
   public:
   Poller();
   ~Poller();
   int Poll(uint32_t wait_ms, const PollCallback& poll_cb);
-  int SetEvents(int fd, PollerCtrl ctrl, uint32_t events, void* userdata = NULL);
+  int SetEvents(int fd, PollerCtrl ctrl, uint32_t events, void* events_ctx = NULL);
 
   private:
   int pfd_;

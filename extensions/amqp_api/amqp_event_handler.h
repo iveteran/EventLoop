@@ -31,7 +31,7 @@ class AMQPEventHandler : public AMQP::TcpHandler
      }
 
     protected:
-      virtual void OnEvents(uint32_t events) override
+      virtual void OnEvents(uint32_t events, void* ctx = nullptr) override
       {
         int amqp_events = io_to_amqp_events(events);
         amqp_connection_->process(fd_, amqp_events);

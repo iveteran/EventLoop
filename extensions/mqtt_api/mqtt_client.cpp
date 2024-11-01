@@ -90,7 +90,7 @@ bool MqttClient::Init(const char* host, int port, const char* id, bool clean_ses
   return success;
 }
 
-void MqttClient::OnEvents(uint32_t events)
+void MqttClient::OnEvents(uint32_t events, void* ctx)
 {
   //el_logger->debug("[MqttClient::OnEvents] events: {}", events);
   if (events & FileEvent::WRITE) {

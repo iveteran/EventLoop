@@ -157,7 +157,7 @@ class RedisAsyncClient : public RedisClient, public IOEvent {
   bool Connect_(bool is_reconnect = false);
   bool SetRedisCallbacks();
 
-  void OnEvents(uint32_t events);
+  void OnEvents(uint32_t events, void* ctx = nullptr) override;
   void OnError(CDBClient* cdbclient, int errcode, const char* errstr);
   void DefaultOnReplyCb(CDBClient* cdbc, const CDBReply* cdb_msg);
   RedisRequest::Step HandleReply(const RedisRequestPtr& request, const RedisReply& reply);

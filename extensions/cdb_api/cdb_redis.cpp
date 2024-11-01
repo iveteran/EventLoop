@@ -269,7 +269,7 @@ bool RedisAsyncClient::SetRedisCallbacks()
 
   return true;
 }
-void RedisAsyncClient::OnEvents(uint32_t events)
+void RedisAsyncClient::OnEvents(uint32_t events, void* ctx)
 {
   //el_logger->debug("[RedisAsyncClient::OnEvents] events: {}, redis.errcode: {}", events, redis_ctx_->err);
   if (events & FileEvent::WRITE) {

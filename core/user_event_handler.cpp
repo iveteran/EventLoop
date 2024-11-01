@@ -11,7 +11,7 @@ UserEvent::UserEvent(const OnUserEventCallback& cb, void* udata, int32_t repeat)
   el_ = EV_Singleton;
 }
 
-void UserEvent::OnEvents(uint32_t events) {
+void UserEvent::OnEvents(uint32_t events, void* ctx) {
   user_event_cb_(this, user_data_);
   if (repeat_ > 0 && --repeat_ == 0) {
     if (soft_deleting_enabled_) {

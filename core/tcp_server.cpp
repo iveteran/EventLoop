@@ -115,7 +115,7 @@ bool TcpServer::Start()
     return true;
 }
 
-void TcpServer::OnEvents(uint32_t events)
+void TcpServer::OnEvents(uint32_t events, void* ctx)
 {
     if (events & FileEvent::READ) {
         IPAddress peer_addr;

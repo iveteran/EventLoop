@@ -139,7 +139,7 @@ class MqttClient : public IOEvent {
         reconnect_timer_.Start();
     }
 
-    void OnEvents(uint32_t events) override;
+    void OnEvents(uint32_t events, void* ctx = nullptr) override;
 
     void OnError(int errcode, const char* errstr)
     {

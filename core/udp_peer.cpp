@@ -28,7 +28,7 @@ void UdpPeer::Destroy()
     SetFD(-1);
 }
 
-void UdpPeer::OnEvents(uint32_t events)
+void UdpPeer::OnEvents(uint32_t events, void* ctx)
 {
     if (events & FileEvent::READ) {
         size_t size = ReceivePacket();

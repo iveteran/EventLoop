@@ -116,7 +116,7 @@ public:
   int onCommandEchoResult(int status, const string& data);
 
  private:
-  void OnEvents(uint32_t events);
+  void OnEvents(uint32_t events, void* ctx = nullptr) override;
   size_t GetLine();
   void handleCtrl_D();
   void handleInput(const string& input);
