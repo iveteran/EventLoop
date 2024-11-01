@@ -66,6 +66,7 @@ class BufferIOEvent : public IOEvent {
 
   void OnEvents(uint32_t events, void* ctx = nullptr) override;
   int ReceiveData(uint32_t& events);
+  void HandleCompletionMessages();
   int SendData(uint32_t& events);
   bool SendInner(const MessagePtr& msg);
 

@@ -212,6 +212,7 @@ class MessageMQ {
   size_t NeedMore() { return Last()->MoreSize(); }
   bool LastCompletion() { return Last()->Completion(); }
   bool FirstCompletion() { return First()->Completion(); }
+  bool HasCompletion() { return First()->Completion(); }
 
   void AppendData(const char* data, uint32_t size);
   void Apply(MessageDispatcher& cb);

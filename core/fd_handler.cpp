@@ -54,11 +54,15 @@ int BufferIOEvent::ReceiveData(uint32_t& events) {
     }
   }
 
-  if (rx_msg_mq_.FirstCompletion()) {
-    MessageMQ::MessageDispatcher processing_msg_cb = std::bind(&BufferIOEvent::OnReceived, this, std::placeholders::_1);
-    rx_msg_mq_.Apply(processing_msg_cb);
+  if (rx_msg_mq_.HasCompletion()) {
+      HandleCompletionMessages();
   }
   return total_rx;
+}
+
+void BufferIOEvent::HandleCompletionMessages() {
+    MessageMQ::MessageDispatcher processing_msg_cb = std::bind(&BufferIOEvent::OnReceived, this, std::placeholders::_1);
+    rx_msg_mq_.Apply(processing_msg_cb);
 }
 
 int BufferIOEvent::SendData(uint32_t& events) {
