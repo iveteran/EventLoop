@@ -43,12 +43,13 @@ class ClientThreadTest {
 class ServerThreadTest {
     public:
     ServerThreadTest() :
-      echoserver_binary_("0.0.0.0", 10000, MessageType::BINARY)
+      echoserver_binary_(IPVer::V4, "0.0.0.0", 10000, MessageType::BINARY)
     {
         TcpCallbacksPtr echo_svr_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_svr_cbs->on_msg_recvd_cb = std::bind(&ServerThreadTest::OnMessageRecvd_Server, this, std::placeholders::_1, std::placeholders::_2);
         echo_svr_cbs->on_conn_ready_cb = std::bind(&ServerThreadTest::OnServerConnectionReady, this, std::placeholders    ::_1);
         echoserver_binary_.SetTcpCallbacks(echo_svr_cbs);
+        echoserver_binary_.Start();
     }
     void OnSignal(SignalHandler* sh, uint32_t signo)
     {

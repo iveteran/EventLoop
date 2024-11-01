@@ -5,14 +5,18 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include "logger.h"
+#include "utils.h"
 
 namespace evt_loop {
 
-TcpServer::TcpServer(const char *host, uint16_t port, MessageType msg_type, TcpCallbacksPtr tcp_evt_cbs)
-    : IOEvent(IOType::TCP_SERVER), msg_type_(msg_type), msg_hdr_desc_(nullptr), tcp_evt_cbs_(tcp_evt_cbs)
+TcpServer::TcpServer(IPVer ip_ver, const char *host, uint16_t port, MessageType msg_type, TcpCallbacksPtr tcp_evt_cbs)
+    : IOEvent(IOType::TCP_SERVER), ip_ver_(ip_ver), msg_type_(msg_type), msg_hdr_desc_(nullptr), tcp_evt_cbs_(tcp_evt_cbs)
 {
-    InitAddress(host, port);
-    Start();
+    if (ip_ver_ == IPVer::V4) {
+        InitAddress(host, port);
+    } else {
+        InitV6Address(host, port);
+    }
 }
 
 TcpServer::~TcpServer()
@@ -34,6 +38,20 @@ void TcpServer::InitAddress(const char* host, uint16_t port)
         server_addr_.ip_ = "127.0.0.1";
     } else if (strcmp(host, "any") == 0) {
         server_addr_.ip_ = "0.0.0.0";
+    } else {
+        server_addr_.ip_ = host;
+    }
+}
+void TcpServer::InitV6Address(const char* host, uint16_t port)
+{
+    server_addr_.port_ = port;
+    if (host[0] == '\0' ||
+            strcmp(host, "localhost6") == 0 ||
+            strcmp(host, "ip6-localhost") == 0 ||
+            strcmp(host, "ipv6-localhost") == 0) {
+        server_addr_.ip_ = "::1";
+    } else if (strcmp(host, "any") == 0) {
+        server_addr_.ip_ = "::";
     } else {
         server_addr_.ip_ = host;
     }
@@ -78,13 +96,15 @@ TcpConnectionPtr TcpServer::GetConnectionByFD(int fd)
 bool TcpServer::Start()
 {
     int fd = -1;
-    if ((fd = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
+    int domain = ip_ver_ == IPVer::V4 ? AF_INET : AF_INET6;
+
+    if ((fd = socket(domain, SOCK_STREAM, 0)) == -1) {
         OnError(errno, strerror(errno));
         return false;
     }
 
     int reuseaddr = 1;
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1)
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) < 0)
     {
         OnError(errno, strerror(errno));
         close(fd);
@@ -92,24 +112,52 @@ bool TcpServer::Start()
     }
 
     int qlen = 5;
-    if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen)) == -1)
+    if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen)) < 0)
     {
-        el_logger->warn("(setsockopt) Ignore error of enabling TFO: {}(errno: {})", strerror(errno), errno);
+        el_logger->warn("[TcpServer::Start] (setsockopt) Ignore error of enabling TFO: {}(errno: {})", strerror(errno), errno);
     }
 
-    sockaddr_in sock_addr;
-    memset(&sock_addr, 0, sizeof(sock_addr));
-    sock_addr.sin_family = PF_INET;
-    sock_addr.sin_port = htons(server_addr_.port_);
-    if (inet_aton(server_addr_.ip_.c_str(), &sock_addr.sin_addr) == 0) {
+    struct sockaddr_in sock_addr = {};
+    struct sockaddr_in6 sock_addr6 = {};
+
+    if (ip_ver_ == IPVer::V4) {
+        sock_addr.sin_family = domain;
+        sock_addr.sin_port = htons(server_addr_.port_);
+        if (inet_pton(domain, server_addr_.ip_.c_str(), &sock_addr.sin_addr) == 0) {
+            OnError(errno, strerror(errno));
+            return false;
+        }
+        if (bind(fd, (struct sockaddr*)&sock_addr, sizeof(sockaddr_in)) < 0) {
+            OnError(errno, strerror(errno));
+            return false;
+        }
+    } else {
+        sock_addr6.sin6_family = domain;
+        sock_addr6.sin6_port = htons(server_addr_.port_);
+        if (inet_pton(domain, server_addr_.ip_.c_str(), &sock_addr6.sin6_addr) == 0) {
+            OnError(errno, strerror(errno));
+            return false;
+        }
+        if (ip_ver_ == IPVer::V6_ONLY) {
+            int on = 1;
+            if (setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0) {
+                OnError(errno, strerror(errno));
+                return false;
+            }
+        }
+        if (bind(fd, (struct sockaddr*)&sock_addr6, sizeof(sockaddr_in6)) < 0) {
+            OnError(errno, strerror(errno));
+            return false;
+        }
+    }
+
+    if (listen(fd, 4096) < 0) {
         OnError(errno, strerror(errno));
         return false;
     }
 
-    if (bind(fd, (sockaddr*)&sock_addr, sizeof(sockaddr_in)) == -1 || listen(fd, 4096) == -1) {
-        OnError(errno, strerror(errno));
-        return false;
-    }
+    el_logger->info("[TcpServer::Start] Listening: {}:{}", server_addr_.ip_, server_addr_.port_);
+
     SetFD(fd);
 
     return true;
@@ -119,12 +167,18 @@ void TcpServer::OnEvents(uint32_t events, void* ctx)
 {
     if (events & FileEvent::READ) {
         IPAddress peer_addr;
-        int fd = AcceptClient(peer_addr);
-        if (fd > 0) {
-            OnNewClient(fd, peer_addr);
+        int client_fd = -1;
+        if (ip_ver_ == IPVer::V4) {
+            client_fd = AcceptClient(peer_addr);
+        } else {
+            client_fd = AcceptClient6(peer_addr);
+        }
+        if (client_fd > 0) {
+            OnNewClient(client_fd, peer_addr);
         } else {
             events |= FileEvent::ERROR;
         }
+    } else if (events & FileEvent::CREATE) {
     }
 
     if (events & FileEvent::ERROR) {
@@ -147,9 +201,24 @@ int TcpServer::AcceptClient(IPAddress& peer_addr)
     return fd;
 }
 
+int TcpServer::AcceptClient6(IPAddress& peer_addr)
+{
+    struct sockaddr_in6 sock_addr;
+    uint32_t size = sizeof(sock_addr);
+
+    int fd = accept(fd_, (struct sockaddr*)&sock_addr, &size);
+    if (fd < 0) {
+        OnError(errno, strerror(errno));
+        return -1;
+    }
+    SocketAddrToIPAddress(sock_addr, peer_addr);
+
+    return fd;
+}
+
 void TcpServer::OnNewClient(int fd, const IPAddress& peer_addr)
 {
-    el_logger->info("[TcpServer::OnNewClient] new connection, fd: {}", fd);
+    el_logger->info("[TcpServer::OnNewClient] new connection, fd: {}, msg_type: {}", fd, msg_type_);
     TcpConnectionPtr conn = CreateClient(fd, server_addr_, peer_addr, peer_addr);
     conn->SetMessageType(msg_type_, msg_hdr_desc_);
     if (hb_tmp_params_) {
@@ -160,6 +229,14 @@ void TcpServer::OnNewClient(int fd, const IPAddress& peer_addr)
     }
     conn_map_.insert(std::make_pair(fd, conn));
     if (new_client_cb_) new_client_cb_(conn.get());
+}
+
+TcpConnectionPtr
+TcpServer::CreateClient(int fd, const IPAddress& local_addr,
+        const IPAddress& peer_addr, const IPAddress& peer_real_addr)
+{
+    return std::make_shared<TcpConnection>(fd, server_addr_, peer_addr, peer_real_addr,
+            std::bind(&TcpServer::OnConnectionClosed, this, std::placeholders::_1), tcp_evt_cbs_);
 }
 
 void TcpServer::OnConnectionClosed(TcpConnection* conn)
@@ -176,94 +253,6 @@ void TcpServer::OnError(int errcode, const char* errstr)
     if (errcode == EADDRINUSE || errcode == EADDRNOTAVAIL) {
         exit(1);
     }
-}
-
-//////////////////////////////////////////////
-
-TcpServer6::TcpServer6(const char *host, uint16_t port, bool ipv6_only, MessageType msg_type, TcpCallbacksPtr tcp_evt_cbs)
-    : TcpServer(host, port, msg_type, tcp_evt_cbs),
-    ipv6_only_(ipv6_only)
-{
-    InitAddress(host, port);
-    Start();
-}
-
-void TcpServer6::InitAddress(const char* host, uint16_t port)
-{
-    server_addr_.port_ = port;
-    if (host[0] == '\0' ||
-            strcmp(host, "localhost6") == 0 ||
-            strcmp(host, "ip6-localhost") == 0 ||
-            strcmp(host, "ipv6-localhost") == 0) {
-        server_addr_.ip_ = "::1";
-    } else if (strcmp(host, "any") == 0) {
-        server_addr_.ip_ = "::";
-    } else {
-        server_addr_.ip_ = host;
-    }
-}
-
-bool TcpServer6::Start()
-{
-    int fd = -1;
-    if ((fd = socket(PF_INET6, SOCK_STREAM, 0)) == -1) {
-        OnError(errno, strerror(errno));
-        return false;
-    }
-
-    int reuseaddr = 1;
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1)
-    {
-        OnError(errno, strerror(errno));
-        close(fd);
-        return false;
-    }
-
-    int qlen = 5;
-    if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen)) == -1)
-    {
-        el_logger->warn("(setsockopt) Ignore error of enabling TFO: {}(errno: {})", strerror(errno), errno);
-    }
-
-    sockaddr_in6 sock_addr;
-    memset(&sock_addr, 0, sizeof(sock_addr));
-    sock_addr.sin6_family = PF_INET6;
-    sock_addr.sin6_port = htons(server_addr_.port_);
-    if (inet_pton(AF_INET6, server_addr_.ip_.c_str(), &sock_addr.sin6_addr) == 0) {
-        OnError(errno, strerror(errno));
-        return false;
-    }
-
-    if (ipv6_only_) {
-        int on = 1;
-        if (setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) == -1) {
-            OnError(errno, strerror(errno));
-            return false;
-        }
-    }
-
-    if (bind(fd, (struct sockaddr*)&sock_addr, sizeof(sock_addr)) == -1 || listen(fd, 4096) == -1) {
-        OnError(errno, strerror(errno));
-        return false;
-    }
-    SetFD(fd);
-
-    return true;
-}
-
-int TcpServer6::AcceptClient(IPAddress& peer_addr)
-{
-    struct sockaddr_in6 sock_addr;
-    uint32_t size = sizeof(sock_addr);
-
-    int fd = accept(fd_, (struct sockaddr*)&sock_addr, &size);
-    if (fd < 0) {
-        OnError(errno, strerror(errno));
-        return -1;
-    }
-    SocketAddrToIPAddress(sock_addr, peer_addr);
-
-    return fd;
 }
 
 }  // namespace evt_loop

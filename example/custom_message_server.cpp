@@ -9,7 +9,7 @@ using namespace evt_loop;
 class CustomMessageServer {
     public:
     CustomMessageServer() :
-      server_("0.0.0.0", 10000, MessageType::CUSTOM)
+      server_(IPVer::V4, "0.0.0.0", 10000, MessageType::CUSTOM)
     {
         auto msg_hdr_desc = CreateMessageHeaderDescription();
         server_.SetMessageHeaderDescription(msg_hdr_desc);
@@ -18,6 +18,7 @@ class CustomMessageServer {
         svr_cbs->on_msg_recvd_cb = std::bind(&CustomMessageServer::OnMessageRecvd, this, std::placeholders::_1, std::placeholders::_2);
         svr_cbs->on_conn_ready_cb = std::bind(&CustomMessageServer::OnConnectionReady, this, std::placeholders::_1);
         server_.SetTcpCallbacks(svr_cbs);
+        server_.Start();
     }
     void OnSignal(SignalHandler* sh, uint32_t signo)
     {

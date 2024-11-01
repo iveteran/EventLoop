@@ -7,14 +7,14 @@ namespace evt_loop {
 class BusinessTester {
     public:
     BusinessTester() :
-      echoserver_binary_("0.0.0.0", 10000, MessageType::BINARY),
+      echoserver_binary_(IPVer::V4, "0.0.0.0", 10000, MessageType::BINARY),
       echoclient_binary_("localhost", 10000, MessageType::BINARY),
-      echoserver_crlf_("0.0.0.0", 10001, MessageType::CRLF),
+      echoserver_crlf_(IPVer::V4, "0.0.0.0", 10001, MessageType::CRLF),
       echoclient_crlf_("localhost", 10001, MessageType::CRLF),
-      echoserver_json_("0.0.0.0", 10002, MessageType::JSON),
+      echoserver_json_(IPVer::V4, "0.0.0.0", 10002, MessageType::JSON),
       echoclient_json_("localhost", 10002, MessageType::JSON),
-      echoserver_binary2_("0.0.0.0", 20000, MessageType::BINARY),
-      echoserver_ip6_("::", 30000, MessageType::BINARY)
+      echoserver_binary2_(IPVer::V4, "0.0.0.0", 20000, MessageType::BINARY),
+      echoserver_ip6_(IPVer::V6, "::", 30000, MessageType::BINARY)
     {
         TcpCallbacksPtr echo_svr_1_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_svr_1_cbs->on_conn_ready_cb = std::bind(&BusinessTester::OnNewConnection, this, std::placeholders::_1);
@@ -39,6 +39,10 @@ class BusinessTester {
         echoclient_json_.SetTcpCallbacks(echo_client_cbs);
         echoclient_json_.EnableHeartbeat();
 
+        echoserver_binary_.Start();
+        echoserver_crlf_.Start();
+        echoserver_json_.Start();
+
         echoclient_crlf_.Connect();
         echoclient_binary_.Connect();
         echoclient_json_.Connect();
@@ -60,11 +64,13 @@ class BusinessTester {
         echo_svr_2_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd_2, this, std::placeholders::_1, std::placeholders::_2);
         echoserver_binary2_.SetTcpCallbacks(echo_svr_2_cbs);
         echoserver_binary2_.EnableHeartbeat();
+        echoserver_binary2_.Start();
 
         TcpCallbacksPtr echo_svr_ip6_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_svr_ip6_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd_ip6, this, std::placeholders::_1, std::placeholders::_2);
         echoserver_ip6_.SetTcpCallbacks(echo_svr_ip6_cbs);
         echoserver_ip6_.SetNewClientCallback(std::bind(&BusinessTester::OnNewConnection_ip6, this, std::placeholders::_1));
+        echoserver_ip6_.Start();
     }
     void OnSignal(SignalHandler* sh, uint32_t signo)
     {
@@ -126,7 +132,7 @@ class BusinessTester {
     TcpClient echoclient_json_;
     TcpServer echoserver_binary2_;
 
-    TcpServer6 echoserver_ip6_;
+    TcpServer echoserver_ip6_;
 };
 
 }  // ns evt_loop
