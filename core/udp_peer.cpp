@@ -36,6 +36,10 @@ void UdpPeer::OnEvents(uint32_t events, void* ctx)
             events |= FileEvent::ERROR;
         }
     }
+    if (events & FileEvent::WRITE_DONE) {
+        size_t tx_bytes = 0;
+        OnWriteDone(tx_bytes);
+    }
 
     if (events & FileEvent::ERROR) {
         OnError(errno, strerror(errno));
