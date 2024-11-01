@@ -85,11 +85,9 @@ size_t JsonMessage::AssignData(const char* data, uint32_t size, bool has_hdr) {
   
 BinaryMessage::BinaryMessage(const std::string& data, bool has_hdr) : Message(MessageType::BINARY) {
   AssignData(data.data(), data.size(), has_hdr);
-  ResetHeader();
 }
 BinaryMessage::BinaryMessage(const char* data, uint32_t length, bool has_hdr) : Message(MessageType::BINARY) {
   AssignData(data, length, has_hdr);
-  ResetHeader();
 }
 BinaryMessage::BinaryMessage(const BinaryMessage& other) : Message(MessageType::BINARY) {
   data_ = other.data_;
@@ -131,8 +129,8 @@ size_t BinaryMessage::AssignData(const char* data, uint32_t length, bool has_hdr
     data_.append((char*)&msg_hdr, sizeof(msg_hdr));
   }
   data_.append(data, length);
-
-  return length;   // FIXME: the return value maybe less than length
+  ResetHeader();
+  return data_.size();
 }
 
 void BinaryMessage::ResetHeader() {
