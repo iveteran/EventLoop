@@ -1,8 +1,7 @@
 #include <stdio.h>
-
 #include "eventloop/el.h"
 
-namespace evt_loop {
+using namespace evt_loop;
 
 class BusinessTester {
     public:
@@ -25,11 +24,10 @@ class BusinessTester {
         echo_client_cbs->on_conn_ready_cb = std::bind(&BusinessTester::OnConnectionReady, this, std::placeholders::_1);
 
         echoserver_binary_.SetTcpCallbacks(echo_svr_1_cbs);
-        echoclient_binary_.EnableHeartbeat(8, 1, 3);
         echoserver_binary_.EnableIdleTimeout(10, std::bind(&BusinessTester::OnConnectionIdleTimeout, this, std::placeholders::_1, std::placeholders::_2));
         echoclient_binary_.SetTcpCallbacks(echo_client_cbs);
         echoclient_binary_.EnableIdleTimeout(15, std::bind(&BusinessTester::OnConnectionIdleTimeout, this, std::placeholders::_1, std::placeholders::_2));
-        //echoclient_binary_.EnableHeartbeat(8, 1, 3);
+        echoclient_binary_.EnableHeartbeat(8, 1, 3);
 
         echoserver_crlf_.SetTcpCallbacks(echo_svr_1_cbs);
         echoclient_crlf_.SetTcpCallbacks(echo_client_cbs);
@@ -53,12 +51,25 @@ class BusinessTester {
         echoclient_crlf_.Send("hello, crlf message\r\n");
         echoclient_crlf_.Send("hello, shenzhen\r\n");
 
-        echoclient_json_.Send("{ name : yufangbin, say : hello }");
-        echoclient_json_.Send("{ name : myobject, \r\n"
-            " type : int, \r\n"
-            " value : 123, \r\n"
-            " child : {name : sub_obj, type : kv, value : {type : float, value : 3.123} }, \r\n"
-            " brother : { name : bro_obj, type : string, value : bob} }");
+        echoclient_json_.Send(R"({ "name" : "yufangbin", "say" : "hello" })");
+        echoclient_json_.Send(R"({
+            "name" : "myobject",
+            "type" : "int",
+            "value" : 123,
+            "child" : {
+                "name" : "sub_obj",
+                "type" : "kv",
+                "value" : {
+                    "type" : "float",
+                    "value" : 3.123
+                }
+            },
+            "brother" : {
+                "name" : "bro_obj",
+                "type" : "string",
+                "value" : "bob"
+            }
+        })");
 
         TcpCallbacksPtr echo_svr_2_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_svr_2_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd_2, this, std::placeholders::_1, std::placeholders::_2);
@@ -86,7 +97,20 @@ class BusinessTester {
     void OnConnectionReady(TcpConnection* conn)
     {
         printf("[OnConnectionReady] fd: %d\n", conn->FD());
-        conn->Send("hello china 2");
+        int msg_type = conn->GetMessageType();
+        switch (msg_type) {
+          case MessageType::BINARY:
+            conn->Send("hello china 2");
+            break;
+          case MessageType::CRLF:
+            conn->Send("hello china 2\r\n");
+            break;
+          case MessageType::JSON:
+            conn->Send(R"({"name": "hello china 2"})");
+            break;
+          default:
+            break;
+        }
     }
     void OnConnectionIdleTimeout(TcpConnection* conn, uint32_t time)
     {
@@ -96,6 +120,7 @@ class BusinessTester {
     void OnMessageRecvd_1(TcpConnection* conn, const Message* msg)
     {
         printf("[echoserver1] fd: %d, message: %s, length: %lu\n", conn->FD(), msg->Payload(), msg->PayloadSize());
+        cout << msg->DumpHexWithChars() << endl;
         //conn->Send(msg->Payload(), msg->PayloadSize());
         conn->Send(*msg);
     }
@@ -121,6 +146,7 @@ class BusinessTester {
     void OnMessageRecvd_Client(TcpConnection* conn, const Message* msg)
     {
         printf("[echoclient] fd: %d, message: %s, length: %lu\n", conn->FD(), msg->Payload(), msg->PayloadSize());
+        cout << msg->DumpHexWithChars() << endl;
     }
 
     private:
@@ -134,10 +160,6 @@ class BusinessTester {
 
     TcpServer echoserver_ip6_;
 };
-
-}  // ns evt_loop
-
-using namespace evt_loop;
 
 int main(int argc, char **argv) {
   BusinessTester biz_tester;
