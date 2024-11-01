@@ -96,7 +96,7 @@ void KcpPeer::SendUdpPacket(const char* data, size_t size)
 void KcpPeer::OnTick(UserEvent* tick_event, void* udata)
 {
     //el_logger->debug("[OnTick] Trigger tick event(id: {}), udata: {}", tick_event->Id(), udata);
-    int64_t now_ms = NowMillisSeconds();
+    int64_t now_ms = NowMilliSeconds();
     uint32_t clock = (uint32_t)(now_ms & 0xfffffffful);
     //el_logger->debug("[OnTick] now clock: {}, {}, {}", now_ms, clock);
     ikcp_update(kcp_, clock);
