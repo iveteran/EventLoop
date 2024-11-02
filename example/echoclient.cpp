@@ -1,25 +1,27 @@
 #include <stdio.h>
 #include "eventloop/el.h"
 
-namespace evt_loop {
+using namespace evt_loop;
 
 class BusinessTester {
     public:
     BusinessTester() :
         echoclient_(IPVer::V4, "localhost", 20000, MessageType::BINARY),
-        echoclient_ip6_(IPVer::V6, "::1", 30000, MessageType::BINARY),
+        echoclient_ip6_(IPVer::V6, "::1", 30000, MessageType::CRLF),
         sending_timer_(TimeVal(5, 0), std::bind(&BusinessTester::OnSendingTimer, this, std::placeholders::_1)),
         sending_timer_ip6_(TimeVal(10, 0), std::bind(&BusinessTester::OnSendingTimerIp6, this, std::placeholders::_1))
     {
         TcpCallbacksPtr echo_client_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_client_cbs->on_msg_recvd_cb = std::bind(&BusinessTester::OnMessageRecvd, this, std::placeholders::_1, std::placeholders::_2);
+        bool success;
 
         echoclient_.SetNewClientCallback(std::bind(&BusinessTester::OnConnectionCreated, this, std::placeholders::_1));
         echoclient_.SetTcpCallbacks(echo_client_cbs);
         //echoclient_.EnableKeepAlive(true);
         echoclient_.EnableHeartbeat();
 
-        echoclient_.Connect();
+        success = echoclient_.Connect();
+        assert(success);
         echoclient_.Send("hello world");
 
         echoclient_ip6_.SetNewClientCallback(std::bind(&BusinessTester::OnConnectionCreated_ip6, this, std::placeholders::_1));
@@ -28,8 +30,9 @@ class BusinessTester {
         echoclient_ip6_.SetTcpCallbacks(ip6_echo_client_cbs);
         echoclient_ip6_.EnableKeepAlive(true);
 
-        echoclient_ip6_.Connect();
-        echoclient_ip6_.Send("hello ipv6");
+        success = echoclient_ip6_.Connect();
+        assert(success);
+        echoclient_ip6_.Send("hello ipv6\r\n");
     }
 
     protected:
@@ -53,7 +56,7 @@ class BusinessTester {
     {
         printf("[OnConnectionCreated_ip6] ip6 connection created, fd: %d\n", conn->FD());
         printf("[OnConnectionCreated_ip6] ping\n");
-        conn->Send("ping ip6");
+        conn->Send("ping ip6\r\n");
         sending_timer_ip6_.Start();
     }
     void OnMessageRecvd_ip6(TcpConnection* conn, const Message* msg)
@@ -70,7 +73,7 @@ class BusinessTester {
     void OnSendingTimerIp6(TimerEvent* timer)
     {
         printf("[OnSendingTimerIp6] ping\n");
-        echoclient_ip6_.Send("hello ipv6");
+        echoclient_ip6_.Send("hello ipv6\r\n");
     }
 
     private:
@@ -79,9 +82,7 @@ class BusinessTester {
     PeriodicTimer sending_timer_;
     OneshotTimer  sending_timer_ip6_;
 };
-}   // ns evt_loop
 
-using namespace evt_loop;
 
 int main(int argc, char **argv) {
   BusinessTester biz_tester;
