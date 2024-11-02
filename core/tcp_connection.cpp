@@ -8,7 +8,12 @@ namespace evt_loop {
 
 TcpConnection::TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, const IPAddress& peer_real_addr,
     const OnClosedCallback& close_cb, TcpCallbacksPtr tcp_evt_cbs) :
-  BufferIOEvent(IOType::TCP_CONNECTION, fd), id_(0), client_type_(0), local_addr_(local_addr), peer_addr_(peer_addr), peer_real_addr_(peer_real_addr),
+#ifdef USE_IO_URING
+  URingStream(IOType::TCP_CONNECTION, fd),
+#else
+  BufferIOEvent(IOType::TCP_CONNECTION, fd),
+#endif
+  id_(0), client_type_(0), local_addr_(local_addr), peer_addr_(peer_addr), peer_real_addr_(peer_real_addr),
   active_closing_(false), is_client_(false), creator_notification_cb_(close_cb), tcp_evt_cbs_(tcp_evt_cbs),
   heartbeat_handler_(this), checking_idle_timer_(nullptr)
 {
@@ -101,7 +106,11 @@ void TcpConnection::Disconnect()
 void TcpConnection::OnReady()
 {
     el_logger->info("[TcpConnection::OnReady]");
+#ifdef USE_IO_URING
+    URingStream::OnReady();
+#else
     BufferIOEvent::OnReady();
+#endif
     if (on_conn_ready_cb_) on_conn_ready_cb_(this);
     if (tcp_evt_cbs_) tcp_evt_cbs_->on_conn_ready_cb(this);
 }

@@ -4,7 +4,12 @@
 #include <map>
 #include <memory>
 
+#ifdef USE_IO_URING
+#include "uring_stream.h"
+#else
 #include "fd_handler.h"
+#endif
+
 #include "tcp_callbacks.h"
 #include "tcp_heartbeat_handler.h"
 #include "ip_addr.h"
@@ -14,7 +19,11 @@ using std::shared_ptr;
 
 namespace evt_loop {
 
+#ifdef USE_IO_URING
+class TcpConnection : public URingStream
+#else
 class TcpConnection : public BufferIOEvent
+#endif
 {
   public:
     TcpConnection(int fd, const IPAddress& local_addr, const IPAddress& peer_addr, const IPAddress& peer_real_addr,

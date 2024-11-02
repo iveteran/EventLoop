@@ -2,7 +2,11 @@
     #include "poller_select.cpp"
 #else
     #if defined(__linux__)
-        #include "poller_epoll.cpp"
+        #if defined(USE_IO_URING)
+            #include "poller_uring.cpp"
+        #else
+            #include "poller_epoll.cpp"
+        #endif
     #elif defined(__OSX__) || defined(__DARWIN__) || defined(__APPLE__) || defined(__FREEBSD__)
         #include "poller_kqueue.cpp"
     #else

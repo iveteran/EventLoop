@@ -1,4 +1,4 @@
-#if defined(__linux__) && !defined(USE_SELECT)
+#if defined(__linux__) && !defined(USE_SELECT) && !defined(USE_IO_URING)
 #include <unistd.h>
 #include <cstdio>
 #include <sys/epoll.h>

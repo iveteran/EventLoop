@@ -7,7 +7,8 @@ CXXFLAGS = -I../include
 LDFLAGS =
 
 DEP_LIBS += \
-           ../core/libel.a
+           ../core/libel.a \
+           -luring
 
 CXX      = g++
 RM       = rm -f

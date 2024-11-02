@@ -1,4 +1,5 @@
 #include "tcp_client.h"
+#include "tcp_connection.h"
 #include "eventloop.h"
 #include <unistd.h>
 #include <errno.h>
@@ -196,6 +197,7 @@ void TcpClient::OnConnected(int fd, const IPAddress& local_addr)
     if (idle_timeout_params_) {
         conn_->EnableIdleTimeout(std::get<0>(*idle_timeout_params_), std::get<1>(*idle_timeout_params_));
     }
+    conn_->Handshake();
     if (new_client_cb_) new_client_cb_(conn_.get());
 }
 

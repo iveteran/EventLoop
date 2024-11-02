@@ -66,6 +66,10 @@ class EventLoop {
   int64_t MilliSeconds() const { return now_.Seconds() * 1000 + now_.USeconds() / 1000; }
   int64_t MicroSeconds() const { return now_.Seconds() * 1000000 + now_.USeconds(); }
 
+  std::shared_ptr<Poller> GetPoller() const {
+      return poller_;
+  }
+
  private:
   // do epoll_waite and collect events
   int ProcessEvents(int timeout);

@@ -6,6 +6,10 @@
 #include <arpa/inet.h>
 #include "logger.h"
 
+#ifdef USE_IO_URING
+#include "uring_request.h"
+#endif
+
 namespace evt_loop {
 
 TcpServer::TcpServer(IPVer ip_ver, const char *host, uint16_t port, MessageType msg_type, TcpCallbacksPtr tcp_evt_cbs)
@@ -157,6 +161,10 @@ bool TcpServer::Start()
 
     el_logger->info("[TcpServer::Start] Listening: {}:{}", server_addr_.ip_, server_addr_.port_);
 
+#ifdef USE_IO_URING
+    SetEvents(FileEvent::CREATE);
+#endif
+
     SetFD(fd);
 
     return true;
@@ -178,6 +186,21 @@ void TcpServer::OnEvents(uint32_t events, void* ctx)
             events |= FileEvent::ERROR;
         }
     } else if (events & FileEvent::CREATE) {
+#ifdef USE_IO_URING
+        auto req = (URingAcceptRequest*)ctx;
+        int client_fd = req->client_fd;
+        if (client_fd > 0) {
+            IPAddress peer_addr;
+            if (ip_ver_ == IPVer::V4) {
+                SocketAddrToIPAddress(req->client_addr.addr, peer_addr);
+            } else {
+                SocketAddrToIPAddress(req->client_addr.addr6, peer_addr);
+            }
+            OnNewClient(client_fd, peer_addr);
+        } else {
+            events |= FileEvent::ERROR;
+        }
+#endif
     }
 
     if (events & FileEvent::ERROR) {

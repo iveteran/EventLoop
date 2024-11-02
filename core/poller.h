@@ -37,9 +37,9 @@ class Poller
 
   public:
   Poller();
-  ~Poller();
-  int Poll(uint32_t wait_ms, const PollCallback& poll_cb);
-  int SetEvents(int fd, PollerCtrl ctrl, uint32_t events, void* events_ctx = NULL);
+  virtual ~Poller();
+  virtual int Poll(uint32_t wait_ms, const PollCallback& poll_cb);
+  virtual int SetEvents(int fd, PollerCtrl ctrl, uint32_t events, void* userdata = nullptr);
 
   private:
   int pfd_;

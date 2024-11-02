@@ -9,6 +9,10 @@
 #include "user_event_handler.h"
 #include "logger.h"
 
+#ifdef USE_IO_URING
+#include "poller_uring.h"
+#endif
+
 namespace evt_loop {
 
 time_t Now()
@@ -38,7 +42,11 @@ int SetNonblocking(int fd) {
 
 // EventLoop implementation
 EventLoop::EventLoop(int tick_ms) {
+#ifdef USE_IO_URING
+  poller_ = std::make_shared<URingPoller>();
+#else
   poller_ = std::make_shared<Poller>();
+#endif
   timermanager_ = std::make_shared<TimerManager>();
   idle_events_ = std::make_shared<UserEventManager>();
   tick_events_ = std::make_shared<UserEventManager>();

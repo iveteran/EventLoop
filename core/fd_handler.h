@@ -62,7 +62,6 @@ class BufferIOEvent : public IOEvent {
 
   virtual int OnHandshake(const char* data = nullptr, size_t size = 0);
 
- private:
   // MSG_NOSIGNAL: Don't generate a SIGPIPE signal if the peer on a stream-oriented socket has closed the connection
   virtual int OnWrite(const void* buf, size_t bytes) { return send(fd_, buf, bytes, MSG_NOSIGNAL); }
 
@@ -70,7 +69,7 @@ class BufferIOEvent : public IOEvent {
   int ReceiveData(uint32_t& events);
   void HandleCompletionMessages();
   int SendData(uint32_t& events);
-  bool SendInner(const MessagePtr& msg);
+  virtual bool SendInner(const MessagePtr& msg);
 
   void UpdateRxStats(uint32_t rx_bytes);
   void UpdateTxStats(uint32_t tx_bytes);
@@ -78,7 +77,6 @@ class BufferIOEvent : public IOEvent {
  protected:
   State         state_;
 
- private:
   MessageType   msg_type_;
   MessageMQ     rx_msg_mq_;
   MessageMQ     tx_msg_mq_;
