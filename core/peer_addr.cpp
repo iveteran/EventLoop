@@ -17,7 +17,7 @@ void PeerAddr4::Assign(const char* ip, uint16_t port) {
 bool PeerAddr4::SetIP(const char* ip) {
     if (! ip) return true;
     if (inet_aton(ip, &sock_addr_.sin_addr) == 0) {
-        el_logger->error("[PeerAddr4::SetIP] failed: {}", strerror(errno));
+        el_logger->error("[PeerAddr4::SetIP] failed: {}", ip, strerror(errno));
         return false;
     }
     return true;
@@ -38,7 +38,7 @@ size_t PeerAddr4::Size() const {
 
 string PeerAddr4::IP() const {
     char buf[64];
-    inet_ntop(AF_INET, &sock_addr_.sin_addr, buf, sizeof(buf));
+    inet_ntop(PF_INET, &sock_addr_.sin_addr, buf, sizeof(buf));
     return buf;
 }
 
@@ -63,8 +63,8 @@ void PeerAddr6::Assign(const char* ip, uint16_t port) {
 }
 bool PeerAddr6::SetIP(const char* ip) {
     if (! ip) return true;
-    if (inet_pton(AF_INET6, ip, &sock_addr_.sin6_addr) == 0) {
-        el_logger->error("[PeerAddr6::SetIP] failed: {}", strerror(errno));
+    if (inet_pton(PF_INET6, ip, &sock_addr_.sin6_addr) == 0) {
+        el_logger->error("[PeerAddr6::SetIP] IP: {}, failed: {}", ip, strerror(errno));
         return false;
     }
     return true;
@@ -81,7 +81,7 @@ size_t PeerAddr6::Size() const {
 }
 string PeerAddr6::IP() const {
     char buf[64];
-    inet_ntop(AF_INET6, &sock_addr_.sin6_addr, buf, sizeof(buf));
+    inet_ntop(PF_INET6, &sock_addr_.sin6_addr, buf, sizeof(buf));
     return buf;
 }
 uint16_t PeerAddr6::Port() const {
