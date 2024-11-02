@@ -7,7 +7,7 @@
 #include "fd_handler.h"
 #include "tcp_callbacks.h"
 #include "tcp_heartbeat_handler.h"
-#include "utils.h"
+#include "ip_addr.h"
 
 using std::map;
 using std::shared_ptr;

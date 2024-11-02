@@ -109,9 +109,9 @@ bool UdpPeer::Create(Mode mode)
         Bind(ip_addr_.ip_.c_str(), ip_addr_.port_);
     } else {
         if (ip_ver_ == IPVer::V4) {
-            remote_peer_addr_ = new PeerAddr4(ip_addr_.ip_.c_str(), ip_addr_.port_);
+            remote_peer_addr_ = new IPAddr4(ip_addr_.ip_.c_str(), ip_addr_.port_);
         } else {
-            remote_peer_addr_ = new PeerAddr6(ip_addr_.ip_.c_str(), ip_addr_.port_);
+            remote_peer_addr_ = new IPAddr6(ip_addr_.ip_.c_str(), ip_addr_.port_);
         }
         el_logger->info("[UdpPeer::Create] Remote address: {}", remote_peer_addr_->String());
     }
@@ -122,9 +122,9 @@ bool UdpPeer::Create(Mode mode)
 bool UdpPeer::Bind(const char* ip, uint16_t port)
 {
     if (ip_ver_ == IPVer::V4) {
-        local_peer_addr_ = new PeerAddr4(ip_addr_.ip_.c_str(), ip_addr_.port_);
+        local_peer_addr_ = new IPAddr4(ip_addr_.ip_.c_str(), ip_addr_.port_);
     } else {
-        local_peer_addr_ = new PeerAddr6(ip_addr_.ip_.c_str(), ip_addr_.port_);
+        local_peer_addr_ = new IPAddr6(ip_addr_.ip_.c_str(), ip_addr_.port_);
     }
 
     el_logger->info("[UdpPeer::Bind] Bind to address: {}", local_peer_addr_->String());
@@ -157,7 +157,7 @@ size_t UdpPeer::SendPacket(const char* data, size_t size)
     return SendPacket(PeerRemoteAddr(), data, size);
 }
 
-size_t UdpPeer::SendPacket(const PeerAddr* peer_addr, const char* data, size_t size)
+size_t UdpPeer::SendPacket(const IPAddr* peer_addr, const char* data, size_t size)
 {
     el_logger->debug("[UdpPeer::SendPacket] sendto: {}, size: {}", peer_addr->String(), size);
     int tx_size = sendto(fd_, data, size, 0, peer_addr->SockAddr(), peer_addr->Size());
@@ -169,11 +169,11 @@ size_t UdpPeer::SendPacket(const PeerAddr* peer_addr, const char* data, size_t s
 
 size_t UdpPeer::ReceivePacket(char* recvbuf, size_t recvbuf_size)
 {
-    PeerAddr* remote_peer_addr;
+    IPAddr* remote_peer_addr;
     if (ip_ver_ == IPVer::V4) {
-        remote_peer_addr = new PeerAddr4(ip_addr_.ip_.c_str(), ip_addr_.port_);
+        remote_peer_addr = new IPAddr4(ip_addr_.ip_.c_str(), ip_addr_.port_);
     } else {
-        remote_peer_addr = new PeerAddr6(ip_addr_.ip_.c_str(), ip_addr_.port_);
+        remote_peer_addr = new IPAddr6(ip_addr_.ip_.c_str(), ip_addr_.port_);
     }
     socklen_t sock_addr_size = remote_peer_addr->Size();
 

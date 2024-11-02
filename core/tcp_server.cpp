@@ -5,7 +5,6 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include "logger.h"
-#include "utils.h"
 
 namespace evt_loop {
 

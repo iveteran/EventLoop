@@ -42,7 +42,7 @@ class UdpEchoServer {
     {
         el_logger->debug("[UdpEchoServer::OnError] error: {}", errmsg);
     }
-    void OnPacketRecvd_Server(UdpPeer* udp_peer, const PeerAddr* remote_addr, const char* data, size_t size)
+    void OnPacketRecvd_Server(UdpPeer* udp_peer, const IPAddr* remote_addr, const char* data, size_t size)
     {
         el_logger->debug("[UdpEchoServer::OnPacketRecvd_Server] fd: {}, remote addr: {}",
                 udp_peer->FD(), remote_addr->String());
@@ -53,7 +53,7 @@ class UdpEchoServer {
         udp_peer->SendPacket(remote_addr, data, size);  // echo message
     }
 
-    void OnPacketRecvd_Client(UdpPeer* udp_peer, const PeerAddr* remote_addr, const char* data, size_t size)
+    void OnPacketRecvd_Client(UdpPeer* udp_peer, const IPAddr* remote_addr, const char* data, size_t size)
     {
         el_logger->debug("[UdpEchoServer::OnPacketRecvd_Client] fd: {}, remote addr: {}",
                 udp_peer->FD(), remote_addr->String());

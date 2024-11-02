@@ -3,12 +3,8 @@
 
 #include <stdint.h>
 #include <string>
-#include <vector>
 
 using std::string;
-
-struct sockaddr_in6;
-struct sockaddr_in;
 
 namespace evt_loop {
 
@@ -37,30 +33,6 @@ class TimeVal {
  private:
   timeval tv_;
 };
-
-struct IPAddress
-{
-  string ip_;
-  uint16_t port_;
-
-  IPAddress(string ip = "", uint16_t port = 0) : ip_(ip), port_(port) {}
-  string ToString() const
-  {
-      char buffer[64] = {0};
-      snprintf(buffer, sizeof(buffer), "%s:%d", ip_.c_str(), port_);
-      return buffer;
-  }
-  string ToJSON() const
-  {
-      char buffer[64] = {0};
-      snprintf(buffer, sizeof(buffer), "{ ip: %s, port: %d }", ip_.c_str(), port_);
-      return buffer;
-  }
-};
-typedef std::vector<IPAddress> IPAddressList;
-
-void SocketAddrToIPAddress(const struct sockaddr_in& sock_addr, IPAddress& ip_addr);
-void SocketAddrToIPAddress(const struct sockaddr_in6& sock_addr, IPAddress& ip_addr);
 
 string DumpHex(const string& data, size_t max_bytes = 0);
 string DumpHex(const char* data, size_t size, size_t max_bytes);
