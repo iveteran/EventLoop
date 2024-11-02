@@ -8,7 +8,7 @@ namespace evt_loop {
 class ClientThreadTest {
     public:
     ClientThreadTest() :
-      echoclient_binary_("localhost", 10000, MessageType::BINARY)
+      echoclient_binary_(IPVer::V4, "localhost", 10000, MessageType::BINARY)
     {
         TcpCallbacksPtr echo_client_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
         echo_client_cbs->on_msg_recvd_cb = std::bind(&ClientThreadTest::OnMessageRecvd_Client, this, std::placeholders::_1, std::placeholders::_2);
