@@ -3,13 +3,13 @@
 
 using namespace evt_loop;
 
-//#define TEST_BINARY_MESSAGE
+#define TEST_BINARY_MESSAGE
 //#define TEST_BINARY_MESSAGE_CLIENT
 
 #define TEST_CRLF_MESSAGE
 //#define TEST_CRLF_MESSAGE_CLIENT
 
-//#define TEST_JSON_MESSAGE
+#define TEST_JSON_MESSAGE
 //#define TEST_JSON_MESSAGE_CLIENT
 
 #define TEST_CRLF_MESSAGE_IPV6
@@ -37,7 +37,7 @@ class BusinessTester {
   #endif
 #endif
 #ifdef TEST_CRLF_MESSAGE_IPV6
-      , echoserver_ip6_(IPVer::V6_ONLY, "::", 30000, MessageType::CRLF)
+      , echoserver_ip6_(IPVer::V6_ONLY, "::1", 30000, MessageType::CRLF)
 #endif
     {
         TcpCallbacksPtr echo_svr_1_cbs = std::shared_ptr<TcpCallbacks>(new TcpCallbacks);
@@ -217,7 +217,7 @@ class BusinessTester {
 
 #ifdef TEST_JSON_MESSAGE
     TcpServer echoserver_json_;
-  #ifdef TEST_JSON_MESSAGE
+  #ifdef TEST_JSON_MESSAGE_CLIENT
     TcpClient echoclient_json_;
   #endif
 #endif
