@@ -14,9 +14,11 @@ namespace evt_loop {
 class TcpClient : public IOEvent
 {
     public:
-    TcpClient(const char *host="", uint16_t port=0, MessageType msg_type = MessageType::BINARY,
-          bool auto_reconnect = true, TcpCallbacksPtr tcp_evt_cbs = nullptr);
+    TcpClient(IPVer ip_ver, const char *host="", uint16_t port=0,
+            MessageType msg_type = MessageType::BINARY,
+            bool auto_reconnect = true, TcpCallbacksPtr tcp_evt_cbs = nullptr);
     ~TcpClient();
+    IPVer GetIPVersion() const { return ip_ver_; }
 
     bool Connect();
     void Disconnect();
@@ -54,9 +56,10 @@ class TcpClient : public IOEvent
     void OnEvents(uint32_t events, void* ctx = nullptr) {}
     void SetFD(int fd) { if (conn_) conn_->SetFD(fd); }  // Hides interface of base class IOEvent
 
-    virtual void InitAddress(const char* host, uint16_t port);
-    virtual bool Connect_();
-    virtual TcpConnectionPtr CreateClient(int fd, const IPAddress& local_addr,
+    void InitAddress(const char* host, uint16_t port);
+    void InitAddress6(const char* host, uint16_t port);
+    bool Connect_();
+    TcpConnectionPtr CreateClient(int fd, const IPAddress& local_addr,
             const IPAddress& peer_addr, const IPAddress& peer_real_addr);
     void Reconnect();
 
@@ -69,6 +72,7 @@ class TcpClient : public IOEvent
     void SendTempBuffer();
 
   protected:
+    IPVer               ip_ver_;
     IPAddress           server_addr_;
     MessageType         msg_type_;
     bool                keepalive_;
@@ -87,18 +91,6 @@ class TcpClient : public IOEvent
     IdleTimeoutParamsPtr    idle_timeout_params_;
 };
 typedef std::shared_ptr<TcpClient> TcpClientPtr;
-
-class TcpClient6 : public TcpClient
-{
-  public:
-    TcpClient6(const char *host="", uint16_t port=0, MessageType msg_type = MessageType::BINARY,
-          bool auto_reconnect = true, TcpCallbacksPtr tcp_evt_cbs = nullptr);
-
-  protected:
-    virtual void InitAddress(const char* host, uint16_t port);
-    virtual bool Connect_();
-};
-typedef std::shared_ptr<TcpClient6> TcpClient6Ptr;
 
 }  // namespace evt_loop
 

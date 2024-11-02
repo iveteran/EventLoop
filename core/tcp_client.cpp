@@ -37,14 +37,18 @@ bool SetTcpKeepAlive(int fd, bool enable, int idle, int interval, int count)
     return true;
 }
 
-TcpClient::TcpClient(const char *host, uint16_t port, MessageType msg_type, bool auto_reconnect, TcpCallbacksPtr tcp_evt_cbs)
+TcpClient::TcpClient(IPVer ip_ver, const char *host, uint16_t port,
+        MessageType msg_type, bool auto_reconnect, TcpCallbacksPtr tcp_evt_cbs)
     : IOEvent(IOType::TCP_CLIENT),
-    msg_type_(msg_type), keepalive_(false), auto_reconnect_(auto_reconnect), conn_(nullptr),
+    ip_ver_(ip_ver), msg_type_(msg_type), keepalive_(false), auto_reconnect_(auto_reconnect), conn_(nullptr),
     reconnect_timer_(std::bind(&TcpClient::OnReconnectTimer, this, std::placeholders::_1)),
-    msg_hdr_desc_(nullptr),
-    tcp_evt_cbs_(tcp_evt_cbs)
+    msg_hdr_desc_(nullptr), tcp_evt_cbs_(tcp_evt_cbs)
 {
-    InitAddress(host, port);
+    if (ip_ver_ == IPVer::V4) {
+        InitAddress(host, port);
+    } else {
+        InitAddress6(host, port);
+    }
 
     if (auto_reconnect_) {
         timeval tv;
@@ -52,8 +56,6 @@ TcpClient::TcpClient(const char *host, uint16_t port, MessageType msg_type, bool
         tv.tv_usec = 0;
         reconnect_timer_.SetInterval(tv);
     }
-
-    //Connect();
 }
 
 TcpClient::~TcpClient()
@@ -68,6 +70,21 @@ void TcpClient::InitAddress(const char* host, uint16_t port)
         server_addr_.ip_ = "127.0.0.1";
     } else if (strcmp(host, "any") == 0) {
         server_addr_.ip_ = "0.0.0.0";
+    } else {
+        server_addr_.ip_ = host;
+    }
+}
+
+void TcpClient::InitAddress6(const char* host, uint16_t port)
+{
+    server_addr_.port_ = port;
+    if (host[0] == '\0' ||
+            strcmp(host, "localhost6") == 0 ||
+            strcmp(host, "ip6-localhost") == 0 ||
+            strcmp(host, "ipv6-localhost") == 0) {
+        server_addr_.ip_ = "::1";
+    } else if (strcmp(host, "any") == 0) {
+        server_addr_.ip_ = "::";
     } else {
         server_addr_.ip_ = host;
     }
@@ -202,22 +219,39 @@ void TcpClient::OnConnectionClosed(TcpConnection* conn)
 bool TcpClient::Connect_()
 {
     int fd;
-    sockaddr_in sock_addr;
+    int domain;
+    struct sockaddr_in sock_addr4 = {};
+    struct sockaddr_in6 sock_addr6 = {};
+    struct sockaddr* sock_addr;
+    int sock_addr_len;
 
-    fd = socket(AF_INET, SOCK_STREAM, 0);
-    sock_addr.sin_family = PF_INET;
-    sock_addr.sin_port = htons(server_addr_.port_);
-    inet_aton(server_addr_.ip_.c_str(), &sock_addr.sin_addr);
+    if (ip_ver_ == IPVer::V4) {
+        domain = AF_INET;
+        fd = socket(domain, SOCK_STREAM, 0);
+        sock_addr4.sin_family = domain;
+        sock_addr4.sin_port = htons(server_addr_.port_);
+        inet_pton(domain, server_addr_.ip_.c_str(), &sock_addr4.sin_addr);
+        sock_addr = (struct sockaddr*)&sock_addr4;
+        sock_addr_len = sizeof(sock_addr4);
+    } else {
+        domain = AF_INET6;
+        fd = socket(domain, SOCK_STREAM, 0);
+        sock_addr6.sin6_family = domain;
+        sock_addr6.sin6_port = htons(server_addr_.port_);
+        inet_pton(domain, server_addr_.ip_.c_str(), &sock_addr6.sin6_addr);
+        sock_addr = (struct sockaddr*)&sock_addr6;
+        sock_addr_len = sizeof(sock_addr6);
+    }
+
     int reuseaddr = 1;
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1) {
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) < 0) {
         OnError(errno, strerror(errno));
         close(fd);
         return false;
     }
 
     int qlen = 5;
-    if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen)) == -1)
-    {
+    if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &qlen, sizeof(qlen)) < 0) {
         el_logger->warn("(setsockopt) Ignore error of enabling TFO: {}(errno: {})", strerror(errno), errno);
     }
 
@@ -230,13 +264,19 @@ bool TcpClient::Connect_()
         }
     }
 
-    if (connect(fd, (sockaddr*)&sock_addr, sizeof(sockaddr_in)) == -1) {
+    if (connect(fd, sock_addr, sock_addr_len) < 0) {
         OnError(errno, strerror(errno));
         close(fd);
         return false;
     }
+
     IPAddress local_addr;
-    SocketAddrToIPAddress(sock_addr, local_addr);
+    if (ip_ver_ == IPVer::V4) {
+        SocketAddrToIPAddress(sock_addr4, local_addr);
+    } else {
+        SocketAddrToIPAddress(sock_addr6, local_addr);
+    }
+
     OnConnected(fd, local_addr);
 
     return true;
@@ -273,78 +313,6 @@ void TcpClient::OnReconnectTimer(TimerEvent* timer)
     } else {
         timer->Stop();
     }
-}
-
-///////////////////////////////////////////////
-
-TcpClient6::TcpClient6(const char *host, uint16_t port, MessageType msg_type, bool auto_reconnect,
-        TcpCallbacksPtr tcp_evt_cbs) : TcpClient(host, port, msg_type, auto_reconnect, tcp_evt_cbs)
-{
-    /*
-    InitAddress(host, port);
-
-    if (auto_reconnect_) {
-        timeval tv;
-        tv.tv_sec = 1;
-        tv.tv_usec = 0;
-        reconnect_timer_.SetInterval(tv);
-    }
-    */
-
-    //Connect();
-}
-
-void TcpClient6::InitAddress(const char* host, uint16_t port)
-{
-    server_addr_.port_ = port;
-    if (host[0] == '\0' ||
-            strcmp(host, "localhost6") == 0 ||
-            strcmp(host, "ip6-localhost") == 0 ||
-            strcmp(host, "ipv6-localhost") == 0) {
-        server_addr_.ip_ = "::1";
-    } else if (strcmp(host, "any") == 0) {
-        server_addr_.ip_ = "::";
-    } else {
-        server_addr_.ip_ = host;
-    }
-}
-
-bool TcpClient6::Connect_()
-{
-    int fd;
-    sockaddr_in6 sock_addr;
-    memset(&sock_addr, 0, sizeof(sock_addr));
-
-    fd = socket(PF_INET6, SOCK_STREAM, 0);
-    sock_addr.sin6_family = PF_INET6;
-    sock_addr.sin6_port = htons(server_addr_.port_);
-    inet_pton(AF_INET6, server_addr_.ip_.c_str(), &sock_addr.sin6_addr);
-    int reuseaddr = 1;
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1) {
-        OnError(errno, strerror(errno));
-        close(fd);
-        return false;
-    }
-
-    if (keepalive_) {
-        bool success = SetTcpKeepAlive(fd, true, 60, 5, 3);
-        if (!success) {
-            OnError(errno, strerror(errno));
-            close(fd);
-            return false;
-        }
-    }
-
-    if (connect(fd, (sockaddr*)&sock_addr, sizeof(sock_addr)) == -1) {
-        OnError(errno, strerror(errno));
-        close(fd);
-        return false;
-    }
-    IPAddress local_addr;
-    SocketAddrToIPAddress(sock_addr, local_addr);
-    OnConnected(fd, local_addr);
-
-    return true;
 }
 
 }  // namespace evt_loop

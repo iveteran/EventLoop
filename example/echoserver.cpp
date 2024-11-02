@@ -18,22 +18,22 @@ class BusinessTester {
     public:
     BusinessTester() : dummy_(0)
 #ifdef TEST_BINARY_MESSAGE
-      , echoserver_binary_("0.0.0.0", 10000, MessageType::BINARY)
+      , echoserver_binary_(IPVer::V4, "0.0.0.0", 10000, MessageType::BINARY)
   #ifdef TEST_BINARY_MESSAGE_CLIENT
-      , echoclient_binary_("localhost", 10000, MessageType::BINARY)
+      , echoclient_binary_(IPVer::V4, "localhost", 10000, MessageType::BINARY)
   #endif
-      , echoserver_binary2_("0.0.0.0", 20000, MessageType::BINARY)
+      , echoserver_binary2_(IPVer::V4, "0.0.0.0", 20000, MessageType::BINARY)
 #endif
 #ifdef TEST_CRLF_MESSAGE
       , echoserver_crlf_(IPVer::V4, "0.0.0.0", 10001, MessageType::CRLF)
   #ifdef TEST_CRLF_MESSAGE_CLIENT
-      , echoclient_crlf_("localhost", 10001, MessageType::CRLF)
+      , echoclient_crlf_(IPVer::V4, "localhost", 10001, MessageType::CRLF)
   #endif
 #endif
 #ifdef TEST_JSON_MESSAGE
-      , echoserver_json_("0.0.0.0", 10002, MessageType::JSON)
+      , echoserver_json_(IPVer::V4, "0.0.0.0", 10002, MessageType::JSON)
   #ifdef TEST_JSON_MESSAGE_CLIENT
-      , echoclient_json_("localhost", 10002, MessageType::JSON)
+      , echoclient_json_(IPVer::V4, "localhost", 10002, MessageType::JSON)
   #endif
 #endif
 #ifdef TEST_CRLF_MESSAGE_IPV6

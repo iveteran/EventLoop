@@ -6,8 +6,8 @@ namespace evt_loop {
 class BusinessTester {
     public:
     BusinessTester() :
-        echoclient_("localhost", 20000, MessageType::BINARY),
-        echoclient_ip6_("::1", 30000, MessageType::BINARY),
+        echoclient_(IPVer::V4, "localhost", 20000, MessageType::BINARY),
+        echoclient_ip6_(IPVer::V6, "::1", 30000, MessageType::BINARY),
         sending_timer_(TimeVal(5, 0), std::bind(&BusinessTester::OnSendingTimer, this, std::placeholders::_1)),
         sending_timer_ip6_(TimeVal(10, 0), std::bind(&BusinessTester::OnSendingTimerIp6, this, std::placeholders::_1))
     {
@@ -75,7 +75,7 @@ class BusinessTester {
 
     private:
     TcpClient echoclient_;
-    TcpClient6 echoclient_ip6_;
+    TcpClient echoclient_ip6_;
     PeriodicTimer sending_timer_;
     OneshotTimer  sending_timer_ip6_;
 };

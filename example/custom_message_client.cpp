@@ -10,7 +10,7 @@ using namespace evt_loop;
 class CustomMessageClient {
     public:
     CustomMessageClient() :
-        client_("localhost", 10000, MessageType::CUSTOM)
+        client_(IPVer::V4, "localhost", 10000, MessageType::CUSTOM)
     {
         auto msg_hdr_desc = CreateMessageHeaderDescription();
         client_.SetMessageHeaderDescription(msg_hdr_desc);

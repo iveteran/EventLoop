@@ -5,14 +5,6 @@
 
 namespace evt_loop {
 
-class TcpConnection;
-
-enum IPVer {
-    V4,
-    V6,
-    V6_ONLY,
-};
-
 class TcpServer: public IOEvent
 {
     public:
