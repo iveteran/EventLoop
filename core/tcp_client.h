@@ -5,6 +5,7 @@
 #include <list>
 #include "tcp_connection.h"
 #include "timer_handler.h"
+#include "peer_addr.h"
 
 using std::string;
 using std::list;

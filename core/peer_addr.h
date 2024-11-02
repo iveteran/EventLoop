@@ -8,6 +8,12 @@ using std::string;
 
 namespace evt_loop {
 
+enum IPVer {
+    V4,
+    V6,
+    V6_ONLY,
+};
+
 struct PeerAddr
 {
     virtual bool SetIP(const char* ip) = 0;

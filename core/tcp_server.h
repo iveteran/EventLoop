@@ -2,6 +2,7 @@
 #define _TCP_SERVER_H
 
 #include "tcp_connection.h"
+#include "peer_addr.h"
 
 namespace evt_loop {
 

@@ -14,12 +14,6 @@ using std::shared_ptr;
 
 namespace evt_loop {
 
-enum IPVer {
-    V4,
-    V6,
-    V6_ONLY,
-};
-
 class TcpConnection : public BufferIOEvent
 {
   public:
