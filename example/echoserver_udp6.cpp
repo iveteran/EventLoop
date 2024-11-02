@@ -10,13 +10,13 @@ class UdpEchoServer {
     public:
     UdpEchoServer()
     {
-        server_.Init("localhost6", 10002, UdpPeer::Mode::LOCAL);
+        server_.Init(IPVer::V6, "localhost6", 10002, UdpPeer::Mode::LOCAL);
         server_.SetOnPacketCallback(std::bind(&UdpEchoServer::OnPacketRecvd_Server, this,
                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         server_.SetOnErrorCallback(std::bind(&UdpEchoServer::OnError, this,
                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
-        client_.Init("::1", 10002, UdpPeer::Mode::REMOTE);
+        client_.Init(IPVer::V6, "::1", 10002, UdpPeer::Mode::REMOTE);
         client_.SetOnPacketCallback(std::bind(&UdpEchoServer::OnPacketRecvd_Client, this,
                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         client_.SetOnErrorCallback(std::bind(&UdpEchoServer::OnError, this,
@@ -65,8 +65,8 @@ class UdpEchoServer {
     }
 
     private:
-    UdpPeer6 server_;
-    UdpPeer6 client_;
+    UdpPeer server_;
+    UdpPeer client_;
 };
 
 int main(int argc, char **argv) {
