@@ -33,5 +33,18 @@ struct URingWriteRequest : public URingRequest {
     int tx_bytes = 0;
 };
 
+struct URingRecvPacketRequest : public URingRequest {
+    struct msghdr msg;
+    struct iovec iov;
+    int rx_bytes = 0;
+    int buf_idx = 0;
+};
+
+struct URingSendPacketRequest : public URingRequest {
+    struct msghdr msg;
+    struct iovec iov;
+    int tx_bytes = 0;
+};
+
 }  // evt_loop
 #endif  // _URING_REQUEST_H

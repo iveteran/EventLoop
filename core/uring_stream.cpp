@@ -15,8 +15,6 @@ void URingStream::OnEvents(uint32_t events, void* ctx) {
         auto req = (URingReadRequest*)ctx;
         auto rx_bytes = req->rx_bytes;
         auto rx_buf = req->rx_buf;
-        printf("--------> URingStream::OnEvents, rx_bytes: %d\n", rx_bytes);
-        printf("--------> URingStream::OnEvents, data: %s\n", string(rx_buf, rx_bytes).c_str());
         int hs_status = 0;
         if (state_ == CONNECTED || state_ == HANDSHAKING) {
             hs_status = OnHandshake(rx_buf, rx_bytes);

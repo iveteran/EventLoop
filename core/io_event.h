@@ -21,6 +21,7 @@ class IOEvent : public IEvent {
  public:
   void SetFD(int fd);
   int FD() const { return fd_; }
+  IOType GetIOType() const { return type_; }
   void WatchEvents(int fd, uint32_t events = FileEvent::READ | FileEvent::ERROR);
   void UpdateEvents(uint32_t events);
   void UpdateEvents();

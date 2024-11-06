@@ -7,6 +7,10 @@
 
 namespace evt_loop {
 
+#ifdef USE_IO_URING
+class URingRecvPacketRequest;
+#endif
+
 class UdpPeer: public IOEvent
 {
     public:
@@ -36,7 +40,7 @@ class UdpPeer: public IOEvent
     void InitAddress(const char* host, uint16_t port);
     void InitAddress6(const char* host, uint16_t port);
     bool Create(Mode mode);
-    bool Bind(const char* ip, uint16_t port);
+    bool Bind(const char* ip, uint16_t port, int fd = -1);
 
     const IPAddr* PeerLocalAddr() const { return local_peer_addr_; }
     const IPAddr* PeerRemoteAddr() const { return remote_peer_addr_; }
@@ -48,6 +52,10 @@ class UdpPeer: public IOEvent
     size_t ReceivePacket(char* recvbuf, size_t recvbuf_size);
     //template<typename T>
     //    size_t ReceivePacket(char* recvbuf, size_t recvbuf_size);
+
+#ifdef USE_IO_URING
+    size_t URingReceivePacket(URingRecvPacketRequest* req);
+#endif
 
     protected:
     IPVer ip_ver_;

@@ -21,6 +21,8 @@ enum FileEvent {
   CLOSED = 1 << 4,
   READ_DONE = 1 << 5,
   WRITE_DONE = 1 << 6,
+  RCVPKT = 1 << 7,
+  SNDPKT = 1 << 8,
 };
 
 enum PollerCtrl {
