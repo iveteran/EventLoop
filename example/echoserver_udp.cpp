@@ -4,18 +4,24 @@
 #include "eventloop/el.h"
 #include "eventloop/logger.h"
 
+#define TEST_SERVER
+//#define TEST_LIENT
+
 using namespace evt_loop;
 
 class UdpEchoServer {
     public:
     UdpEchoServer()
     {
+#ifdef TEST_SERVER
         server_.Init(IPVer::V4, "0.0.0.0", 10001, UdpPeer::Mode::LOCAL);
         server_.SetOnPacketCallback(std::bind(&UdpEchoServer::OnPacketRecvd_Server, this,
                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         server_.SetOnErrorCallback(std::bind(&UdpEchoServer::OnError, this,
                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+#endif
 
+#ifdef TEST_CLIENT
         client_.Init(IPVer::V4, "0.0.0.0", 10001, UdpPeer::Mode::REMOTE);
         client_.SetOnPacketCallback(std::bind(&UdpEchoServer::OnPacketRecvd_Client, this,
                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
@@ -30,6 +36,7 @@ class UdpEchoServer {
         el_logger->debug("[UdpEchoServer::UdpEchoServer] client: packet size: {}", size);
         el_logger->debug("[UdpEchoServer::UdpEchoServer] client: sent packet bytes:");
         el_logger->output(DumpHexWithChars(string(data, size))).eol();
+#endif
     }
     void OnSignal(SignalHandler* sh, uint32_t signo)
     {
@@ -65,8 +72,12 @@ class UdpEchoServer {
     }
 
     private:
+#ifdef TEST_SERVER
     UdpPeer server_;
+#endif
+#ifdef TEST_CLIENT
     UdpPeer client_;
+#endif
 };
 
 int main(int argc, char **argv) {
@@ -78,3 +89,7 @@ int main(int argc, char **argv) {
   return 0;
 }
 
+/*
+ * using nc to test:
+ *   nc -u 0 10001
+ */
