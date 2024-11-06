@@ -30,6 +30,7 @@ class IPAddr4 : public IPAddr
 {
     public:
     IPAddr4(const char* ip=nullptr, uint16_t port=0);
+    IPAddr4(struct sockaddr_in& sock_addr);
     void Assign(const char* ip, uint16_t port);
     bool SetIP(const char* ip);
     void SetPort(uint16_t port);
@@ -47,6 +48,7 @@ class IPAddr6 : public IPAddr
 {
     public:
     IPAddr6(const char* ip=nullptr, uint16_t port=0);
+    IPAddr6(struct sockaddr_in6& sock_addr);
     void Assign(const char* ip, uint16_t port);
     bool SetIP(const char* ip);
     void SetPort(uint16_t port);

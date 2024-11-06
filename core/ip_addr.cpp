@@ -3,6 +3,10 @@
 
 namespace evt_loop {
 
+IPAddr4::IPAddr4(struct sockaddr_in& sock_addr) {
+    sock_addr_ = sock_addr;
+}
+
 IPAddr4::IPAddr4(const char* ip, uint16_t port) {
     Assign(ip, port);
 }
@@ -52,6 +56,9 @@ string IPAddr4::String() const {
     return buf;
 }
 
+IPAddr6::IPAddr6(struct sockaddr_in6& sock_addr) {
+    sock_addr_ = sock_addr;
+}
 IPAddr6::IPAddr6(const char* ip, uint16_t port) {
     Assign(ip, port);
 }
