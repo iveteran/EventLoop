@@ -17,11 +17,13 @@ class UdpPeer: public IOEvent
     using OnErrorCallback = std::function<void (UdpPeer*, int, const char*)>;
     using OnPacketCallback = std::function<void (UdpPeer*, const IPAddr*, const char*, size_t)>;
 
-    //UdpPeer(const char *host, uint16_t port, Mode mode);
+    UdpPeer() : IOEvent(IOType::UDP_PEER) {}
+    UdpPeer(IPVer ip_ver, const char *host, uint16_t port, Mode mode);
     ~UdpPeer();
     void Init(IPVer ip_ver, const char *host, uint16_t port, Mode mode);
     void Destroy();
 
+    IPVer GetIPVersion() const { return ip_ver_; }
     const IPAddress& GetAddress() const { return ip_addr_; }
 
     void SetOnPacketCallback(const OnPacketCallback& cb) { on_packet_cb_ = cb; }

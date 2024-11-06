@@ -5,11 +5,11 @@
 
 namespace evt_loop {
 
-//UdpPeer::UdpPeer(const char *host, uint16_t port, Mode mode)
-//    : IOEvent(IOType::UDP_PEER)
-//{
-//    //Init(host, port, mode);
-//}
+UdpPeer::UdpPeer(IPVer ip_ver, const char *host, uint16_t port, Mode mode)
+    : IOEvent(IOType::UDP_PEER)
+{
+    Init(ip_ver, host, port, mode);
+}
 
 UdpPeer::~UdpPeer()
 {
@@ -42,7 +42,8 @@ void UdpPeer::OnEvents(uint32_t events, void* ctx)
         }
     }
     if (events & FileEvent::WRITE_DONE) {
-        size_t tx_bytes = 0;
+        size_t tx_bytes = ctx ? *(int*)ctx : 0;
+        el_logger->debug("[UdpPeer::OnEvents.WRITE_DONE] tx_bytes: {}", tx_bytes);
         OnWriteDone(tx_bytes);
     }
 
@@ -184,7 +185,9 @@ size_t UdpPeer::ReceivePacket(char* recvbuf, size_t recvbuf_size)
             // set remote peer addr with currently
             remote_peer_addr_ = remote_peer_addr;
         }
-        on_packet_cb_(this, remote_peer_addr, recvbuf, rx_bytes);
+        if (on_packet_cb_) {
+            on_packet_cb_(this, remote_peer_addr, recvbuf, rx_bytes);
+        }
     }
 
     return rx_bytes;
