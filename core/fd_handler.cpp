@@ -24,6 +24,28 @@ bool BufferIOEvent::TxBuffEmpty() {
   return tx_msg_mq_.Empty();
 }
 
+void BufferIOEvent::OnEvents(uint32_t events, void* ctx) {
+  if ((events & FileEvent::WRITE || events & FileEvent::READ) &&
+          (state_ == CONNECTED || state_ == HANDSHAKING)) {
+    int status = OnHandshake();
+    if (status < 0) events |= FileEvent::CLOSED;
+  } else {
+    /// The WRITE events should deal with before the READ events
+    if (events & FileEvent::WRITE) {
+        SendData(events);
+    }
+    if (events & FileEvent::READ) {
+        ReceiveData(events);
+    }
+  }
+
+  if (events & FileEvent::CLOSED) {
+    OnClosed();
+  } else if ((events & FileEvent::ERROR)) {
+    OnError(errno, strerror(errno));
+  }
+}
+
 int BufferIOEvent::ReceiveData(uint32_t& events) {
   char buffer[MAX_BYTES_RECEIVE];
   int total_rx = 0;
@@ -101,28 +123,6 @@ int BufferIOEvent::SendData(uint32_t& events) {
       events |= FileEvent::CLOSED;
   }
   return cur_sent;
-}
-
-void BufferIOEvent::OnEvents(uint32_t events, void* ctx) {
-  if ((events & FileEvent::WRITE || events & FileEvent::READ) &&
-          (state_ == CONNECTED || state_ == HANDSHAKING)) {
-    int status = OnHandshake();
-    if (status < 0) events |= FileEvent::CLOSED;
-  } else {
-    /// The WRITE events should deal with before the READ events
-    if (events & FileEvent::WRITE) {
-        SendData(events);
-    }
-    if (events & FileEvent::READ) {
-        ReceiveData(events);
-    }
-  }
-
-  if (events & FileEvent::CLOSED) {
-    OnClosed();
-  } else if ((events & FileEvent::ERROR)) {
-    OnError(errno, strerror(errno));
-  }
 }
 
 bool BufferIOEvent::Send(const Message& msg) {
