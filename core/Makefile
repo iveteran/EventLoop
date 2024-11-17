@@ -1,8 +1,8 @@
 TARGET   = libel.a
 
-#CPPFLAGS = -g -Wall -std=c++20
+CPPFLAGS = -g -Wall -std=c++20
 #CPPFLAGS = -g -Wall -std=c++20 -D USE_SELECT
-CPPFLAGS = -g -Wall -std=c++20 -D USE_IO_URING
+#CPPFLAGS = -g -Wall -std=c++20 -D USE_IO_URING
 #CPPFLAGS = -Wall -std=c++20 -D_BINARY_MSG_EXTEND_PACKAGING
 CXXFLAGS = #-I../include \
 

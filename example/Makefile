@@ -4,16 +4,16 @@ TARGET_3 = custom_message_server
 TARGET_4 = custom_message_client
 TARGET_5 = logger_demo
 
-#CPPFLAGS = -g -Wall -std=c++20
+CPPFLAGS = -g -Wall -std=c++20
 #CPPFLAGS = -g -Wall -std=c++20 -D USE_SELECT
-CPPFLAGS = -g -Wall -std=c++20 -D USE_IO_URING
+#CPPFLAGS = -g -Wall -std=c++20 -D USE_IO_URING
 CXXFLAGS = -I../include
 
 LDFLAGS = 
 
 DEP_LIBS += \
            ../core/libel.a \
-           -luring
+#           -luring
 
 CXX      = g++
 RM       = rm -f

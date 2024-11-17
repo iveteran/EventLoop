@@ -8,7 +8,7 @@ LDFLAGS =
 
 DEP_LIBS += \
            ../core/libel.a \
-           -luring
+#           -luring
 
 CXX      = g++
 RM       = rm -f
