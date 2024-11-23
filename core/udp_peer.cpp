@@ -184,15 +184,15 @@ size_t UdpPeer::SendPacket(const char* data, size_t size)
 
 size_t UdpPeer::SendPacket(const IPAddr* peer_addr, const char* data, size_t size)
 {
-    el_logger->debug("[UdpPeer::SendPacket] sendto: {}, size: {}", peer_addr->String(), size);
+    el_logger->debug("[UdpPeer::SendPacket] peer: {}, size: {}", peer_addr->String(), size);
 #ifdef USE_IO_URING
     auto poller = (URingPoller*)el_->GetPoller().get();
     int tx_size = poller->AddSendPacketRequest(this, peer_addr, data, size);
 #else
-    int tx_size = sendto(fd_, data, size, 0, peer_addr->SockAddr(), peer_addr->Size());
+    int tx_size = _send_packet(data, size, 0, peer_addr);
 #endif
     if (tx_size < 0) {
-        el_logger->error("[UdpPeer::SendPacket] sendto failed: {}", strerror(errno));
+        el_logger->error("[UdpPeer::SendPacket] failed: {}", strerror(errno));
     }
     return tx_size;
 }
@@ -205,9 +205,8 @@ size_t UdpPeer::ReceivePacket(char* recvbuf, size_t recvbuf_size)
     } else {
         remote_peer_addr = new IPAddr6(ip_addr_.ip_.c_str(), ip_addr_.port_);
     }
-    socklen_t sock_addr_size = remote_peer_addr->Size();
 
-    size_t rx_bytes = recvfrom(fd_, recvbuf, recvbuf_size, 0, (struct sockaddr*)remote_peer_addr->SockAddr(), &sock_addr_size);
+    size_t rx_bytes = _receive_packet(recvbuf, recvbuf_size, 0, remote_peer_addr);
     el_logger->debug("[UdpPeer::ReceivePacket] client: {}, bytes size: {}", remote_peer_addr->String(), rx_bytes);
     if (rx_bytes > 0 && on_packet_cb_) {
         if (!remote_peer_addr_) {

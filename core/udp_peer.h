@@ -56,6 +56,17 @@ class UdpPeer: public IOEvent
     //template<typename T>
     //    size_t ReceivePacket(char* recvbuf, size_t recvbuf_size);
 
+    virtual size_t _send_packet(const char* data, size_t size, int flags, const IPAddr* peer_addr)
+    {
+        return sendto(fd_, data, size, flags, peer_addr->SockAddr(), peer_addr->Size());
+    }
+
+    virtual size_t _receive_packet(const char* buf, size_t bufsize, int flags, IPAddr* peer_addr)
+    {
+        socklen_t peer_addr_size = peer_addr->Size();
+        return recvfrom(fd_, (void*)buf, bufsize, flags, (struct sockaddr*)peer_addr->SockAddr(), &peer_addr_size);
+    }
+
 #ifdef USE_IO_URING
     size_t URingReceivePacket(URingRecvPacketRequest* req);
 #endif
