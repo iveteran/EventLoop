@@ -77,8 +77,8 @@ class UdpPeer: public IOEvent
     protected:
     IPVer ip_ver_;
     IPAddress ip_addr_;
-    IPAddr*  local_peer_addr_;
-    IPAddr*  remote_peer_addr_;
+    IPAddr*  local_peer_addr_ = nullptr;
+    IPAddr*  remote_peer_addr_ = nullptr;
 
     OnConnectedCallback     on_connected_cb_;
     OnDisconnectedCallback  on_disconnected_cb_;

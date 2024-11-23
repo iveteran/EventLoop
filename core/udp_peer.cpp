@@ -213,11 +213,15 @@ size_t UdpPeer::SendPacket(const IPAddr* peer_addr, const char* data, size_t siz
 
 size_t UdpPeer::ReceivePacket(char* recvbuf, size_t recvbuf_size)
 {
+    IPAddr4 ip_addr4;
+    IPAddr6 ip_addr6;
     IPAddr* remote_peer_addr;
     if (ip_ver_ == IPVer::V4) {
-        remote_peer_addr = new IPAddr4(ip_addr_.ip_.c_str(), ip_addr_.port_);
+        ip_addr4.Assign(ip_addr_.ip_.c_str(), ip_addr_.port_);
+        remote_peer_addr = &ip_addr4;
     } else {
-        remote_peer_addr = new IPAddr6(ip_addr_.ip_.c_str(), ip_addr_.port_);
+        ip_addr6.Assign(ip_addr_.ip_.c_str(), ip_addr_.port_);
+        remote_peer_addr = &ip_addr6;
     }
 
     size_t rx_bytes = _receive_packet(recvbuf, recvbuf_size, 0, remote_peer_addr);
@@ -225,7 +229,7 @@ size_t UdpPeer::ReceivePacket(char* recvbuf, size_t recvbuf_size)
     if (rx_bytes > 0 && on_packet_cb_) {
         if (!remote_peer_addr_) {
             // set remote peer addr with currently
-            remote_peer_addr_ = remote_peer_addr;
+            remote_peer_addr_ = remote_peer_addr->Clone();
         }
         if (on_packet_cb_) {
             on_packet_cb_(this, remote_peer_addr, recvbuf, rx_bytes);
@@ -274,14 +278,17 @@ size_t UdpPeer::URingReceivePacket(URingRecvPacketRequest* req) {
     el_logger->debug("[UdpPeer::URingReceivePacket] received message content: {}", string(msg_data, msg_size));
 
     void *addr = io_uring_recvmsg_name(out);
+
+    IPAddr4 ip_addr4(*((struct sockaddr_in *)addr));
+    IPAddr6 ip_addr6(*((struct sockaddr_in *)addr));
     IPAddr* remote_peer_addr;
     if (ip_ver_ == IPVer::V4) {
-        remote_peer_addr = new IPAddr4(*((struct sockaddr_in *)addr));
+        remote_peer_addr = &ip_addr4;
     } else {
-        remote_peer_addr = new IPAddr6(*((struct sockaddr_in6 *)addr));
+        remote_peer_addr = &ip_addr6;
     }
     if (! remote_peer_addr_) {
-        remote_peer_addr_ = remote_peer_addr;
+        remote_peer_addr_ = remote_peer_addr->Clone();
     }
     el_logger->debug("[UdpPeer::URingReceivePacket] received {} message bytes from {}",
             msg_size, remote_peer_addr->String());
