@@ -35,6 +35,14 @@ static const char* ColorYellow     = "\033[33m";    // Yellow
 static const char* ColorBlue       = "\033[34m";    // Blue
 static const char* ColorBgRed      = "\033[41m";    // Red Background
 
+template<typename T>
+bool checkNull(T value) {
+    if constexpr (std::is_pointer_v<T>) {
+        return value == nullptr;
+    }
+    return std::is_null_pointer_v<T>;
+}
+
 using ostream_ptr = std::unique_ptr<std::ostream, std::function<void(std::ostream*)>>;
 
 class Logger {
@@ -316,7 +324,11 @@ private:
                 return fmt_str.size();
             }
         }
-        *os_ << x;
+        if (std::is_same_v<T, std::nullptr_t> || checkNull(x)) {
+            *os_ << "null";
+        } else {
+            *os_ << x;
+        }
         return pos;
     }
 
