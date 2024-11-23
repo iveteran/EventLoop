@@ -56,6 +56,12 @@ string IPAddr4::String() const {
     return buf;
 }
 
+IPAddr* IPAddr4::Clone() const {
+    IPAddr4* clone = new IPAddr4();
+    *clone = *this;
+    return clone;
+}
+
 IPAddr6::IPAddr6(struct sockaddr_in6& sock_addr) {
     sock_addr_ = sock_addr;
 }
@@ -98,6 +104,12 @@ string IPAddr6::String() const {
     char buf[64];
     snprintf(buf, sizeof(buf), "%s:%d", IP().c_str(), Port());
     return buf;
+}
+
+IPAddr* IPAddr6::Clone() const {
+    IPAddr6* clone = new IPAddr6();
+    *clone = *this;
+    return clone;
 }
 
 void SocketAddrToIPAddress(const struct sockaddr_in& sock_addr, IPAddress& ip_addr)

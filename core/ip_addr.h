@@ -25,6 +25,7 @@ struct IPAddr
     virtual string IP() const = 0;
     virtual uint16_t Port() const = 0;
     virtual string String() const = 0;
+    virtual IPAddr* Clone() const = 0;
 };
 
 class IPAddr4 : public IPAddr
@@ -40,6 +41,7 @@ class IPAddr4 : public IPAddr
     string IP() const;
     uint16_t Port() const;
     string String() const;
+    IPAddr* Clone() const;
 
     private:
     struct sockaddr_in sock_addr_;
@@ -58,6 +60,7 @@ class IPAddr6 : public IPAddr
     string IP() const;
     uint16_t Port() const;
     string String() const;
+    IPAddr* Clone() const;
 
     private:
     struct sockaddr_in6 sock_addr_;
