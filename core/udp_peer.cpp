@@ -231,6 +231,11 @@ size_t UdpPeer::ReceivePacket(char* recvbuf, size_t recvbuf_size)
             on_packet_cb_(this, remote_peer_addr, recvbuf, rx_bytes);
         }
     }
+    if (rx_bytes == 0) {
+        if (on_disconnected_cb_) {
+            on_disconnected_cb_(this);
+        }
+    }
 
     return rx_bytes;
 }

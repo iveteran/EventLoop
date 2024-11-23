@@ -20,6 +20,8 @@ class UdpPeer: public IOEvent
         REMOTE = 1,
         CLIENT = 1,
     };
+    using OnConnectedCallback = std::function<void (UdpPeer*)>;
+    using OnDisconnectedCallback = std::function<void (UdpPeer*)>;
     using OnErrorCallback = std::function<void (UdpPeer*, int, const char*)>;
     using OnPacketCallback = std::function<void (UdpPeer*, const IPAddr*, const char*, size_t)>;
 
@@ -78,6 +80,8 @@ class UdpPeer: public IOEvent
     IPAddr*  local_peer_addr_;
     IPAddr*  remote_peer_addr_;
 
+    OnConnectedCallback     on_connected_cb_;
+    OnDisconnectedCallback  on_disconnected_cb_;
     OnErrorCallback     on_error_cb_;
     OnPacketCallback    on_packet_cb_;
 };
