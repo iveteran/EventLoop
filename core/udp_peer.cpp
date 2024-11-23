@@ -161,6 +161,20 @@ bool UdpPeer::Bind(const char* ip, uint16_t port, int fd)
     return true;
 }
 
+bool UdpPeer::Connect()
+{
+    if (! remote_peer_addr_) {
+        return false;
+    }
+
+    if (::connect(fd_, remote_peer_addr_->SockAddr(), remote_peer_addr_->Size()) < 0) {
+        el_logger->error("[UdpPeer::Connect] Connect to server failed: {}", strerror(errno));
+        return false;
+    }
+    el_logger->info("[UdpPeer::Connect] Connect to address: {}", remote_peer_addr_->String());
+    return true;
+}
+
 void UdpPeer::OnError(int errcode, const char* errstr)
 {
     el_logger->error("[UdpPeer::OnError] error code: {}, error string: {}", errcode, errstr);

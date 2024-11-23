@@ -33,6 +33,7 @@ class UdpPeer: public IOEvent
     const IPAddress& GetAddress() const { return ip_addr_; }
 
     bool Bind(const char* ip, uint16_t port, int fd = -1);
+    bool Connect();
 
     const IPAddr* PeerLocalAddr() const { return local_peer_addr_; }
     const IPAddr* PeerRemoteAddr() const { return remote_peer_addr_; }
