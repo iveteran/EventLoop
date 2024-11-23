@@ -32,6 +32,11 @@ class UdpPeer: public IOEvent
     IPVer GetIPVersion() const { return ip_ver_; }
     const IPAddress& GetAddress() const { return ip_addr_; }
 
+    bool Bind(const char* ip, uint16_t port, int fd = -1);
+
+    const IPAddr* PeerLocalAddr() const { return local_peer_addr_; }
+    const IPAddr* PeerRemoteAddr() const { return remote_peer_addr_; }
+
     void SetOnPacketCallback(const OnPacketCallback& cb) { on_packet_cb_ = cb; }
     void SetOnErrorCallback(const OnErrorCallback& cb) { on_error_cb_ = cb; }
 
@@ -42,10 +47,6 @@ class UdpPeer: public IOEvent
     void InitAddress(const char* host, uint16_t port);
     void InitAddress6(const char* host, uint16_t port);
     bool Create(Mode mode);
-    bool Bind(const char* ip, uint16_t port, int fd = -1);
-
-    const IPAddr* PeerLocalAddr() const { return local_peer_addr_; }
-    const IPAddr* PeerRemoteAddr() const { return remote_peer_addr_; }
 
     void OnError(int errcode, const char* errstr) override;
     void OnEvents(uint32_t events, void* ctx = nullptr) override;
