@@ -145,9 +145,9 @@ bool UdpPeer::Create(Mode mode)
 bool UdpPeer::Bind(const char* ip, uint16_t port, int fd)
 {
     if (ip_ver_ == IPVer::V4) {
-        local_peer_addr_ = new IPAddr4(ip_addr_.ip_.c_str(), ip_addr_.port_);
+        local_peer_addr_ = new IPAddr4(ip, port);
     } else {
-        local_peer_addr_ = new IPAddr6(ip_addr_.ip_.c_str(), ip_addr_.port_);
+        local_peer_addr_ = new IPAddr6(ip, port);
     }
 
     el_logger->info("[UdpPeer::Bind] Bind to address: {}", local_peer_addr_->String());
