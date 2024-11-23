@@ -36,6 +36,14 @@ void UdpPeer::Init(IPVer ip_ver, const char *host, uint16_t port, Mode mode)
 
 void UdpPeer::Destroy()
 {
+    if (remote_peer_addr_) {
+        delete remote_peer_addr_;
+        remote_peer_addr_ = nullptr;
+    }
+    if (local_peer_addr_) {
+        delete local_peer_addr_;
+        local_peer_addr_ = nullptr;
+    }
     close(fd_);
     SetFD(-1);
 }

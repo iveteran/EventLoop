@@ -23,7 +23,7 @@ class UdpPeer: public IOEvent
 
     UdpPeer() : IOEvent(IOType::UDP_PEER) {}
     UdpPeer(IPVer ip_ver, const char *host, uint16_t port, Mode mode);
-    ~UdpPeer();
+    virtual ~UdpPeer();
     void Init(IPVer ip_ver, const char *host, uint16_t port, Mode mode);
     void Destroy();
 
