@@ -123,7 +123,7 @@ bool UdpPeer::Create(Mode mode)
         }
     }
 
-    if (mode == Mode::LOCAL) {
+    if (mode == Mode::LOCAL || mode == Mode::SERVER) {
         Bind(ip_addr_.ip_.c_str(), ip_addr_.port_, fd);
     } else {
         if (ip_ver_ == IPVer::V4) {

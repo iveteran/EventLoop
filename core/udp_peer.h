@@ -15,8 +15,10 @@ class UdpPeer: public IOEvent
 {
     public:
     enum class Mode : uint8_t {
-        LOCAL,
-        REMOTE
+        LOCAL  = 0,
+        SERVER = 0,
+        REMOTE = 1,
+        CLIENT = 1,
     };
     using OnErrorCallback = std::function<void (UdpPeer*, int, const char*)>;
     using OnPacketCallback = std::function<void (UdpPeer*, const IPAddr*, const char*, size_t)>;
