@@ -17,6 +17,7 @@ enum IPVer {
 
 struct IPAddr
 {
+    virtual ~IPAddr() {}
     virtual bool SetIP(const char* ip) = 0;
     virtual void SetPort(uint16_t port) = 0;
     virtual const struct sockaddr* SockAddr() const = 0;

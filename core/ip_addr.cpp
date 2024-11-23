@@ -21,7 +21,7 @@ void IPAddr4::Assign(const char* ip, uint16_t port) {
 bool IPAddr4::SetIP(const char* ip) {
     if (! ip) return true;
     if (inet_aton(ip, &sock_addr_.sin_addr) == 0) {
-        el_logger->error("[IPAddr4::SetIP] failed: {}", ip, strerror(errno));
+        el_logger->error("[IPAddr4::SetIP] IP: {}, failed: {}", ip, strerror(errno));
         return false;
     }
     return true;
