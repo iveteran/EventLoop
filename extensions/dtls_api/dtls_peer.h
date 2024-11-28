@@ -35,9 +35,11 @@ class DTLSPeer {
 
     public:
     DTLSPeer(SSL_CTX* ssl_ctx, bool is_server, const IPAddr* peer_addr,
-            int sock_fd);
+            int sock_fd,
+            bool enable_debug = false);
     DTLSPeer(SSL_CTX* ssl_ctx, bool is_server, const IPAddr* peer_addr,
-            BIO_METHOD* bio_methods, void* bio_user_data);
+            BIO_METHOD* bio_methods, void* bio_user_data,
+            bool enable_debug = false);
     ~DTLSPeer();
     void Cleanup();
 

@@ -7,13 +7,21 @@ namespace evt_loop {
 
 static SSL* CreateTLSSession(SSL_CTX* ssl_ctx, bool is_server,
         int sock_fd = -1, const struct sockaddr* peer_addr = nullptr,
-        BIO_METHOD* bio_methods = nullptr, void* bio_user_data = nullptr)
+        BIO_METHOD* bio_methods = nullptr, void* bio_user_data = nullptr,
+        bool debugging_enabled = false)
 {
     // Create new SSL instance for this stream
     SSL* ssl = SSL_new(ssl_ctx);
     if (!ssl) {
         ERR_print_errors_fp(stderr);
         return nullptr;
+    }
+
+    // Enable debugging
+    if (debugging_enabled) {
+        SSL_set_info_callback(ssl, [](const SSL *ssl, int where, int ret) {
+                std::cout << "SSL state: " << SSL_state_string_long(ssl) << std::endl;
+                });
     }
 
     // Create BIO for the socket
@@ -90,20 +98,20 @@ void DTLSPeer::Cleanup()
 }
 
 DTLSPeer::DTLSPeer(SSL_CTX* ssl_ctx, bool is_server, const IPAddr* peer_addr,
-        int sock_fd)
+        int sock_fd, bool enable_debug)
     : is_server_(is_server), peer_addr_(peer_addr)
 {
     ssl_ = CreateTLSSession(ssl_ctx, is_server_, sock_fd, peer_addr->SockAddr(),
-            nullptr, nullptr);
+            nullptr, nullptr, enable_debug);
     assert(ssl_ != nullptr);
 }
 
 DTLSPeer::DTLSPeer(SSL_CTX* ssl_ctx, bool is_server, const IPAddr* peer_addr,
-        BIO_METHOD* bio_methods, void* bio_user_data)
+        BIO_METHOD* bio_methods, void* bio_user_data, bool enable_debug)
     : is_server_(is_server), peer_addr_(peer_addr)
 {
     ssl_ = CreateTLSSession(ssl_ctx, is_server_, -1, nullptr,
-            bio_methods, bio_user_data);
+            bio_methods, bio_user_data, enable_debug);
     assert(ssl_ != nullptr);
 }
 
