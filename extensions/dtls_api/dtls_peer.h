@@ -34,7 +34,10 @@ class DTLSPeer {
     using OnPeerDisconnectedCallback = std::function<void (DTLSPeer*)>;
 
     public:
-    DTLSPeer(SSL_CTX* ssl_ctx, bool is_server, int sock_fd, const IPAddr* peer_addr);
+    DTLSPeer(SSL_CTX* ssl_ctx, bool is_server, const IPAddr* peer_addr,
+            int sock_fd);
+    DTLSPeer(SSL_CTX* ssl_ctx, bool is_server, const IPAddr* peer_addr,
+            BIO_METHOD* bio_methods, void* bio_user_data);
     ~DTLSPeer();
     void Cleanup();
 

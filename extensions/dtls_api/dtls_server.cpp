@@ -61,7 +61,7 @@ size_t DTLSServer::_receive_packet(const char* buf, size_t bufsize, int flags,
     DTLSPeer* peer;
     if (auto iter = peers_.find(peer_key); iter == peers_.end()) {
         el_logger->info("[DTLSServer::_receive_packet] peer connected: {}", peer_key);
-        peer = new DTLSPeer(ssl_ctx_, is_server, FD(), peer_addr);
+        peer = new DTLSPeer(ssl_ctx_, is_server, peer_addr, FD());
         peer->SetOnReadyCallback(on_peer_ready_cb_);
         peer->SetOnDisconnectedCallback(std::bind(&DTLSServer::OnPeerDisconnected, this, std::placeholders::_1));
         peers_[peer_key] = peer;

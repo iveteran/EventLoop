@@ -40,7 +40,7 @@ bool DTLSClient::Connect()
     }
 
     bool is_server = false;
-    peer_ = new DTLSPeer(ssl_ctx_, is_server, FD(), remote_peer_addr_);
+    peer_ = new DTLSPeer(ssl_ctx_, is_server, remote_peer_addr_, FD());
     peer_->SetOnReadyCallback(on_peer_ready_cb_);
     peer_->SetOnDisconnectedCallback(on_peer_disconnected_cb_);
     return true;

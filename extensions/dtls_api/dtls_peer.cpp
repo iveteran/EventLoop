@@ -6,7 +6,8 @@
 namespace evt_loop {
 
 static SSL* CreateTLSSession(SSL_CTX* ssl_ctx, bool is_server,
-        int sock_fd, const struct sockaddr& peer_addr)
+        int sock_fd = -1, const struct sockaddr* peer_addr = nullptr,
+        BIO_METHOD* bio_methods = nullptr, void* bio_user_data = nullptr)
 {
     // Create new SSL instance for this stream
     SSL* ssl = SSL_new(ssl_ctx);
@@ -16,16 +17,30 @@ static SSL* CreateTLSSession(SSL_CTX* ssl_ctx, bool is_server,
     }
 
     // Create BIO for the socket
-    BIO* bio = BIO_new_dgram(sock_fd, BIO_NOCLOSE);
+    BIO* bio = nullptr;
+    if (sock_fd > 0) {
+        bio = BIO_new_dgram(sock_fd, BIO_NOCLOSE);
+    } else if (bio_methods) {
+        bio = BIO_new(bio_methods);
+        BIO_set_data(bio, bio_user_data);
+    } else {
+        el_logger->error("Create BIO failed, must has one of socket fd and BIO methods");
+        return nullptr;
+    }
 
     if (is_server) {
         // server side
+        SSL_set_accept_state(ssl);
         SSL_set_options(ssl, SSL_OP_COOKIE_EXCHANGE);
-        BIO_ctrl(bio, BIO_CTRL_DGRAM_SET_PEER, 0, (void*)&peer_addr);
+        if (peer_addr) {
+            BIO_ctrl(bio, BIO_CTRL_DGRAM_SET_PEER, 0, (void*)peer_addr);
+        }
     } else {
         // client side
         SSL_set_connect_state(ssl);
-        BIO_ctrl(bio, BIO_CTRL_DGRAM_SET_CONNECTED, 0, (void*)&peer_addr);
+        if (peer_addr) {
+            BIO_ctrl(bio, BIO_CTRL_DGRAM_SET_CONNECTED, 0, (void*)peer_addr);
+        }
     }
 
     /* Set and activate timeouts */
@@ -74,11 +89,21 @@ void DTLSPeer::Cleanup()
     ssl_ = nullptr;
 }
 
-DTLSPeer::DTLSPeer(SSL_CTX* ssl_ctx, bool is_server,
-        int sock_fd, const IPAddr* peer_addr)
+DTLSPeer::DTLSPeer(SSL_CTX* ssl_ctx, bool is_server, const IPAddr* peer_addr,
+        int sock_fd)
     : is_server_(is_server), peer_addr_(peer_addr)
 {
-    ssl_ = CreateTLSSession(ssl_ctx, is_server_, sock_fd, *(peer_addr->SockAddr()));
+    ssl_ = CreateTLSSession(ssl_ctx, is_server_, sock_fd, peer_addr->SockAddr(),
+            nullptr, nullptr);
+    assert(ssl_ != nullptr);
+}
+
+DTLSPeer::DTLSPeer(SSL_CTX* ssl_ctx, bool is_server, const IPAddr* peer_addr,
+        BIO_METHOD* bio_methods, void* bio_user_data)
+    : is_server_(is_server), peer_addr_(peer_addr)
+{
+    ssl_ = CreateTLSSession(ssl_ctx, is_server_, -1, nullptr,
+            bio_methods, bio_user_data);
     assert(ssl_ != nullptr);
 }
 
