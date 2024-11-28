@@ -7,18 +7,19 @@
 
 namespace evt_loop {
 
-ENetServer::ENetServer(uint16_t port, const char* ip) :
+ENetServer::ENetServer(IPVer ip_ver, uint16_t port, const char* ip) :
     ENetEventHandler(DFT_MAX_CLIENTS, DFT_CHANNELS) {
-    bool success = init(port, ip);
+    bool success = init(ip_ver, port, ip);
     assert(success);
 }
 
-bool ENetServer::init(uint16_t port, const char* ip) {
+bool ENetServer::init(IPVer ip_ver, uint16_t port, const char* ip) {
     if (enet_initialize() != 0) {
         el_logger->error("[ENetServer::init] Error initializing ENet.");
         return false;
     }
 
+    // XXX: Currently the ENet only supports IP v4
     ENetAddress address;
     if (ip) {
         enet_address_set_host_ip(&address, ip);

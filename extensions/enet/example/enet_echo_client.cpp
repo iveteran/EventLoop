@@ -15,7 +15,7 @@ class ENetEchoClient {
         client_.SetOnClientConnectedCallback(std::bind(&ENetEchoClient::OnConnected, this, _1));
         client_.SetOnPeerDisconnectedCallback(std::bind(&ENetEchoClient::OnClientDisconneted, this, _1));
         client_.SetOnPacketReceivedCallback(std::bind(&ENetEchoClient::OnReceivedPacket, this, _1, _2, _3));
-        client_.Connect(1234, "127.0.0.1");
+        client_.Connect(IPVer::V4, 1234, "127.0.0.1");
     }
 
     void OnSignal(SignalHandler* sh, uint32_t signo)
@@ -38,7 +38,7 @@ class ENetEchoClient {
         enet_address_get_host_ip(&peer->address, peer_ip, sizeof(peer_ip));
         printf("[ENetEchoClient::OnClientDisconneted] %s:%d\n", peer_ip, peer->address.port);
 
-        printf("Disconnected, shutdown\n");
+        printf("Disconnected, Shutdown\n");
         EV_Singleton->StopLoop();
     }
     void OnReceivedPacket(ENetPeer* peer, const char* data, size_t size) {

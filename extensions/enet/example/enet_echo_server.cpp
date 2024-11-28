@@ -10,7 +10,7 @@ using std::placeholders::_3;
 
 class ENetEchoServer {
     public:
-    ENetEchoServer() : server_(1234, "127.0.0.1")
+    ENetEchoServer() : server_(IPVer::V4, 1234, "127.0.0.1")
     {
         server_.SetOnPeerConnectedCallback(std::bind(&ENetEchoServer::OnNewClient, this, _1));
         server_.SetOnPeerDisconnectedCallback(std::bind(&ENetEchoServer::OnClientDisconneted, this, _1));
@@ -19,7 +19,7 @@ class ENetEchoServer {
 
     void OnSignal(SignalHandler* sh, uint32_t signo)
     {
-        printf("Disconnected, shutdown\n");
+        printf("Shutdown\n");
         EV_Singleton->StopLoop();
     }
 

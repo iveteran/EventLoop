@@ -12,7 +12,8 @@ ENetClient::ENetClient() : ENetEventHandler(DFT_MAX_CLIENTS, DFT_CHANNELS) {
     assert(success);
 }
 
-bool ENetClient::Connect(uint16_t port, const char* ip) {
+bool ENetClient::Connect(IPVer ip_ver, uint16_t port, const char* ip) {
+    // XXX: Currently the ENet only supports IP v4
     ENetAddress address;
     enet_address_set_host_ip(&address, ip);
     address.port = port;
@@ -23,6 +24,7 @@ bool ENetClient::Connect(uint16_t port, const char* ip) {
         el_logger->error("[ENetClient::connect] No available peers for initiating an ENet connection");
         return false;
     }
+    el_logger->info("[ENetClient::connect] connect to: {}:{}", ip, address.port);
 
     // Wait for the connection to succeed
     ENetEvent event;
