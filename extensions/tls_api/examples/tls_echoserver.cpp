@@ -10,8 +10,8 @@ namespace evt_loop {
 class BusinessTester {
     public:
     BusinessTester() :
-      echoserver_binary_("0.0.0.0", 50000, MessageType::BINARY),
-      echoclient_binary_("localhost", 50000, MessageType::BINARY)
+      echoserver_binary_(IPVer::V4, "0.0.0.0", 50000, MessageType::BINARY),
+      echoclient_binary_(IPVer::V4, "localhost", 50000, MessageType::BINARY)
     {
         //TLSConnection::setSSLCertKey("./ca/certs/server.cert.pem", "./ca/private/server.key.pem", "./ca/certs/ca.cert.pem");
         TLSConnection::setSSLCertKey("server.pem", "server.pem");
@@ -24,6 +24,7 @@ class BusinessTester {
 
         echoserver_binary_.SetTcpCallbacks(echo_svr_1_cbs);
         echoclient_binary_.SetTcpCallbacks(echo_client_cbs);
+        echoserver_binary_.Start();
 
         echoclient_binary_.Connect();
 

@@ -8,7 +8,7 @@ namespace evt_loop {
 class BusinessTester {
     public:
     BusinessTester() :
-        echoclient_("localhost", 50000, MessageType::BINARY),
+        echoclient_(IPVer::V4, "localhost", 50000, MessageType::BINARY),
         sending_timer_(TimeVal(5, 0), std::bind(&BusinessTester::OnSendingTimer, this, std::placeholders::_1))
     {
         //TLSConnection::setSSLCertKey("./ca/certs/device.cert.pem", "./ca/private/device.key.pem", "./ca/certs/ca.cert.pem");

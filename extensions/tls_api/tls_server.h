@@ -9,7 +9,10 @@ namespace evt_loop {
 class TLSServer : public TcpServer
 {
     public:
-    TLSServer(const char *host ="", uint16_t port=0, MessageType msg_type = MessageType::BINARY, TcpCallbacksPtr tcp_evt_cbs = nullptr) : TcpServer(host, port, msg_type, tcp_evt_cbs)
+    TLSServer(IPVer ip_ver, const char *host ="", uint16_t port=0,
+            MessageType msg_type = MessageType::BINARY,
+            TcpCallbacksPtr tcp_evt_cbs = nullptr)
+        : TcpServer(ip_ver, host, port, msg_type, tcp_evt_cbs)
     { }
 
     protected:

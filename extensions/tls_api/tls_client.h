@@ -9,8 +9,10 @@ namespace evt_loop {
 class TLSClient : public TcpClient
 {
     public:
-    TLSClient(const char *host ="", uint16_t port=0, MessageType msg_type = MessageType::BINARY, bool auto_reconnect = true,
-            TcpCallbacksPtr tcp_evt_cbs = nullptr) : TcpClient(host, port, msg_type, auto_reconnect, tcp_evt_cbs)
+    TLSClient(IPVer ip_ver, const char *host ="", uint16_t port=0,
+            MessageType msg_type = MessageType::BINARY, bool auto_reconnect = true,
+            TcpCallbacksPtr tcp_evt_cbs = nullptr)
+        : TcpClient(ip_ver, host, port, msg_type, auto_reconnect, tcp_evt_cbs)
     { }
 
     protected:
