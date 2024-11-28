@@ -8,6 +8,12 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
 
+void OneshotTimerHandler(TimerEvent* timer)
+{
+    printf("[OneshotTimerHandler] triggered, shutdown\n");
+    EV_Singleton->StopLoop();
+}
+
 class ENetEchoClient {
     public:
     ENetEchoClient()
@@ -22,6 +28,9 @@ class ENetEchoClient {
     {
         printf("Disconnecting...\n");
         client_.Disconnect();
+
+        oneshot_timer_ = new OneshotTimer(TimeVal(3, 0), &OneshotTimerHandler);
+        oneshot_timer_->Start();
     }
 
     protected:
@@ -48,6 +57,7 @@ class ENetEchoClient {
 
     private:
     ENetClient client_;
+    OneshotTimer* oneshot_timer_;
 };
 
 int main()
