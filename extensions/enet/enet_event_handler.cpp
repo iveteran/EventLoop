@@ -79,6 +79,9 @@ void ENetEventHandler::DoENetService() {
                 if (on_peer_connected_cb_) {
                     on_peer_connected_cb_(peer);
                 }
+                if (on_client_connected_cb_) {
+                    on_client_connected_cb_(peer);
+                }
                 break;
             case ENET_EVENT_TYPE_DISCONNECT:
                 el_logger->debug("[ENetClient::DoENetService] Client: {}, address: {}:{} disconnected.", 
