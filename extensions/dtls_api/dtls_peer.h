@@ -31,10 +31,12 @@ enum class HandshakeState : uint8_t {
 
 class DTLSPeer;
 
-using OnPeerReadyCallback = std::function<void (DTLSPeer*)>;
-using OnPeerDisconnectedCallback = std::function<void (DTLSPeer*)>;
-
 class DTLSPeer {
+
+    public:
+    using OnPeerReadyCallback = std::function<void (DTLSPeer*)>;
+    using OnPeerDisconnectedCallback = std::function<void (DTLSPeer*)>;
+
     public:
     DTLSPeer(SSL_CTX* ssl_ctx, bool is_server, int sock_fd, const IPAddr* peer_addr);
     ~DTLSPeer();

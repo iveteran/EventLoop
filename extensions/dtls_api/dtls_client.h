@@ -9,6 +9,7 @@ namespace evt_loop {
 class DTLSPeer;
 
 class DTLSClient : public UdpPeer {
+
     public:
     DTLSClient(IPVer ip_ver, const char* host, uint16_t port);
     ~DTLSClient();
@@ -17,8 +18,8 @@ class DTLSClient : public UdpPeer {
     void Destroy();
     bool Connect();
 
-    void SetOnPeerDisconnectedCallback(const OnPeerDisconnectedCallback& cb) { on_peer_disconnected_cb_ = cb; }
-    void SetOnPeerReadyCallback(const OnPeerReadyCallback& cb) { on_peer_ready_cb_ = cb; }
+    void SetOnPeerDisconnectedCallback(const DTLSPeer::OnPeerDisconnectedCallback& cb) { on_peer_disconnected_cb_ = cb; }
+    void SetOnPeerReadyCallback(const DTLSPeer::OnPeerReadyCallback& cb) { on_peer_ready_cb_ = cb; }
 
     protected:
     size_t _receive_packet(const char* buf, size_t bufsize,
@@ -29,8 +30,8 @@ class DTLSClient : public UdpPeer {
     private:
     DTLSPeer* peer_ = nullptr;
 
-    OnPeerReadyCallback on_peer_ready_cb_;
-    OnPeerDisconnectedCallback on_peer_disconnected_cb_;
+    DTLSPeer::OnPeerReadyCallback on_peer_ready_cb_;
+    DTLSPeer::OnPeerDisconnectedCallback on_peer_disconnected_cb_;
 };
 
 }  // ns evt_loop

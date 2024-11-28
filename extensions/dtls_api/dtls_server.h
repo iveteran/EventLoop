@@ -16,9 +16,11 @@ namespace evt_loop {
 
 //class DTLSPeer;
 
-using OnPeerConnectedCallback = std::function<void (DTLSPeer*)>;
 
 class DTLSServer : public UdpPeer {
+    public:
+    using OnPeerConnectedCallback = std::function<void (DTLSPeer*)>;
+
     public:
     DTLSServer(IPVer ip_ver, const char* host, uint16_t port);
     virtual ~DTLSServer();
@@ -28,8 +30,8 @@ class DTLSServer : public UdpPeer {
     void Destroy();
 
     void SetOnPeerConnectedCallback(const OnPeerConnectedCallback& cb) { on_peer_connected_cb_ = cb; }
-    void SetOnPeerDisconnectedCallback(const OnPeerDisconnectedCallback& cb) { on_peer_disconnected_cb_ = cb; }
-    void SetOnPeerReadyCallback(const OnPeerReadyCallback& cb) { on_peer_ready_cb_ = cb; }
+    void SetOnPeerDisconnectedCallback(const DTLSPeer::OnPeerDisconnectedCallback& cb) { on_peer_disconnected_cb_ = cb; }
+    void SetOnPeerReadyCallback(const DTLSPeer::OnPeerReadyCallback& cb) { on_peer_ready_cb_ = cb; }
 
     protected:
     void OnPeerConnected(DTLSPeer* peer);
@@ -46,8 +48,8 @@ class DTLSServer : public UdpPeer {
     std::map<string, DTLSPeer*> peers_;
 
     OnPeerConnectedCallback on_peer_connected_cb_;
-    OnPeerReadyCallback on_peer_ready_cb_;
-    OnPeerDisconnectedCallback on_peer_disconnected_cb_;
+    DTLSPeer::OnPeerReadyCallback on_peer_ready_cb_;
+    DTLSPeer::OnPeerDisconnectedCallback on_peer_disconnected_cb_;
 };
 
 }  // ns evt_loop
