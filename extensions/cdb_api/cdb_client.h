@@ -2,6 +2,7 @@
 #define _CDB_CLIENT_H
 
 #include "eventloop/timer_handler.h"
+#include "eventloop/ip_addr.h"
 #include "eventloop/utils.h"
 #include "cdb_callbacks.h"
 
