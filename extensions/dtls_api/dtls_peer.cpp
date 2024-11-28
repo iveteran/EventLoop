@@ -2,10 +2,6 @@
 #include "eventloop/logger.h"
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-#include <cstring>
-#include <iostream>
-
-//#include <netinet/in.h>
 
 namespace evt_loop {
 
@@ -93,6 +89,7 @@ DTLSPeer::~DTLSPeer()
 
 HandshakeState DTLSPeer::Handshake()
 {
+    el_logger->debug("[DTLSPeer::Handshake] BEGIN -> handshake state: {}", int(hdshk_state_));
     int result = is_server_ ? SSL_accept(ssl_) : SSL_connect(ssl_);
     if (result == 1) {
         el_logger->debug("[DTLSPeer::Handshake] handshake complete");
@@ -109,17 +106,14 @@ HandshakeState DTLSPeer::Handshake()
             //OnError(errcode, strerror(errno));
         }
     }
-    el_logger->debug("[DTLSPeer::Handshake] handshake state: {}", int(hdshk_state_));
+    el_logger->debug("[DTLSPeer::Handshake] END -> handshake state: {}", int(hdshk_state_));
     return hdshk_state_;
 }
 
 void DTLSPeer::OnHandshakeDone()
 {
     // send buffered packets to peer
-    for (;;) {
-        if (tx_buf_queue_.empty()) {
-            break;
-        }
+    for (; !tx_buf_queue_.empty();) {
         auto packet = tx_buf_queue_.front();
         size_t size = SendPacket(packet);
         if (size > 0) {
