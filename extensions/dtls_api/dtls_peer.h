@@ -7,16 +7,12 @@
 #include <queue>
 #include <functional>
 #include "eventloop/ip_addr.h"
+#include "ssl_forward.h"
 
 #define BUFFER_SIZE 4096
 
 using std::string;
 using std::queue;
-
-struct ssl_st;
-typedef struct ssl_st SSL;
-struct ssl_ctx_st;
-typedef struct ssl_ctx_st SSL_CTX;
 
 struct sockaddr;
 
