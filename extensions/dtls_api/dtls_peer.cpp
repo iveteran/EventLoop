@@ -24,6 +24,9 @@ static SSL* CreateTLSSession(SSL_CTX* ssl_ctx, bool is_server,
                 });
     }
 
+    SSL_set_mtu(ssl, 1200); // Set MTU for DTLS
+    SSL_set_options(ssl, SSL_OP_NO_QUERY_MTU);
+
     // Create BIO for the socket
     BIO* bio = nullptr;
     if (sock_fd > 0) {
