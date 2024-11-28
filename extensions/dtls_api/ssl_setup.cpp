@@ -20,10 +20,11 @@ static int generate_cookie(SSL *ssl, unsigned char *cookie, unsigned int *cookie
 static int verify_cookie(SSL *ssl, const unsigned char *cookie, unsigned int cookie_len) {
     return 1;  // Accept all cookies for simplicity
 }
-#endif
+#else
 
 unsigned char cookie_secret[COOKIE_SECRET_LENGTH];
 int cookie_initialized = 0;
+unsigned char more_secret[16];
 
 static int generate_cookie(SSL *ssl, unsigned char *cookie, unsigned int *cookie_len)
 	{
@@ -53,16 +54,17 @@ static int generate_cookie(SSL *ssl, unsigned char *cookie, unsigned int *cookie
 	length = 0;
 	switch (peer.ss.ss_family) {
 		case AF_INET:
+            length += sizeof(in_port_t);
 			length += sizeof(struct in_addr);
 			break;
 		case AF_INET6:
+            length += sizeof(in_port_t);
 			length += sizeof(struct in6_addr);
 			break;
 		default:
-			OPENSSL_assert(0);
+		    length += sizeof(more_secret);
 			break;
 	}
-	length += sizeof(in_port_t);
 	buffer = (unsigned char*) OPENSSL_malloc(length);
 
 	if (buffer == NULL)
@@ -89,7 +91,7 @@ static int generate_cookie(SSL *ssl, unsigned char *cookie, unsigned int *cookie
 				   sizeof(struct in6_addr));
 			break;
 		default:
-			OPENSSL_assert(0);
+			memcpy(buffer, more_secret, sizeof(more_secret));
 			break;
 	}
 
@@ -125,16 +127,17 @@ static int verify_cookie(SSL *ssl, const unsigned char *cookie, unsigned int coo
 	length = 0;
 	switch (peer.ss.ss_family) {
 		case AF_INET:
+            length += sizeof(in_port_t);
 			length += sizeof(struct in_addr);
 			break;
 		case AF_INET6:
+            length += sizeof(in_port_t);
 			length += sizeof(struct in6_addr);
 			break;
 		default:
-			OPENSSL_assert(0);
+		    length += sizeof(more_secret);
 			break;
 	}
-	length += sizeof(in_port_t);
 	buffer = (unsigned char*) OPENSSL_malloc(length);
 
 	if (buffer == NULL)
@@ -161,7 +164,7 @@ static int verify_cookie(SSL *ssl, const unsigned char *cookie, unsigned int coo
 				   sizeof(struct in6_addr));
 			break;
 		default:
-			OPENSSL_assert(0);
+			memcpy(buffer, more_secret, sizeof(more_secret));
 			break;
 	}
 
@@ -175,6 +178,7 @@ static int verify_cookie(SSL *ssl, const unsigned char *cookie, unsigned int coo
 
 	return 0;
 }
+#endif
 
 SSL_CTX* SetupSSLContext(bool is_server, const char* cert_file, const char* key_file, const char* ca_file)
 {
