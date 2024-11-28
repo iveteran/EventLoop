@@ -69,10 +69,12 @@ void ENetEventHandler::DoENetService() {
     int timeout = 50; // milliseconds
     while (enet_host_service(host_, &event, timeout) > 0) {
         auto peer = event.peer;
+        char peer_ip[64];
+        enet_address_get_host_ip(&peer->address, peer_ip, sizeof(peer_ip));
         switch (event.type) {
             case ENET_EVENT_TYPE_CONNECT:
                 el_logger->debug("[ENetEventHandler::DoENetService] Client connected from {}:{}",
-                        peer->address.host, peer->address.port);
+                        peer_ip, peer->address.port);
                 peer->data = NULL;
                 if (on_peer_connected_cb_) {
                     on_peer_connected_cb_(peer);
@@ -80,7 +82,7 @@ void ENetEventHandler::DoENetService() {
                 break;
             case ENET_EVENT_TYPE_DISCONNECT:
                 el_logger->debug("[ENetClient::DoENetService] Client: {}, address: {}:{} disconnected.", 
-                        peer->data ? (char*)peer->data : "unknown", peer->address.host, peer->address.port);
+                        peer->data ? (char*)peer->data : "unknown", peer_ip, peer->address.port);
                 peer->data = NULL;
                 if (on_peer_disconnect_cb_) {
                     on_peer_disconnect_cb_(peer);
