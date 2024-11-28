@@ -38,6 +38,7 @@ class DTLSPeer {
     ~DTLSPeer();
     void Cleanup();
 
+    HandshakeState Handshake();
     size_t SendPacket(const char* data, size_t size, bool need_buffer = true);
     size_t SendPacket(const string& data);
 
@@ -51,7 +52,6 @@ class DTLSPeer {
 
     protected:
     void handle_dtls_error(int result);
-    HandshakeState Handshake();
     void OnHandshakeDone();
 
     private:
